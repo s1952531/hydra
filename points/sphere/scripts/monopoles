@@ -1,0 +1,30 @@
+#!/usr/bin/env csh
+
+#=========================================================================#
+#   Job setup script for monopoles on a sphere
+#=========================================================================#
+set datagen = "monopoles"
+
+# Default input parameters:
+set emin = "8.0"    # Minimum energy allowed to accept initial state
+set emax = "9.0"    # Maximum energy allowed to accept initial state
+
+# Number of point vortices:
+set n=`cat n_vortices`
+
+#==========================================================================
+echo ' There are' $n 'vortices overall.'
+
+echo
+echo -n ' Minimum energy to accept initial state (default' $emin')? '
+set var=$<
+if ($var != "") set emin=$var
+
+echo -n ' Maximum energy to accept initial state (default' $emax')? '
+set var=$<
+if ($var != "") set emax=$var
+
+echo $emin $emax | cat > in_$datagen
+
+echo ' Searching for a state within this energy range ...'
+./$datagen < in_$datagen > out_$datagen

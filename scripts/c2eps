@@ -1,0 +1,108 @@
+#!/usr/bin/env csh
+
+#========================================================================
+# Generates a greyscale or colour EPS image from a selected character
+# image file (ending in .c2) generated e.g. by r4toc2.f90
+
+#   ===> Run this in the working directory containing the image <===
+#========================================================================
+
+# Specify the FORTRAN compiler together with compiler options:
+alias f90 "gfortran -O3 -mcmodel=medium"
+
+# Default number of bytes representing a single character:
+set n_b_p_c="1"
+
+# Look for c2 files in current working directory
+set c2files=`/bin/ls *c2`
+set nf=$#c2files
+# Choose one prefix as the default:
+set infile_prefix = `echo $c2files[$nf] | awk -F. '{print $(NF-1)}'`
+
+# Default input parameters to c2tops.f90:
+set nx  = "256"   # Horizontal image dimension
+set ny  = "256"   #  Vertical  image dimension
+set copt  = "2"   # Colour option (1 for grey, 2 for colour)
+set irps  = "1"   # Frame in character image file to convert to eps
+set dpi = "200"   # DPI resolution (pixels per inch)
+#========================================================================
+# Get home directory from a script:
+set local_home=`homedir`
+# Location of the hydra script directory:
+set bindir=$local_home/$user/hydra/scripts
+
+echo
+echo '          --------------------------------------------'
+echo '          |  Character image -> EPS conversion tool  |'
+echo '          --------------------------------------------'
+echo
+
+echo -n ' Prefix (before .c2) of the character image file (default:' $infile_prefix')? '
+set var=$<
+if ($var != "") set infile_prefix=$var
+
+# Check that file exists:
+if (!(-e $infile_prefix.c2)) then
+   echo ' *** File does not exist!!!  Exiting.'
+   exit(-1)
+endif
+
+echo
+echo -n ' Horizontal dimension of image (default:' $nx')? '
+set var=$<
+if ($var != "") set nx=$var
+
+echo -n '   Vertical dimension of image (default:' $ny')? '
+set var=$<
+if ($var != "") set ny=$var
+
+set width=`echo "scale=10; $nx / $dpi" | bc -l`
+echo -n ' Image width (in inches;  default:' $width')? '
+set var=$<
+if ($var != "") set width=$var
+
+echo -n ' (1) Grey-scale or (2) colour postscript (default:' $copt')? '
+set var=$<
+if ($var != "") set copt=$var
+
+echo -n ' Frame or record to convert to postscript (default:' $irps')? '
+set var=$<
+if ($var != "") set irps=$var
+
+#========================================================================
+# Use C pre-processor to put chosen parameters $copts into c2tops.f90:
+set copts="-DN_X=$nx -DN_Y=$ny -DN_BYTES_PER_CHAR=$n_b_p_c"
+/bin/cp $bindir/graphics/c2tops.f90 .
+precomp $copts c2tops.f90
+
+# Compile programme:
+f90 -o c2tops c2tops.f90
+
+# Copy colourmap (made by genmap.f90) to working directory:
+/bin/cp $bindir/graphics/colourmap .
+
+# Create input data file:
+cat << /EOF > input_c2tops
+$width
+$copt
+$infile_prefix
+$irps
+/EOF
+
+# Run programme (creates a PS file):
+c2tops < input_c2tops > junk
+
+# Extract postscript filename:
+set psfile = `cat psfilename`
+
+# Convert PS to EPS:
+ps2eps $psfile
+
+# Get prefix of filename:
+set basename = `echo $psfile | awk -F. '{print $(NF-1)}'`
+
+echo
+echo ' Created' $basename.eps
+
+# Clean up unwanted files:
+/bin/rm $psfile input_c2tops junk c2tops*

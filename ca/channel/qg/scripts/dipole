@@ -1,0 +1,23 @@
+#!/usr/bin/env csh
+
+#========================================#
+# Job setup script for an dipolar vortex
+#========================================#
+set datagen = "dipole"
+
+# Data generation routine specific parameters:
+set c  =  "0.1"    # Propagation speed
+
+echo -n ' Propagation speed, c (default' $c')? '
+set var=$<
+if ($var != "") set c=$var
+
+echo '  Larichev-Reznik dipole' >> job_info
+echo ' ' >> job_info
+echo '  Radius, R = 1, and propagation speed, c = ' $c >> job_info
+
+cat << /EOF > in_$datagen
+$c
+/EOF
+
+$datagen < in_$datagen > out_$datagen

@@ -1,0 +1,172 @@
+#!/usr/bin/env python
+
+# This script plots a cross section at x or y = 0 of b (total)
+# from data in 3d/ba.r4 and src/parameters.f90.
+
+#     @@@@   Run from the current job directory   @@@@
+
+#========== Perform the generic imports =========
+import sys,os,warnings
+import numpy as np
+import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from matplotlib.artist import setp
+import matplotlib.cm as cm
+import matplotlib as mpl
+from matplotlib import rcParams
+from matplotlib import rc
+rcParams.update({'figure.autolayout': True})
+warnings.simplefilter("ignore",DeprecationWarning)
+
+# Ensure latex fonts throughout:
+rc('font', **{'family': 'Times New Roman'})
+rc('text', usetex=True)
+
+# set tick label size:
+label_size = 20
+mpl.rcParams['xtick.labelsize'] = label_size
+mpl.rcParams['ytick.labelsize'] = label_size
+# set x tick width and size:
+mpl.rcParams['xtick.major.size'] = 5
+mpl.rcParams['xtick.major.width'] = 2
+mpl.rcParams['xtick.minor.size'] = 3
+mpl.rcParams['xtick.minor.width'] = 1
+# set y tick width and size:
+mpl.rcParams['ytick.major.size'] = 5
+mpl.rcParams['ytick.major.width'] = 2
+mpl.rcParams['ytick.minor.size'] = 3
+mpl.rcParams['ytick.minor.width'] = 1
+# set axes width:
+mpl.rcParams['axes.linewidth'] = 1
+
+#====================== Function definitions =======================
+def contint(fmin,fmax):
+    #Determines a nice contour interval (giving 10-20 divisions with
+    #interval 1, 2 or 5x10^m for some m) given the minimum & maximum
+    #values of the field data (fmin & fmax).
+
+    fmax=0.9999999*fmax
+    fmin=0.9999999*fmin
+    #The 0.99... factor avoids having a superfluous tick interval
+    #in cases where fmax-fmin is 10^m or 2x10^m
+
+    emag=1.0
+    rmult=fmax-fmin
+    while rmult < 10:
+       emag=emag/10
+       rmult=rmult*10
+
+    while rmult >= 100:
+       emag=emag*10
+       rmult=rmult/10
+
+    kmult=int(rmult/10)
+
+    if kmult < 1:
+       ci=emag
+    elif kmult < 2:
+       ci=2*emag
+    elif kmult < 4:
+       ci=4*emag
+    elif kmult < 8:
+       ci=10*emag
+    else:
+       ci=20*emag
+
+    return ci
+
+#=================================================================
+# Work out grid resolution (ng & nz) by reading it from parameters.f90:
+in_file=open('src/parameters.f90','r')
+fread=in_file.readlines()
+for line in fread:
+   if ':: ng=' in line:
+      pline=line
+
+line=pline.split("=")[1]
+ng=int(line.split(",")[0])
+line=pline.split("=")[2]
+nz=int(line.split(",")[0])+1
+
+# Also read f & N to adjust aspect ratio:
+for line in fread:
+   if ':: cof=' in line:
+      pline=line
+
+line=pline.split("=")[1]
+txt=line.split(",")[0]
+cof=float(txt.rstrip("d0"))
+line=pline.split("=")[2]
+txt=line.split(",")[0]
+bvf=float(txt.rstrip("d0\n"))
+epsi=bvf/cof
+
+# Extent in x & z (xlen & zlen):
+xhw=np.pi
+xlen=2.0*xhw
+zlen=epsi*xlen*float(nz-1)/float(ng)
+extent=np.array([-xhw,xhw,-zlen,0.0])
+
+# To show more contour lines in main image:
+mult=2
+
+#-----------------------------------------------------
+# Read buoyancy anomaly (cross section at constant x):
+in_file=open('3d/ba.r4','r')
+raw_array=np.fromfile(in_file,dtype=np.float32)
+in_file.close()
+A=np.empty([nz,ng,ng])
+A=raw_array[1:nz*ng*ng+1].reshape(nz,ng,ng)
+iy=int(ng/2+0.5)
+fac=1.0/(cof*bvf)
+ba=fac*A[:,:,iy]
+bb=np.linspace(-zlen,0.,nz)
+for ix in range(ng):
+    ba[:,ix]=ba[:,ix]+bb
+
+# Work out the overall min/max values:
+bamin=np.amin(ba)
+bamax=np.amax(ba)
+
+# Obtain contour levels for plotting the colorbars:
+dba=contint(bamin,bamax)
+jmin=-int(-bamin/dba)
+jmax= int( bamax/dba)
+clevels=np.linspace(dba*float(jmin),dba*float(jmax),jmax-jmin+1)
+dba=dba/mult
+jmin=-int(-bamin/dba)
+jmax= int( bamax/dba)
+clevelsf=np.linspace(dba*float(jmin),dba*float(jmax),jmax-jmin+1)
+
+#==============================================================================
+# Set up figure:
+aspect=epsi*float(nz)/float(ng)
+fig = plt.figure(1,figsize=[15,15*aspect+1])
+ax = fig.add_subplot(111)
+
+ax.set_xlim([-xhw,xhw])
+ax.set_ylim([-zlen,0.0])
+
+ax.set_title('$b(x,0,z)/(fNL)$', fontsize=30)
+ax.set_xlabel('$x/L$', fontsize=20)
+ax.set_ylabel('$Nz/fL$', fontsize=20)
+
+# Plot the image with contours and a colourbar:
+im=ax.imshow(ba,cmap=cm.bwr,vmin=bamin,vmax=bamax,extent=extent,origin='lower',interpolation='bilinear')
+cs=ax.contour(ba, clevelsf, colors='k', extent=extent, linewidths=1)
+divider = make_axes_locatable(ax)
+cax = divider.append_axes("right", size="4%", pad=0.1)
+cbar=fig.colorbar(im, cax=cax, ticks=clevels)
+cbar.add_lines(cs)
+
+#=========================================================================
+# Save image:
+fig.tight_layout()
+fig.savefig('btot.pdf', format='pdf', dpi=600, bbox_inches='tight')
+
+print()
+print(' To view the image, type')
+print()
+print(' evince btot.pdf &')
+print()

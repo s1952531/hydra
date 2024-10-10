@@ -1,0 +1,23 @@
+#!/usr/bin/env csh
+
+#=========================================================================#
+#   Job setup script for the bolus initial condition
+#=========================================================================#
+set datagen = "bolus"
+
+# Defaults:
+set vol=30.0
+#==========================================================================
+
+echo -n ' Volume of the homogeneous fluid to be released (default' $vol')? '
+set var=$<
+if ($var != "") set vol=$var
+
+echo ' ' >> job_info
+echo ' Volume released in litres:         ' $vol >> job_info
+
+cat << /EOF > in_$datagen
+$vol
+/EOF
+
+$datagen < in_$datagen > out_$datagen

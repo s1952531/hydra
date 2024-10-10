@@ -1,0 +1,54 @@
+#!/usr/bin/env csh
+
+#=========================================================================#
+#   Job setup script for the vort initial condition
+#=========================================================================#
+set datagen = "vort"
+
+# Defaults:
+set xfrac=0.75
+set yfrac=0.5
+set wfrac=0.2
+set bamp=-1.0
+set zamp=0.0
+#==========================================================================
+
+echo ' Enter the x location of the vortex centre as a fraction'
+echo -n ' of the domain width (default' $xfrac'): '
+set var=$<
+if ($var != "") set xfrac=$var
+
+echo ' Enter the y location of the vortex centre as a fraction'
+echo -n ' of the domain height (default' $yfrac'): '
+set var=$<
+if ($var != "") set yfrac=$var
+
+echo ' Enter the width of the vortex as a fraction'
+echo -n ' of the domain width (default' $wfrac'): '
+set var=$<
+if ($var != "") set wfrac=$var
+
+echo -n ' Enter the maximum buoyancy anomaly in the vortex (default' $bamp'): '
+set var=$<
+if ($var != "") set bamp=$var
+
+echo -n ' Enter the central vorticity value in the vortex (default' $zamp'): '
+set var=$<
+if ($var != "") set zamp=$var
+
+echo ' ' >> job_info
+echo ' Vortex fractional location in x:   ' $xfrac >> job_info
+echo ' Vortex fractional location in y:   ' $yfrac >> job_info
+echo ' Vortex fractional width (rel to x):' $wfrac >> job_info
+echo ' buoyancy  amplitude:               ' $bamp >> job_info
+echo ' Vorticity amplitude:               ' $zamp >> job_info
+
+cat << /EOF > in_$datagen
+$xtran
+$ytran
+$wtran
+$bamp
+$zamp
+/EOF
+
+$datagen < in_$datagen > out_$datagen

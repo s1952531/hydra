@@ -1,0 +1,190 @@
+#!/usr/bin/env python
+
+# This script plots cross sections of w at x = 0 at six selected times
+
+#     @@@@   Run from the current job directory   @@@@
+
+#========== Perform the generic imports =========
+import sys,os,warnings
+import numpy as np
+import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from matplotlib.artist import setp
+import matplotlib.cm as cm
+import matplotlib as mpl
+from matplotlib import rcParams
+from matplotlib import rc
+rcParams.update({'figure.autolayout': True})
+warnings.simplefilter("ignore",DeprecationWarning)
+from tools.nc_reader import nc_reader
+
+# Ensure latex fonts throughout:
+rc('font', **{'family': 'Times New Roman'})
+rc('text', usetex=True)
+
+# set tick label size:
+label_size = 20
+mpl.rcParams['xtick.labelsize'] = label_size
+mpl.rcParams['ytick.labelsize'] = label_size
+# set x tick width and size:
+mpl.rcParams['xtick.major.size'] = 5
+mpl.rcParams['xtick.major.width'] = 2
+mpl.rcParams['xtick.minor.size'] = 3
+mpl.rcParams['xtick.minor.width'] = 1
+# set y tick width and size:
+mpl.rcParams['ytick.major.size'] = 5
+mpl.rcParams['ytick.major.width'] = 2
+mpl.rcParams['ytick.minor.size'] = 3
+mpl.rcParams['ytick.minor.width'] = 1
+# set axes width:
+mpl.rcParams['axes.linewidth'] = 1
+
+#====================== Function definitions =======================
+def contint(fmin,fmax):
+    #Determines a nice contour interval (giving 10-20 divisions with
+    #interval 1, 2 or 5x10^m for some m) given the minimum & maximum
+    #values of the field data (fmin & fmax).
+
+    fmax = 0.9999999*fmax
+    fmin = 0.9999999*fmin
+    #The 0.99... factor avoids having a superfluous tick interval
+    #in cases where fmax-fmin is 10^m or 2x10^m
+
+    emag = 1.0
+    rmult = fmax-fmin
+    while rmult < 10:
+       emag = emag/10
+       rmult = rmult*10
+
+    while rmult >=  100:
+       emag = emag*10
+       rmult = rmult/10
+
+    kmult = int(rmult/10)
+
+    if kmult < 1:
+       ci = emag
+    elif kmult < 2:
+       ci = 2*emag
+    elif kmult < 4:
+       ci = 4*emag
+    elif kmult < 8:
+       ci = 10*emag
+    else:
+       ci = 20*emag
+
+    return ci
+
+#---------------------------------------------------------------------------
+ncr = nc_reader()
+ncr.open('ps3d_ocean_32_fields.nc') #epic_ocean_512x512x32_fields.nc')
+
+ncells = ncr.get_box_ncells()
+
+ng = ncells[0]
+nz = ncells[2]
+
+origin = ncr.get_box_origin()
+extent = ncr.get_box_extent()
+dz = extent[2] / nz
+
+tt = ncr.get_all('t')
+
+#---------------------------------------------------------------------------
+nf = 6 # allow for 6 frames
+nfmax = len(tt)-1 #max frame in the data
+frame_list = np.empty(nf)
+print(' Enter the frames (note: 0 corresponds to t = 0)')
+dframe = int(nfmax/nf)
+frame_def = 0
+for j in range(nf):
+    frame_def+= dframe
+    frame_in = input(' Frame '+str(j)+' (default '+str(frame_def)+')? ')
+    frame_list[j] = int(frame_in or frame_def)
+print()
+
+# To show more contour lines in main image:
+mult = 2
+
+#---------------------------------------------------------------------------
+# Set up figure:
+fig, ax = plt.subplots(figsize=[14,10.5], nrows=3, ncols=2)
+ax = ax.flatten()
+
+# Scaled domain dimensions in x and Nz/f (adjust if necessary):
+extent = (-np.pi,np.pi,-np.pi,0.0)
+
+for step,frame in enumerate(frame_list):
+    frame = int(frame)
+    t = tt[frame]
+    print(' Time t =',t)
+    ax1 = ax[step]
+
+    ax1.set_xlim([-np.pi,np.pi])
+    ax1.set_ylim([-np.pi,0.0])
+
+    # Customise tick values:
+    ax1.xaxis.set_ticks([-np.pi,-np.pi/2.0,0.0,np.pi/2.0,np.pi])
+    ax1.set_xticklabels([r'$-\pi$',r'$-\pi/2$',r'$0$',r'$\pi/2$',r'$\pi$'],fontsize=20)
+    ax1.yaxis.set_ticks([-np.pi,-np.pi/2.0,0.0])
+    ax1.set_yticklabels([r'$-\pi$',r'$-\pi/2$',r'$0$'],fontsize=20)
+
+    ax1.set_title('$t = {x:.3f}$'.format(x=t), fontsize=20)
+
+    if step == nf-1 or step == nf-2:
+        ax1.set_xlabel('$y$', fontsize=20)
+    else:
+        plt.setp(ax1.get_xticklabels(), visible=False)
+
+    if step%2 == 0:
+        ax1.set_ylabel('$Nz/f$', fontsize=20)
+
+    #------------------------------------------------------
+    # Read vertical velocity (cross section at constant x):
+    Z = ncr.get_dataset(step=frame, name='z_velocity')
+
+    Z = np.transpose(Z, axes=[2, 1, 0])
+
+    print(step, tt[frame])
+
+    ix = int(ng/2+0.5)
+    w = Z[:, :, ix]
+
+    # Work out the overall min/max values:
+    wmin = np.amin(w)
+    wmax = np.amax(w)
+    wmag = max(-wmin,wmax)
+    wmin = -wmag
+    wmax = wmag
+
+    # Obtain contour levels for plotting the colorbars:
+    dw = contint(wmin,wmax)
+    jmin = -int(-wmin/dw)
+    jmax =  int( wmax/dw)
+    clevels1 = np.linspace(dw*(float(jmin)-0.5),dw*(float(jmax)+0.5),jmax-jmin+2)
+
+    dw = dw/mult
+    jmin = -int(-wmin/dw)
+    jmax =  int( wmax/dw)
+    clevels1f = np.linspace(dw*(float(jmin)-0.5),dw*(float(jmax)+0.5),jmax-jmin+2)
+
+    #---------------------------------------------------------------------
+    # Plot the image in an array with a colourbar:
+    im1 = ax1.imshow(w,cmap=cm.seismic,vmin=wmin,vmax=wmax,extent=extent,
+                   origin='lower',interpolation='bilinear')
+    cs1 = ax1.contour(w, clevels1f, colors='k', extent=extent, linewidths=1)
+    divider = make_axes_locatable(ax1)
+    cax1 = divider.append_axes("right", size="4%", pad=0.1)
+    cbar = fig.colorbar(im1, cax=cax1, ticks=clevels1, extend='both')
+    cm.seismic.set_under('cyan')
+    cm.seismic.set_over('yellow')
+    cbar.add_lines(cs1)
+
+fig.subplots_adjust(wspace=0.8, hspace=0.0)
+
+#=========================================================================
+# Save image:
+fig.savefig('w_evo.pdf', format='pdf', dpi=600)
+
+ncr.close()

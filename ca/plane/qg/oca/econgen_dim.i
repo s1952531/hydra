@@ -1,0 +1,5 @@
+      parameter (nz=N_LAY,nwh=N_WAVE_H,nh=2*nwh)
+      parameter (mgu=MG_ULTRA,nhf=mgu*nh)
+      parameter (npm =N_NOD_T, nm= npm/20+ npm/200)
+      parameter (nplm=N_NOD_L,nlm=nplm/20+nplm/200)
+      parameter (nlevm=N_LEVELS)

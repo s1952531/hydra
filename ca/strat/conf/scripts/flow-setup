@@ -1,0 +1,312 @@
+#!/bin/csh
+
+#=========================================================================#
+#       Job setup script for the strat conf class of f90 codes.
+#=========================================================================#
+
+echo
+echo '--------------------------------------------------------'
+echo '       The general closed domain stratified flow'
+echo '          Combined Lagrangian Advection Method'
+echo '--------------------------------------------------------'
+
+# Specify code numerical method class:
+set meth="ca"
+# Specify code geometry:
+set geom="strat"
+# Specify model equation type:
+set equa="conf"
+# Specify main algorithm name:
+set algo="caps"
+
+#==========================================================================
+# The following is totally generic!
+set local_home=`homedir`
+set hydradir=$local_home/$user/hydra/$meth/$geom/$equa
+
+# Get output base directory:
+set basedir=`workdir`
+# Make the base data directory if it does not already exist:
+if (!(-d $basedir)) mkdir $basedir
+set basedir=$basedir/hydra
+if (!(-d $basedir)) mkdir $basedir
+set basedir=$basedir/$meth
+if (!(-d $basedir)) mkdir $basedir
+set basedir=$basedir/$geom
+if (!(-d $basedir)) mkdir $basedir
+set basedir=$basedir/$equa
+if (!(-d $basedir)) mkdir $basedir
+set basedir=$basedir/$algo
+if (!(-d $basedir)) mkdir $basedir
+
+set outdir=$basedir
+
+# Assign source and binary directories:
+set srcdir=$hydradir/$algo
+set bindir=$hydradir/scripts
+
+# Get the name of the computer to record in the job_info file below:
+set host=`hostname | awk -F. '{print $(1)}'`
+
+#==========================================================================
+# generate a random number seed based on current time:
+set second=`date +%-S`
+set minute=`date +%-M`
+set hour=`date +%-H`
+set day=`date +%-d`
+@ iseed = ( $second + ( 60 * ( $minute + 60 * ( $hour + ( 24 * $day ) ) ) ) )
+
+# Create a temporary directory:
+set tmpdir=$outdir/tmp{$iseed}
+mkdir $tmpdir
+cd $tmpdir
+
+echo
+echo ' *** Job will be built in the temporary directory '
+echo $tmpdir
+
+# Create a job information summary file:
+touch job_info
+echo ' Job created at                      ' `date` >> job_info
+echo ' on                                  ' $host >> job_info
+echo ' ' >> job_info
+
+#==========================================================================
+# Get the data generation routine to be used:
+set dataopt="1"
+echo
+echo ' Choose one of the following flow initialisation methods:'
+echo    ' (1) bolus formation up a ramp,'
+echo    ' (2) a dam-break, or'
+echo -n ' (3) a vortex  -  (default' $dataopt')? '
+set var=$<
+if ($var != "") set dataopt=$var
+echo
+
+if ($dataopt == "1") then 
+   set datagen = "bolus"
+else if ($dataopt == "2") then 
+   set datagen = "dam-break"
+else if ($dataopt == "3") then 
+   set datagen = "vort"
+else 
+   echo ' Not a valid choice - exiting...'
+   /bin/rm -r $tmpdir  
+   exit(-1)
+endif
+
+# Set defaults for numerical parameters:
+set ncontz="50"     # Number of contours used to represent vorticity
+set ncontb="100"    # Number of contours used to represent buoyancy
+set tgsave="0.5"    # Grid data save time increment
+set tcsave="5.0"    # Contour data save time increment
+set tsim="100.0"    # Total simulation time
+set nnu="3"         # Hyperviscous power
+set prediss="100.0" # Damping rate in highest waveno.
+
+#===========================================================================
+# Select domain shape and generate the conformal map:
+set domopt="1"
+echo
+echo ' Choose one of the following domains:'
+echo    ' (1) a sloping bottom with a flat top, or'
+echo -n ' (2) A weir separating two regions of different height (default' $domopt')? '
+set var=$<
+if ($var != "") set domopt=$var
+echo
+
+if ($domopt == "1") then 
+   # Select dimensions and run a fortran code to generate conformal map:
+   echo
+   set lx=6.4
+   echo -n ' Domain length, L_x (default' $lx')? '
+   set var=$<
+   if ($var != "") set lx=$var
+   echo ' Domain length, L_x:                 ' $lx >> job_info
+   set ly=0.3
+   echo -n ' Domain height, L_y (default' $ly')? '
+   set var=$<
+   if ($var != "") set ly=$var
+   echo ' Domain height, L_y:                 ' $ly >> job_info
+
+   echo
+   set wramp=1.5
+   echo -n '  Width of ramp, w (default' $wramp')? '
+   set var=$<
+   if ($var != "") set wramp=$var
+   echo ' Ramp  width, w:                     ' $wramp >> job_info
+   set hramp=0.1
+   echo -n ' Height of ramp, w (default' $hramp')? '
+   set var=$<
+   if ($var != "") set hramp=$var
+   echo ' Ramp height, h:                     ' $hramp >> job_info
+   set smoo=0.1
+   echo -n ' Smoothing length, epsilon (default' $smoo')? '
+   set var=$<
+   if ($var != "") set smoo=$var
+   echo ' Smoothing length, epsilon:          ' $smoo >> job_info
+
+   echo
+   set nx=2048
+   echo -n ' Grid resolution in x (default' $nx')? '
+   set var=$<
+   if ($var != "") set nx=$var
+   set ny=96
+   echo -n ' Grid resolution in y (default' $ny')? '
+   set var=$<
+   if ($var != "") set ny=$var
+
+   #Use these dimensions to compile fortran code:
+   /bin/cp $srcdir/slope.f90 .
+   
+   # Use C pre-processor to put chosen parameters $copts into parameters.f90
+   set copts="-DN_X=$nx -DN_Y=$ny -DL_X=$lx -DL_Y=$ly"
+   precomp $copts slope.f90
+
+   # Compile code:
+   gfortran -O3 -o slope ~/hydra/lib/stafft/stafft.f90 slope.f90
+
+   # Create input file and run to generate map:
+   cat << /EOF > in_slope
+$wramp
+$hramp
+$smoo
+/EOF
+
+   slope < in_slope > out_slope
+   
+else if ($domopt == "2") then 
+   # Run a python script (calling MATLAB) to generate conformal map:
+   # (make sure we use python3):
+   set path=(/opt/python/miniconda/bin /opt/python/miniconda $path)
+   python $bindir/{$domgen}_matlab.py
+
+   # Extract grid resolution (resolution.asc):
+   set dum = `head -1 resolution.asc`
+   set nx=$dum[1]
+   set ny=$dum[2]
+else 
+   echo ' Not a valid choice - exiting...'
+   /bin/rm -r $tmpdir  
+   exit(-1)
+endif
+
+# Extract conformal domain dimensions from output file (domdim.asc):
+set dum = `head -1 domdim.asc`
+set xmin=$dum[1]
+set xmax=$dum[2]
+set dum = `tail -1 domdim.asc`
+set ymin=$dum[1]
+set ymax=$dum[2]
+
+echo ' Inversion grid resolution in x:     ' $nx >> job_info
+echo ' Inversion grid resolution in y:     ' $ny >> job_info
+
+#==========================================================================
+# Choose remaining numerical parameters:
+
+#echo -n ' No. of Vorticity jumps to represent (default' $ncontz')? '
+#set var=$<
+#if ($var != "") set ncontz=$var
+#echo ' Number of jumps to represent zz, ncontz:' $ncontz >> job_info
+
+#echo -n ' No. of Buoyancy jumps to represent (default' $ncontb')? '
+#set var=$<
+#if ($var != "") set ncontb=$var
+#echo ' Number of jumps to represent bb, ncontb:' $ncontb >> job_info
+
+echo
+echo -n ' Time interval between gridded data saves (default' $tgsave')? '
+set var=$<
+if ($var != "") set tgsave=$var
+echo ' Time interval between data saves:   ' $tgsave >> job_info
+
+echo -n ' Time interval between contour data saves (default' $tcsave')? '
+set var=$<
+if ($var != "") set tcsave=$var
+echo ' Time interval between contour saves:' $tcsave >> job_info
+
+echo -n ' Total simulation time (default' $tsim')? '
+set var=$<
+if ($var != "") set tsim=$var
+echo ' Total simulation time:              ' $tsim >> job_info
+echo ' ' >> job_info
+
+#============================================================
+# Build parameter file with cpp and make all codes:
+
+# Put all these dimensions into the dimens file needed for compilation:
+mkdir src
+cd src
+/bin/cp $srcdir/* .
+/bin/cp -r $hydradir/init .
+/bin/cp -r $hydradir/post .
+
+echo 
+echo " Compiling source files....."
+echo " -----------------------------------------------------------------------"
+
+# Use C pre-processor to put chosen parameters $copts into parameters.f90
+set copts="-DN_X=$nx -DN_Y=$ny -DN_CONTZ=$ncontz -DN_CONTB=$ncontb -DT_SIM={$tsim}d0 -DT_GSAVE={$tgsave}d0 -DT_CSAVE={$tcsave}d0 -DX_MIN={$xmin} -DX_MAX={$xmax} -DY_MIN={$ymin} -DY_MAX={$ymax} -DN_NU={$nnu} -DPRE_DISS={$prediss}d0"
+precomp $copts parameters.f90
+
+# Compile all codes and move sources to sub-directory:
+make $algo setup $datagen proxy_post_all install clean
+
+cd ..
+echo " -----------------------------------------------------------------------"
+echo 
+
+#============================================================
+# Execute the data generation script:
+$bindir/$datagen
+
+# Copy useful scripts to job directory:
+/bin/cp $bindir/spec_view.py .
+/bin/cp $bindir/eneplt.py .
+/bin/cp $bindir/topoview .
+
+#==========================================================================
+# Create a directory named after the data generation script:
+cd ..
+if (!(-d $datagen)) mkdir $datagen
+cd $datagen
+
+# Set the job directory name (will be appended by 001, 002 etc...):
+set basejobdir=nx{$nx}ny{$ny}
+echo
+echo -n ' Job directory name (default '{$basejobdir}')? '
+set var=$<
+if ($var != "") set basejobdir=$var
+
+# work out the last run which has been performed:
+# First make a bogus empty directory so this works!
+mkdir {$basejobdir}r000
+set last_run = `/bin/ls -d {$basejobdir}r??? | tail -c 4 | head -c 3`
+rmdir {$basejobdir}r000
+
+@ next_run = ( $last_run + 1 )
+@ p1 = ( $next_run / 100 )
+@ jr = ( $next_run - ( 100 * $p1 ) )
+@ p2 = ( $jr / 10 )
+@ p3 = ( $jr - ( 10 * $p2 ) )
+set pind={$p1}{$p2}{$p3}
+
+set jobdir={$basejobdir}r{$pind}
+
+#=============================================================
+# Lastly move all data to desired job directory:
+
+# Move temporary directory to job directory:
+mv $tmpdir $jobdir
+cd $jobdir
+set datadir=`pwd`
+
+echo ' ' >> job_info
+echo ' Job directory:' >> job_info
+echo $datadir >> job_info
+
+echo ' To set the job running, type'
+echo cd $datadir
+echo bat log caps
+echo

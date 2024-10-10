@@ -1,0 +1,262 @@
+#!/bin/csh
+
+#===========================================================================#
+# Contouring script for a cross section of data produced by iwcs3dpost_fftw
+
+# Adapted from ~/cs/bin-sh/g2c on 16 Oct 2011 by D.G. Dritschel @ St Andrews
+#==========================================================================
+
+# get directories
+set local_dir = $HOME/source/nh_bsnq-cs      # input local_dir here
+setenv BINDIR $local_dir/bin-sh
+setenv SRCDIR $local_dir/sources
+
+# search for Fortran compiler and use the first one found
+# edit the list and/or modify the flags as needed
+
+# Intel Fortran 10.1
+if ( !( `which ifort > /dev/null ; echo $?` ) ) then
+
+   # choose SSE optimization depending on processor type
+   if ( !(`cat /proc/cpuinfo | grep flags | grep sse3 > /dev/null ; echo $?`) ) then
+      set sse_flag = -xT   # SSE3
+   else
+      set sse_flag = -xO   # SSE2
+   endif
+   setenv FC "ifort -O3 -mcmodel=medium -shared-intel -r8 -vec-report0 -module /tmp $sse_flag"
+   setenv PFC "ifort -O3 -vec-report0 $sse_flag"
+
+# Protland Group Fortran
+else if ( ! ( `which pfg90 > /dev/null ; echo $?` ) ) then
+   setenv FC "pfg90"
+
+# GNU Fortran
+else if ( ! ( `which f77 > /dev/null ; echo $?` ) ) then
+   setenv FC "gfortran -O3 -fdefault-real-8 -J /tmp"
+
+# Fortran compiler missing!
+else
+   echo "no Fortran compiler found!"
+endif
+
+#==========================================================================
+# Compile (if necessary) programme to extract a slice of data:
+if (!(-e s2g)) then
+   cd sources
+   cp $SRCDIR/s2g.F .
+   $FC -o s2g s2g.F
+   mv s2g ..
+   cd ..
+endif
+
+# Prepare input file for s2g:
+echo
+echo ' Which field do you wish to contour:'
+echo
+echo '   (1) x vorticity,                    xi'
+echo '   (2) y vorticity,                    eta'
+echo '   (3) z vorticity,                    zeta'
+echo '   (4) z velocity,                     w'
+echo '   (5) scaled isopycnal displacement,  D*(N/f)^2'
+echo '   (6) static stability,               D_z'
+echo
+echo -n ' Choice (default 4)? '
+set ifld=$<
+if ($ifld == "") set ifld="4"
+set field = ( "xi" "eta" "zeta" "w" "Dc2" "D_z" )
+
+echo
+echo ' Which component of the field:'
+echo '  (1) total, (2) balanced, or (3) imbalanced?'
+echo -n ' Choice (default 1)? '
+set iopt=$<
+if ($iopt == "") set iopt="1"
+set option = ( "" "bal_" "imb_" )
+
+set dum=`head -1 params.dat`
+set nfr_def = $dum[1]
+echo
+echo -n ' Which time frame? (default' $nfr_def')? '
+set nfr=$<
+if ($nfr == "") set nfr=$nfr_def
+# create 3 digit ending like 001, 002 etc:
+@ p1 = ( $nfr / 100 )
+@ jr = ( $nfr - ( 100 * $p1 ) )
+@ p2 = ( $jr / 10 )
+@ p3 = ( $jr - ( 10 * $p2 ) )
+set pind={$p1}{$p2}{$p3}
+
+# Check if data file exists:
+if ($iopt == "1") then
+   set dataset="fields/"{$option[$iopt]}l{$pind}
+else
+   set dataset="balance/"{$option[$iopt]}l{$pind}
+endif
+
+if (-e $dataset.gz) gunzip $dataset.gz
+
+if (!(-e $dataset)) then
+   echo ' The data file' $dataset 'does not exist!'
+   echo ' *** stopping *** '
+   exit (-1)
+endif
+
+echo
+echo ' Type of data slice:'
+echo '  (1) fixed x, (2) fixed y, or (3) fixed z?'
+echo -n ' Choice (default 1)? '
+set islice=$<
+if ($islice == "") set islice="1"
+set slice = ( "x" "y" "z" )
+
+@ loc = ( $islice + 2 )
+@ igp_mid = ( $dum[$loc] / 2 + 1 )
+echo
+echo -n ' Which level or grid point (default' $igp_mid')? '
+set ilev=$<
+if ($ilev == "") set ilev=$igp_mid
+
+# Output file:
+set outfile={$option[$iopt]}{$field[$ifld]}{$pind}{$slice[$islice]}{$ilev}.epsi
+
+cat << /EOF > in_s2g
+$ifld
+$iopt
+$nfr
+$islice
+$ilev
+/EOF
+
+./s2g < in_s2g > out_s2g
+set dum = `tail -1 out_s2g`
+/bin/rm out_s2g in_s2g
+
+set nx=$dum[1]
+set ny=$dum[2]
+
+#==========================================================================
+# Create input file for g2c:
+
+set dfile="s2g.dat"
+set idim="y"
+set order="2"
+
+# Max number of contour nodes:
+@ npm = ( $nx * 15625 )
+
+set xper="1"
+set yper="1"
+
+set xbeg="0"
+set xend="1"
+set ntx="10"
+
+set ybeg="0"
+set yend="1"
+set nty="10"
+
+set asp="1"
+set width="5"
+
+echo
+echo -n ' Column to be contoured (default 1)? '
+set column=$<
+if ($column == "") set column=1
+
+# Get min/max values of data:
+cat << /EOF > in_stat
+$dfile
+$column
+/EOF
+
+$BINDIR/stat < in_stat > junk
+set dum=`tail -4 junk | head -1`
+set qmin=$dum[3]
+set dum=`tail -3 junk | head -1`
+set qmax=$dum[3]
+echo
+echo ' *** Minimum field value =' $qmin
+echo ' *** Maximum field value =' $qmax
+
+# Get a suggested contour interval:
+echo $qmin $qmax > in_contint
+$BINDIR/contint < in_contint > junk
+set dum = `tail -1 junk`
+#set cint_def=$dum[5]
+set cint_def=`echo "scale=6; $dum[5]/2" | bc -l`
+
+echo
+echo -n ' Contour interval, dq (default' $cint_def')? '
+set cint=$<
+if ($cint == "") set cint=$cint_def
+
+echo
+echo ' Contours are found for the field values qbar +/- dq/2,'
+echo -n ' qbar +/- 3*dq/2, etc.  Enter qbar (default 0): '
+set qbar=$<
+if ($qbar == "") set qbar=0
+
+#-------------------------------------------------------------------
+# Copy contouring routine into directory and compile:
+cp $SRCDIR/graphics/g2c.F .
+cp $SRCDIR/graphics/g2c_com.i .
+cp $SRCDIR/graphics/g2c_dim.i .
+set copts="-DN_G_X=$nx -DN_G_Y=$ny -DN_LAY=1 -DN_LEVELS=2000 -DN_NOD_T=$npm -DN_NOD_L=$npm -Uindex"
+$BINDIR/pre_compile $copts g2c_dim.i
+$FC -o g2c0 g2c.F
+
+# Create input file:
+cat << /EOF > in_g2c
+$dfile
+$order
+$column
+$xper
+$yper
+$xbeg $xend
+$ybeg $yend
+$cint
+$qbar
+/EOF
+
+./g2c0 < in_g2c > junk
+/bin/rm in_g2c junk g2c* in_stat in_contint
+
+echo
+echo '  index   contour level  '
+cat levels.dat
+
+#-------------------------------------------------------------------
+# Copy plotting routine into directory and compile:
+cp $SRCDIR/graphics/pcon.F .
+set copts="-DN_NOD_T=$npm -Uindex"
+$BINDIR/pre_compile $copts pcon.F
+$PFC -c pcon.F
+
+set dum = `g77 -print-file-name=libg2c.a`
+set tmp = `echo $dum | awk -F/libg2c '{print $(1)}'`
+set gralib = "-L{$tmp} -lg2c"
+$PFC -o pcon pcon.o $SRCDIR/graphics/gp64/glib.o $SRCDIR/graphics/gp64/gpps.o $gralib
+
+/bin/rm pcon.o
+
+# Create input file:
+cat << /EOF > in_pcon
+$asp
+$width
+$ntx $nty
+/EOF
+
+./pcon < in_pcon > junk
+echo
+
+ps2epsi output.ps
+
+/bin/rm in_pcon junk pcon* domain_limits output.ps s2g.dat congen.dat
+
+if (!(-d epsi)) mkdir epsi
+mv output.epsi epsi/$outfile
+mv levels.dat epsi/levels-{$outfile}
+
+echo ' *** The plot is ready in epsi/'$outfile
+echo '     and the contour levels are listed in epsi/levels-'$outfile
+echo

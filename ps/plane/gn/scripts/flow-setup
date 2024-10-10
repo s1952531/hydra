@@ -1,0 +1,277 @@
+#!/usr/bin/env csh
+
+#=========================================================================#
+#   Job setup script for the green-naghdi class of f90 codes.
+#   
+#=========================================================================#
+
+#==========================================================================
+
+echo
+echo '-----------------------------------------------------------------------'
+echo ' The doubly-periodic single-layer Green-Naghdi Pseudo-Spectral Method'
+echo '-----------------------------------------------------------------------'
+echo
+
+# Specify code numerical method class:
+set meth="ps"
+# Specify code geometry:
+set geom="plane"
+# Specify model equation type:
+set equa="gn"
+# Specify algorithm:
+set algo="gnps"
+#set algo="omp_gnps"
+
+#==========================================================================
+# The following is totally generic!
+set local_home=`homedir`
+set hydradir=$local_home/$user/hydra/$meth/$geom/$equa
+
+# Get output base directory:
+set workdir=`workdir`
+# Make the base data directory if it does not already exist:
+if (!(-d $workdir)) mkdir $workdir
+set workdir=$workdir/hydra
+if (!(-d $workdir)) mkdir $workdir
+set basedir=$workdir/$meth
+if (!(-d $basedir)) mkdir $basedir
+set basedir=$basedir/$geom
+if (!(-d $basedir)) mkdir $basedir
+set basedir=$basedir/$equa
+if (!(-d $basedir)) mkdir $basedir
+set basedir=$basedir/$algo
+if (!(-d $basedir)) mkdir $basedir
+
+set outdir=$workdir/$meth/$geom/$equa/$algo
+
+# Assign source and binary directories:
+set srcdir=$hydradir/$algo
+set bindir=$hydradir/scripts
+
+# Get the name of the computer to record in the job_info file below:
+set host=`hostname | awk -F. '{print $(1)}'`
+
+#==========================================================================
+# generate a random number seed based on current time:
+set second=`date +%-S`
+set minute=`date +%-M`
+set hour=`date +%-H`
+set day=`date +%-d`
+@ iseed = ( $second + ( 60 * ( $minute + 60 * ( $hour + ( 24 * $day ) ) ) ) )
+
+# Create a temporary directory:
+set tmpdir=$outdir/tmp{$iseed}
+mkdir $tmpdir
+cd $tmpdir
+
+echo
+echo ' *** Job will be built in the temporary directory '
+echo $tmpdir
+
+# Create a job information summary file:
+touch job_info
+echo ' Job created at                      ' `date` >> job_info
+echo ' on                                  ' $host >> job_info
+echo ' ' >> job_info
+
+#==========================================================================
+# Set fixed constants:
+set pi=3.14159265358979323846
+
+#==========================================================================
+# Get the data generation routine to be used:
+set dataopt="1"
+echo
+echo ' Choose one of the following flow initialisation methods:'
+echo    ' (0) a random PV field with spectrum c k^{2p-3} * exp[-(p-1)*(k/k_0)^2],'
+echo    ' (1) a PV strip having a parabolic cross-section,'
+echo    ' (2) an elliptical vortex of uniform PV,'
+echo    ' (3) a Rossby wave, or'
+echo -n ' (4) three Gaussian vortices  -  (default' $dataopt')? '
+set var=$<
+if ($var != "") set dataopt=$var
+echo
+
+# Set default parameters common to all data generation routines:
+set topogra = "n"   # Indicates presence of topography
+set ng = "256"      # Inversion grid has dimensions ng x ng
+
+# Set defaults for each data generation type:
+if ($dataopt == "0") then 
+   set datagen = "ranpv"
+   set tgsave="1.0"    # Grid data save time increment
+   set tsim="2000.0"   # Total simulation time
+
+else if ($dataopt == "1") then 
+   set datagen = "vstrip"
+   set tgsave="0.25"   # Grid data save time increment
+   set tsim="25.0"     # Total simulation time
+
+else if ($dataopt == "2") then 
+   set datagen = "ellipse"
+   set tgsave="0.25"   # Grid data save time increment
+   set tsim="25.0"     # Total simulation time
+
+else if ($dataopt == "3") then 
+   set datagen = "rossby"
+   set tgsave="0.25"   # Grid data save time increment
+   set tsim="25.0"     # Total simulation time
+
+else if ($dataopt == "4") then 
+   set datagen = "threevort"
+   set tsim=`echo "scale=14; 50.0/$pi" | bc -l`      # Total simulation time
+   set tgsave=`echo "scale=14; $tsim/200.0" | bc -l` # Grid data save increment
+
+else 
+   echo ' Not a valid choice - exiting...'
+   /bin/rm -r $tmpdir  
+   exit(-1)
+endif
+
+#==========================================================================
+# Choose main physical parameters:
+echo
+echo ' Horizontally, we consider a 2*pi x 2*pi doubly-periodic domain.'
+
+# Set topographical parameters:
+if ($topogra == "y") then 
+   echo
+   echo ' This option is not yet implemented!!!'
+endif
+
+#==========================================================================
+# Choose numerical parameters:
+echo
+echo -n ' Grid resolution (default' $ng')? '
+set var=$<
+if ($var != "") set ng=$var
+echo ' Inversion grid resolution:          ' $ng >> job_info
+
+echo
+echo -n ' Time interval between gridded data saves (default' $tgsave')? '
+set var=$<
+if ($var != "") set tgsave=$var
+echo ' Time interval between data saves:   ' $tgsave >> job_info
+
+echo -n ' Total simulation time (default' $tsim')? '
+set var=$<
+if ($var != "") set tsim=$var
+echo ' Total simulation time:              ' $tsim >> job_info
+echo ' ' >> job_info
+
+# Use default values for hyperviscosity (applied to residual PV only):
+echo
+set cof=`echo "scale=12; 4.0*$pi" | bc -l`
+echo ' We take the Coriolis frequency f = 4*pi, corresponding to an inertial'
+echo ' period of one "day".'
+echo
+echo ' We take the short-scale gravity-wave speed c = f*L_D where L_D is the'
+echo ' Rossby deformation length.'
+echo
+if ($dataopt == "4") then 
+   set rdef=`echo "scale=14; sqrt(10.0)*$pi/9.0" | bc -l`
+else
+   set rdef="0.5"
+endif
+echo -n ' Rossby deformation length (default' $rdef')? '
+set var=$<
+if ($var != "") set rdef=$var
+# Compute c:
+set cgw=`echo "scale=12; $cof*$rdef" | bc -l`
+
+# Choose a marginally gravity-wave resolving time step:
+set dt=`echo "scale=14; 2.0*$pi/($ng*$cgw)" | bc -l`
+echo ' Marginally gravity wave resolving time step = ' $dt
+# Adjust to be a fraction of the grid save time:
+set fac=`echo "scale=14; $tgsave/$dt" | bc -l`
+set dt=`echo "scale=14; $tgsave/$fac:r" | bc -l`
+echo ' ... adjusted to = ' $dt
+
+# Use default values for hyperviscosity (applied to divergence only):
+set nnu=3
+set cdamp="10.0"
+
+echo ' ' >> job_info
+echo ' ***Lap^'{$nnu} 'Hyperdiffusion on divergence  ' >> job_info
+echo ' Damping rate on k = ng/2 is C*f;  C:' $cdamp >> job_info
+
+#============================================================
+# Build parameter file with cpp and make all codes:
+
+# Put all these dimensions into the dimens file needed for compilation:
+mkdir src
+cd src
+cp $srcdir/* .
+cp -r $hydradir/init .
+#cp -r $hydradir/post .
+
+echo 
+echo " Compiling source files....."
+echo " -----------------------------------------------------------------------"
+
+# Use C pre-processor to put chosen parameters $copts into parameters.f90
+set copts="-DN_G=$ng -DT_SIM={$tsim}d0 -DT_GSAVE={$tgsave}d0 -DT_STEP={$dt}d0 -DC_GW={$cgw}d0 -DCOR_FREQ={$cof}d0 -DC_DAMP={$cdamp}d0 -DPOW_HYPER=$nnu"
+
+precomp $copts parameters.f90
+
+# Compile all codes and move sources to sub-directory:
+#make $algo setup $datagen proxy_post_all install clean
+make $algo setup $datagen balinit install clean
+
+cd ..
+echo " -----------------------------------------------------------------------"
+echo 
+
+#============================================================
+# Execute the data generation script:
+$bindir/$datagen
+
+#==========================================================================
+# Create a directory named after the data generation script:
+cd ..
+if (!(-d $datagen)) mkdir $datagen
+cd $datagen
+
+# Set the job directory name (will be appended by 001, 002 etc...):
+set basejobdir=ng{$ng}ld{$rdef}
+
+echo
+echo -n ' Job directory name (default '{$basejobdir}')? '
+set var=$<
+if ($var != "") set basejobdir=$var
+
+# work out the last run which has been performed:
+# First make a bogus empty directory so this works!
+mkdir {$basejobdir}r000
+set last_run = `/bin/ls -d {$basejobdir}r??? | tail -c 4 | head -c 3`
+rmdir {$basejobdir}r000
+
+@ next_run = ( $last_run + 1 )
+@ p1 = ( $next_run / 100 )
+@ jr = ( $next_run - ( 100 * $p1 ) )
+@ p2 = ( $jr / 10 )
+@ p3 = ( $jr - ( 10 * $p2 ) )
+set pind={$p1}{$p2}{$p3}
+
+set jobdir={$basejobdir}r{$pind}
+
+#=============================================================
+# Lastly move all data to desired job directory:
+
+# Move temporary directory to job directory:
+mv $tmpdir $jobdir
+cd $jobdir
+set datadir=`pwd`
+
+# Copy handy script for viewing spectra:
+/bin/cp $bindir/spec_view .
+
+echo ' ' >> job_info
+echo ' Job directory:' >> job_info
+echo $datadir >> job_info
+
+echo ' To set the job running, type'
+echo cd $datadir
+echo bjob $algo
+echo

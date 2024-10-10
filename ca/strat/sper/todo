@@ -1,0 +1,3 @@
+Fix up conprint in a more modern style.
+Fix large and small integer declarations (integer*1 etc..)
+Fix up reads to new style in all post codes

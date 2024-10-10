@@ -1,0 +1,71 @@
+#!/usr/bin/env csh
+
+#=========================================================================#
+#   Job setup script for hexagonal clusters on a sphere
+#=========================================================================#
+set datagen = "trihex"
+
+# Default input parameters:
+set nclu = "20"     # Total number of hexagons (each having 6 +/- triangles)
+set ndiv = "10"     # ndiv*(ndiv+1)/2 vortices are placed in each triangle
+set afrac = "0.25"  # Area fraction covered by all hexagons
+set cdis = "3.6"    # Separation constant (3.6 is recommended)
+
+# Number of point vortices:
+set n=`cat n_vortices`
+
+#==========================================================================
+echo
+echo -n ' Number of hexagonal vortex clusters (default' $nclu')? '
+set var=$<
+if ($var != "") set nclu=$var
+
+echo
+echo ' Each hexagon consists of 6 triangular clusters of alternating signed point'
+echo -n ' vortices.  Each triangle has p(p+1)/2 vortices.  Enter p (default' $ndiv') '
+set var=$<
+if ($var != "") set ndiv=$var
+
+@ nvor = ( 3 * $nclu * $ndiv * ( $ndiv + 1 ) ) # Total number of point vortices
+echo ' There are' $nvor 'point vortices overall.'
+
+# Check this agrees with what is in parameters.f90:
+if ($nvor != $n) then
+   echo
+   echo ' *** This does not agree with the number of vortices in parameters.f90!'
+   echo ' Edit parameters.f90 and replace n by' $ndiv
+   echo
+   echo ' *** Stopping ***'
+   echo
+   exit(-1)
+endif
+
+echo -n ' Area fraction covered by all hexagons (default' $afrac')? '
+set var=$<
+if ($var != "") set afrac=$var
+
+echo -n 'Separation constant (3.6 is recommended; default' $cdis')? '
+set var=$<
+if ($var != "") set cdis=$var
+
+# generate a random number seed based on current time:
+set second=`date +%-S`
+set minute=`date +%-M`
+set hour=`date +%-H`
+set day=`date +%-d`
+@ iseed = ( $second + ( 60 * ( $minute + 60 * ( $hour + ( 24 * $day ) ) ) ) )
+
+echo
+echo -n ' Random number seed (default' $iseed')? '
+set var=$<
+if ($var != "") set iseed=$var
+
+cat << /EOF > in_$datagen
+$nclu
+$ndiv
+$afrac
+$cdis
+$iseed
+/EOF
+
+./$datagen < in_$datagen > out_$datagen

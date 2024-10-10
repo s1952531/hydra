@@ -1,0 +1,34 @@
+#!/usr/bin/env csh
+
+#=========================================================================#
+#   Job setup script for an initially random spectrum
+#=========================================================================#
+set datagen = "ranpv"
+
+# Data generation routine specific parameters:
+set pow  =  "3.0"    # Power p in E(k) = c k^{2p-3} * exp[-(p-1)*(k/k_0)^2]
+set ak0  =  "10.0"   # Initial peak wavenumber, k0 above
+set ngen = "12345"   # Random seed
+
+#==========================================================================
+echo ' We assume initial energy spectrum of the form'
+echo '   E(k) = c k^{2p-3} * exp[-(p-1)*(k/k_0)^2]'
+
+echo -n ' Power, p (default' $pow')? '
+set var=$<
+if ($var != "") set pow=$var
+
+echo -n ' Peak wavenumber, k0 (default' $ak0')? '
+set var=$<
+if ($var != "") set ak0=$var
+
+echo -n ' Random seed (default' $ngen')? '
+set var=$<
+if ($var != "") set ngen=$var
+
+cat << /EOF > in_$datagen
+$pow $ak0
+$ngen
+/EOF
+
+$datagen < in_$datagen > out_$datagen

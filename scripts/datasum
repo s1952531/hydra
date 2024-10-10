@@ -1,0 +1,402 @@
+#!/usr/bin/env python
+
+#=====perform the various imports========
+#=======needed by the main code==========
+import sys,os
+uname=os.getlogin()
+homedir=os.getenv('HOME')
+rootdir=os.path.join(homedir,'hydra','scripts')
+moddir=os.path.join(rootdir,'modules')
+graphicsdir=os.path.join(rootdir,'graphics')
+sys.path.append(moddir)
+import numpy as np
+import argparse
+
+#========================================
+#=====various function definitions=======
+#========================================
+
+def parse_args():
+  parser = argparse.ArgumentParser(prog='datasum')
+  parser.add_argument('input', metavar='input_filename' , type=str , help='Input file')
+  parser.add_argument('-frame', metavar='frame_no' , type=int, help='First frame number to show')
+  parser.add_argument('-ndim', metavar='n_dim' , type=int , nargs=2, default='256 256'.split(), help='Number of x, and y grid points: nx ny')
+  parser.add_argument('-x0', action='store_true' , help='Read in an extra point in the x direction - useful for aperiodic codes')  
+  parser.add_argument('-y0', action='store_true' , help='Read in an extra point in the y direction - useful for aperiodic codes')  
+  parser.add_argument('-o', metavar='output_filename' , type=str , help='Output text file translation of data if wanted')
+  parser.add_argument('-f', metavar='output_format' , type=str , nargs=2, default='16 7'.split(), help='Output format for all floating point numbers in the form: width precision')
+  parser.add_argument('-nohead', action='store_true' , help='Print no extra headers so results can be piped directly to a file')  
+  args = parser.parse_args() 
+  return args
+
+#---------------------------
+
+def readtxtfile(args):
+  # Open input file:
+  try:
+    in_file = open(args.input,'r')# try opening passed filename  
+  except IOError, message:# error if file not found 
+    print >> sys.stderr, ' File could not be opened', message
+    sys.exit()
+  
+  # Set up grid point numbers
+  nx = args.ndim[0]
+  ny = args.ndim[1]
+
+  # Add extra points for aperiodic codes
+  if args.x0:
+    nx = nx+1
+  if args.y0:
+    ny = ny+1
+    
+  #  Read in data and close input file:
+  raw_array = np.array(np.fromfile(file=in_file,dtype=float,sep='\n'))
+  in_file.close()
+
+  # Set the number of frames:
+  N = nx*ny
+  nframes = int(len(raw_array)/(N+1))  
+  if not args.nohead:
+    print ' Number of frames generated: %d' %nframes
+
+  # Shape the data array into a useful shape for plotting:
+  frames = range(nframes)
+  out_array = np.empty((nframes,nx,ny))
+  for i in frames:
+    out_array[i,:,:] = raw_array[i*(N+1)+1:(i+1)*(N+1)].reshape(nx,ny)
+  return frames,out_array,raw_array
+
+#---------------------------
+
+def readi4file(args):
+  import struct
+
+  # Open input file:
+  try:
+    in_file = open(args.input,'r')# try opening passed filename  
+  except IOError, message:# error if file not found 
+    print >> sys.stderr, ' File could not be opened', message
+    sys.exit()
+
+  # Set up grid point numbers
+  nx = args.ndim[0]
+  ny = args.ndim[1]
+
+  # Add extra points for aperiodic codes
+  if args.x0:
+    nx = nx+1
+  if args.y0:
+    ny = ny+1
+
+  # Set the number of frames:
+  N = nx*ny
+  file_bytes = os.path.getsize(args.input)
+  nframes = int(file_bytes/(N*4))
+  if not args.nohead:
+    print ' Number of frames generated: %d' %nframes
+
+  frames = range(nframes)
+  raw_array = np.zeros(N*nframes,float)
+  for j in range(nframes):
+    i = j*N
+    while i < j*N+N:
+      bytes = in_file.read(4)
+      raw_array[i] = float(struct.unpack('i',bytes)[0])
+      i+=1
+  in_file.close()    
+  return frames,raw_array.reshape((nframes,nx,ny)),raw_array
+
+#---------------------------
+
+def readc1file(args):
+  import struct
+
+  # Open input file:
+  try:
+    in_file = open(args.input,'r')# try opening passed filename  
+  except IOError, message:# error if file not found 
+    print >> sys.stderr, ' File could not be opened', message
+    sys.exit()
+
+  # Set up grid point numbers
+  nx = args.ndim[0]
+  ny = args.ndim[1]
+
+  # Add extra points for aperiodic codes
+  if args.x0:
+    nx = nx+1
+  if args.y0:
+    ny = ny+1
+
+  # Set the number of frames:
+  N = nx*ny
+  file_bytes = os.path.getsize(args.input)
+  nframes = int(file_bytes/N)
+  if not args.nohead:
+    print ' Number of frames generated: %d' %nframes
+
+  frames = range(nframes)
+  raw_array = np.zeros(N*nframes,float)
+  for j in range(nframes):
+    i = j*N
+    while i < j*N+N:
+      bytes = in_file.read(1)
+      raw_array[i] = float(struct.unpack('B',bytes)[0])
+      i+=1
+  in_file.close()    
+  return frames,raw_array.reshape((nframes,nx,ny)),raw_array
+
+#---------------------------
+
+def readc2file(args):
+  import struct
+
+  # Open input file:
+  try:
+    in_file = open(args.input,'r')# try opening passed filename  
+  except IOError, message:# error if file not found 
+    print >> sys.stderr, ' File could not be opened', message
+    sys.exit()
+
+  # Set up grid point numbers
+  nx = args.ndim[0]
+  ny = args.ndim[1]
+
+  # Add extra points for aperiodic codes
+  if args.x0:
+    nx = nx+1
+  if args.y0:
+    ny = ny+1
+
+  # Set the number of frames:
+  N = nx*ny
+  file_bytes = os.path.getsize(args.input)
+  nframes = int(file_bytes/(N*2))
+  if not args.nohead:
+    print ' Number of frames generated: %d' %nframes
+
+  frames = range(nframes)
+  raw_array = np.zeros(N*nframes,float)
+  for j in range(nframes):
+    i = j*N
+    while i < j*N+N:
+      bytes1 = in_file.read(1)
+      bytes2 = in_file.read(1)
+      b1=int(struct.unpack('B',bytes1)[0])
+      b2=int(struct.unpack('B',bytes2)[0])
+      raw_array[i] = float(b1*256+b2)
+      i+=1
+  in_file.close()    
+  return frames,raw_array.reshape((nframes,nx,ny)),raw_array
+
+#---------------------------
+
+def readr4file(args):
+
+  # Open input file:
+  try:
+    in_file = open(args.input,'r')# try opening passed filename  
+  except IOError, message:# error if file not found 
+    print >> sys.stderr, ' File could not be opened', message
+    sys.exit()
+
+  # Set up grid point numbers
+  nx = args.ndim[0]
+  ny = args.ndim[1]
+
+  # Add extra points for aperiodic codes
+  if args.x0:
+    nx = nx+1
+  if args.y0:
+    ny = ny+1
+
+  # Set the number of frames:
+  file_bytes = os.path.getsize(args.input)
+  N = nx*ny  
+  nframes = int(file_bytes/((N+1)*4))
+  if not args.nohead:
+    print ' Number of frames generated: %d' %nframes
+  frames = range(nframes)
+  raw_array = np.fromfile(in_file,dtype=np.float32)
+  out_array = np.empty((nframes,nx,ny))
+  for i in frames:
+    out_array[i,:,:] = raw_array[i*(N+1)+1:(i+1)*(N+1)].reshape(nx,ny)
+  in_file.close()    
+  return frames,out_array,raw_array
+
+#---------------------------
+
+def readi2file(args):
+
+  # Open input file:
+  try:
+    in_file = open(args.input,'r')# try opening passed filename  
+  except IOError, message:# error if file not found 
+    print >> sys.stderr, ' File could not be opened', message
+    sys.exit()
+
+  # Set up grid point numbers
+  nx = args.ndim[0]
+  ny = args.ndim[1]
+
+  # Add extra points for aperiodic codes
+  if args.x0:
+    nx = nx+1
+  if args.y0:
+    ny = ny+1
+
+  # Set the number of frames:
+  file_bytes = os.path.getsize(args.input)
+  N = nx*ny  
+  nframes = int(file_bytes/(N*2))
+  if not args.nohead:
+    print ' Number of frames generated: %d' %nframes
+  frames = range(nframes)
+  raw_array = np.fromfile(in_file,dtype=np.dtype('u2'))+2**15-1
+  in_file.close()    
+  return frames,raw_array.reshape((nframes,nx,ny)),raw_array
+
+#---------------------------
+
+def readr8file(args):
+
+  # Open input file:
+  try:
+    in_file = open(args.input,'r')# try opening passed filename  
+  except IOError, message:# error if file not found 
+    print >> sys.stderr, ' File could not be opened', message
+    sys.exit()
+
+  # Set up grid point numbers
+  nx = args.ndim[0]
+  ny = args.ndim[1]
+
+  # Add extra points for aperiodic codes
+  if args.x0:
+    nx = nx+1
+  if args.y0:
+    ny = ny+1
+
+  # Set the number of frames:
+  file_bytes = os.path.getsize(args.input)
+  N = nx*ny
+  nframes = int(file_bytes/((N+1)*8))
+  if not args.nohead:
+    print ' Number of frames generated: %d' %nframes
+  frames = range(nframes)
+  raw_array = np.fromfile(in_file,dtype=np.float64)
+  out_array = np.empty((nframes,nx,ny),dtype=np.float64)
+  for i in frames:
+    out_array[i,:,:] = raw_array[i*(N+1)+1:(i+1)*(N+1)].reshape(nx,ny)
+  in_file.close()    
+  return frames,out_array,raw_array
+
+#---------------------------
+
+def process_frame(frame,array,args):
+  print '{0:d} {1:{width}.{precision}f} {2:{width}.{precision}f} {3:{width}.{precision}f} {4:{width}.{precision}f}'.format(frame+1,array.min(),array.max(),array.mean(),array.var(),width=args.f[0],precision=args.f[1])
+  return
+
+def process_frame_time(frame,t,array,args):
+  print '{0:d} {1:{width}.{precision}f} {2:{width}.{precision}f} {3:{width}.{precision}f} {4:{width}.{precision}f} {5:{width}.{precision}f}'.format(frame+1,t,array.min(),array.max(),array.mean(),array.var(),width=args.f[0],precision=args.f[1])
+  return
+
+#========================================
+#============main code===================
+
+if __name__ == '__main__':
+  # Read and parse command line arguments
+  args = parse_args()
+
+  # Open input file and read in main
+  # array for plotting
+  suffix = args.input.split('.')[-1]
+
+  if suffix == 'dat' or suffix == 'asc':
+    if args.nohead:
+      frames,main_array,raw_array = readtxtfile(args)
+    else:
+      print ' Reading formatted text input file'
+      frames,main_array,raw_array = readtxtfile(args)
+  elif suffix == 'r4':
+    if args.nohead:
+      frames,main_array,raw_array = readr4file(args)
+    else:
+      print ' Reading real input file'
+      frames,main_array,raw_array = readr4file(args)
+  elif suffix == 'r8':
+    if args.nohead:
+      frames,main_array,raw_array = readr8file(args)
+    else:
+      print ' Reading double precision input file'
+      frames,main_array,raw_array = readr8file(args)
+  elif suffix == 'i2':
+    if args.nohead:
+      frames,main_array,raw_array = readi2file(args)
+    else:
+      print ' Reading integer input file'
+      frames,main_array,raw_array = readi2file(args)
+  elif suffix == 'i4':
+    if args.nohead:
+      frames,main_array,raw_array = readi4file(args)
+    else:
+      print ' Reading integer input file'
+      frames,main_array,raw_array = readi4file(args)
+  elif suffix == 'c1':
+    if args.nohead:
+      frames,main_array,raw_array = readc1file(args)
+    else:
+      print ' Reading single character input file'
+      frames,main_array,raw_array = readc1file(args)
+  elif suffix == 'c2':
+    print ' Reading two character input file'
+    frames,main_array,raw_array = readc2file(args)
+  else:
+    if args.nohead:
+      frames,main_array,raw_array = readtxtfile(args)
+    else:
+      print ' Not sure what the file format is'
+      print ' based on the extension --- default to formatted text'
+      frames,main_array,raw_array = readtxtfile(args)
+
+  if args.frame:
+    frames=[args.frame-1]
+
+  # Set up grid point numbers
+  nx = args.ndim[0]
+  ny = args.ndim[1]
+
+  # Add extra points for aperiodic codes
+  if args.x0:
+    nx = nx+1
+  if args.y0:
+    ny = ny+1
+
+  if args.nohead:
+    if suffix in ['i2','i4','c1','c2']:
+      for frame in frames:
+        process_frame(frame,main_array[frame],args)
+    else:
+      for frame in frames:
+        process_frame_time(frame,float(raw_array[frame*(nx*ny+1)]),main_array[frame],args)    
+  else:
+    print ''
+    print 'File: %s' %args.input
+    print '----------------'
+    if suffix in ['i2','i4','c1','c2']:
+      print 'Frame, min, max, mean, variance'
+      for frame in frames:
+        process_frame(frame,main_array[frame],args)
+    else:
+      print 'Frame, time, min, max, mean, variance'
+      for frame in frames:
+        process_frame_time(frame,float(raw_array[frame*(nx*ny+1)]),main_array[frame],args)
+    print ''
+    print 'Global min and max: {0:{width}.{precision}f}, {1:{width}.{precision}f}'.format(main_array.min(),main_array.max(),width=args.f[0],precision=args.f[1])
+    print '----------------'
+    print ''
+
+  if args.o:
+    format='%'+args.f[0]+'.'+args.f[1]+'f'
+    np.savetxt(args.o,raw_array,fmt=format)
+    

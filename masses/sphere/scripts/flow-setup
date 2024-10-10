@@ -1,0 +1,218 @@
+#!/bin/csh
+
+#=========================================================================#
+#           Job setup script for the pms class of f90 codes.
+#=========================================================================#
+
+echo
+echo '--------------------------------------------------------'
+echo '             Point masses on a sphere'
+echo '--------------------------------------------------------'
+
+# Specify code numerical method class:
+set meth="masses"
+# Specify code geometry:
+set geom="sphere"
+
+#==========================================================================
+# The following is totally generic!
+set local_home=`homedir`
+set hydradir=$local_home/$user/hydra/$meth/$geom
+
+# Get output base directory:
+set basedir=`workdir`
+# Make the base data directory if it does not already exist:
+if (!(-d $basedir)) mkdir $basedir
+set basedir=$basedir/hydra
+if (!(-d $basedir)) mkdir $basedir
+set basedir=$basedir/$meth
+if (!(-d $basedir)) mkdir $basedir
+set outdir=$basedir/$geom
+if (!(-d $outdir)) mkdir $outdir
+
+# Assign source and binary directories:
+set srcdir=$hydradir/src
+set bindir=$hydradir/scripts
+
+# Default number of bytes representing a single character:
+set n_b_p_c=1   #This is the value valid for gfortran
+
+# Get the name of the computer to record in the job_info file below:
+set host=`hostname | awk -F. '{print $(1)}'`
+
+#==========================================================================
+# generate a random number seed based on current time:
+set second=`date +%-S`
+set minute=`date +%-M`
+set hour=`date +%-H`
+set day=`date +%-d`
+@ iseed = ( $second + ( 60 * ( $minute + 60 * ( $hour + ( 24 * $day ) ) ) ) )
+
+# Create a temporary directory:
+set tmpdir=$outdir/tmp{$iseed}
+mkdir $tmpdir
+cd $tmpdir
+
+echo
+echo ' *** Job will be built in the temporary directory '
+echo $tmpdir
+
+# Create a job information summary file:
+touch job_info
+echo ' Job created at                      ' `date` >> job_info
+echo ' on                                  ' $host >> job_info
+
+#==========================================================================
+# Get the data generation routine to be used:
+echo
+echo ' Which data generation routine should be used?'
+echo -n ' (1) ring, (2) random, or (3) diy - (default 3)? '
+set dataopt=$<
+if ($dataopt == "") set dataopt="3"
+
+# Set defaults for each data generation type:
+if ($dataopt == "1") then 
+   set datagen = "ring"
+   set n = "2"         # Total number of point masses
+   set t_save="0.02"   # Data save time interval
+   set t_sim="16.0"    # Duration of simulation (final time)
+   set ng="512"        # Latitudinal grid resolution for display purposes
+                       # in p2g.f90 and image.f90
+else if ($dataopt == "2") then 
+   set datagen = "monopoles"
+   set n = "400"       # Total number of point masses
+   set t_save="0.2"    # Data save time interval
+   set t_sim="1000.0"  # Duration of simulation (final time)
+   set ng="512"        # Latitudinal grid resolution for display purposes
+                       # in p2g.f90 and image.f90
+else if ($dataopt == "3") then 
+   set datagen = "diy"
+   set n = "2"         # Total number of point masses
+   set t_save="0.02"   # Data save time interval
+   set t_sim="20.0"    # Duration of simulation (final time)
+   set ng="512"        # Latitudinal grid resolution for display purposes
+                       # in p2g.f90 and image.f90
+else 
+   echo ' Not a valid choice - exiting...'
+   /bin/rm -r $tmpdir
+   exit(-1)
+endif
+
+#==========================================================================
+
+#==========================================================================
+# Set numerical parameters:
+
+#-------------------------------------------------------------------
+# Data save frequency:
+echo
+echo -n ' Time interval between data saves (default' $t_save')? '
+set var=$<
+if ($var != "") set t_save=$var
+
+echo ' Time interval between data saves:   ' $t_save >> job_info
+
+#-------------------------------------------------------------------
+# Duration of simulation:
+echo -n ' Duration of simulation (default' $t_sim')? '
+set var=$<
+if ($var != "") set t_sim=$var
+
+echo ' Duration of simulation:             ' $t_sim >> job_info
+
+#-------------------------------------------------------------------
+# Imaging grid resolution:
+#echo
+#echo ' A longitude-latitude grid of dimensions 2*ng x ng is used for imaging.'
+#echo -n ' Number of latitudes, ng (default' $ng')? '
+#set var=$<
+#if ($var != "") set ng=$var
+
+echo ' ' >> job_info
+echo ' Horizontal grid image resolution:   ' $ng >> job_info
+
+#============================================================
+# Build parameter file with cpp and make relevant codes:
+
+# Put all these dimensions into the dimens file needed for compilation:
+mkdir src
+cd src
+cp $srcdir/* .
+cp -r $hydradir/init .
+cp -r $hydradir/post .
+cp $hydradir/scripts/animate.py .
+
+echo 
+echo " Compiling selected source files....."
+echo " -----------------------------------------------------------------------"
+
+# Use C pre-processor to put chosen parameters $copts into parameters.f90
+set copts="-DN_G=$ng -DN_POINTS=$n -DT_SAV={$t_save}d0 -DT_SIM={$t_sim}d0"
+precomp $copts parameters.f90
+
+# Do same for graphics display & print routine:
+set copts="-DN_POINTS=$n"
+precomp $copts disp.F
+precomp $copts print.F
+
+# Compile graphics code:
+#gfc disp
+#mv disp ..
+#pfc print
+#mv print ..
+
+# Compile relevant codes and move sources to sub-directory:
+make $datagen pms image r4toc2 install clean
+cd ..
+echo " -----------------------------------------------------------------------"
+echo 
+
+#==========================================================================
+# Execute the data generation script (needs number of points):
+echo $n > n_points
+$bindir/$datagen
+/bin/rm n_points
+
+#==========================================================================
+# Create a directory named after the data generation script:
+cd ..
+if (!(-d $datagen)) mkdir $datagen
+cd $datagen
+
+# Set the job directory name:
+echo
+echo -n ' Job directory name (default n'{$n}')? '
+set basejobdir=$<
+if ($basejobdir == "") set basejobdir=n{$n}
+
+# work out the last run which has been performed:
+# First make a bogus empty directory so this works!
+mkdir {$basejobdir}r000
+set last_run = `/bin/ls -d {$basejobdir}r??? | tail -c 4 | head -c 3`
+rmdir {$basejobdir}r000
+
+@ next_run = ( $last_run + 1 )
+@ p1 = ( $next_run / 100 )
+@ jr = ( $next_run - ( 100 * $p1 ) )
+@ p2 = ( $jr / 10 )
+@ p3 = ( $jr - ( 10 * $p2 ) )
+set pind={$p1}{$p2}{$p3}
+
+set jobdir={$basejobdir}r{$pind}
+
+#=============================================================
+# Lastly move all data to desired job directory:
+
+# Move temporary directory to job directory:
+mv $tmpdir $jobdir
+cd $jobdir
+set datadir=`pwd`
+
+echo ' ' >> job_info
+echo ' Job directory:' $datadir >> job_info
+
+echo
+echo ' To set the job running, type'
+echo cd $datadir
+echo bjob pms
+echo

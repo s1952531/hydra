@@ -1,0 +1,40 @@
+#!/usr/bin/env csh
+
+#=========================================================================#
+#         Job setup script for a wavy surface buoyancy strip
+#=========================================================================#
+set datagen = "vstrip"
+
+# Data generation routine specific parameters: note
+# b_0 = b_m * e^{-s^2} where s = (x - c*sin(y))/x_0
+set bm  =  "0.25"    # Amplitude scaled by f*N
+set x0  =  "1.0"     # Width
+set c   =  "0.1"     # Displacement
+
+#==========================================================================
+echo ' We take b_0(x,y,0) = b_m * e^{-s^2} where s = (x - c*sin(y))/x_0.'
+echo
+echo -n ' Scaled amplitude, b_m/(f*N) (default' $bm')? '
+set var=$<
+if ($var != "") set bm=$var
+
+echo -n ' Width, x_0 (default' $x0')? '
+set var=$<
+if ($var != "") set x0=$var
+
+echo -n ' Displacement, c (default' $c')? '
+set var=$<
+if ($var != "") set c=$var
+
+echo '  Gaussian buoyancy strip with initial buoyancy' >> job_info
+echo '  b_0 = b_m * e^{-s^2} where s = (x - c*sin(y))/x_0.' >> job_info
+echo ' ' >> job_info
+echo '  b_m/(f*N):            ' $bm >> job_info
+echo '  x_0:                  ' $x0 >> job_info
+echo '  c:                    ' $c >> job_info
+
+cat << /EOF > in_$datagen
+$bm $x0 $c
+/EOF
+
+$datagen < in_$datagen > out_$datagen

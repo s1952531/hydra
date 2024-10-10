@@ -1,0 +1,32 @@
+#!/usr/bin/env csh
+
+#=========================================================================#
+#   Job setup script for the problem of a time varying topography 
+#   consisting of an oscillating quadrupolar structure.
+#=========================================================================#
+set datagen = "quadtopo"
+
+# Set fixed constants:
+set pi=3.14159265358979
+set twopi=`echo "scale=10; 2 * $pi" | bc -l`
+#=========================================================================#
+echo ' We set up a quadrupolar topographic pattern which is '
+echo ' a combination of spherical harmonics of degree 2.'
+echo ' This pattern is phase shifted by two angles.'
+
+echo -n ' Enter angle alpha (degrees): (default 20)'
+set alp=$<
+if ($alp == "") set alp="20"
+
+echo -n ' Enter angle theta (degrees): (default 100)'
+set thet=$<
+if ($thet == "") set thet="100"
+
+echo ' ' >> job_info
+echo ' Topographical shift angle alpha     ' $alp >> job_info
+echo ' Topographical shift angle theta     ' $thet >> job_info
+cat << /EOF > in_$datagen
+$alp $thet
+/EOF
+
+$datagen < in_$datagen > out_$datagen

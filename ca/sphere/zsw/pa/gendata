@@ -1,0 +1,67 @@
+#!/bin/csh
+
+echo -n ' Gamma (include decimal place, e.g. 5.0)? '
+set gamma=$<
+
+set wid=0.01
+
+cat << /EOF > indata
+$gamma
+0.2
+$wid
+5000
+/EOF
+
+python balance.py < indata
+/bin/mv *.asc results/g{$gamma}
+
+cat << /EOF > indata
+$gamma
+0.4
+$wid
+5000
+/EOF
+
+python balance.py < indata
+/bin/mv *.asc results/g{$gamma}
+
+cat << /EOF > indata
+$gamma
+0.6
+$wid
+5000
+/EOF
+
+python balance.py < indata
+/bin/mv *.asc results/g{$gamma}
+
+cat << /EOF > indata
+$gamma
+0.8
+$wid
+5000
+/EOF
+
+python balance.py < indata
+/bin/mv *.asc results/g{$gamma}
+
+cat << /EOF > indata
+$gamma
+0.999
+0.001
+$wid
+5000
+/EOF
+
+python allbal.py < indata
+/bin/mv *.asc results/g{$gamma}
+
+cat << /EOF > indata
+$gamma
+/EOF
+
+python pbal.py < indata
+/bin/mv *.eps figures
+
+/bin/rm indata
+

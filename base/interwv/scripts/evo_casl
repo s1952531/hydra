@@ -1,0 +1,108 @@
+#!/usr/bin/env csh
+
+#=========================================================================#
+#   Script to extract and run an internal gravity wave state in the 
+#   sper casl code.
+#   
+#=========================================================================#
+
+#==========================================================================
+# Specify code numerical method class:
+set meth="ca"
+# Specify code geometry:
+set geom="strat"
+# Specify model equation type:
+set equa="sper"
+
+# Ask for code version (typically OpenMP or not):
+echo
+echo ' Which version of the code should be used?'
+echo ' (1) Serial, or (2) OpenMP - (default 1)? '
+set version=$<
+if ($version == "") set version="1"
+
+if ($version == "1") then
+   set algo="casl"
+else
+   set algo="omp_casl"
+endif    
+
+# The following is totally generic!
+set local_home=`homedir`
+set hydradir=$local_home/$user/hydra/$meth/$geom/$equa
+
+# Assign source directory:
+set srcdir=$hydradir/$algo
+
+#==========================================================================
+
+# Extract a given state:
+echo
+echo ' Which state should be extracted ?'
+set var=$<
+if ($var != "") set nstate=$var
+
+extract <<EOF >junk
+$nstate 
+EOF
+
+
+#============================================================
+# Build run directory and copy in initial conditions:
+test -d casl_$nstate || mkdir casl_$nstate
+cd casl_$nstate
+cp ../bb_init.r8 .
+cp ../zz_init.r8 .
+cp ../extract_consts.asc .
+
+# Extract important constants from files:
+set nx=`cat extract_consts.asc | awk 'NR==1 {print $1}'`
+set ny=`cat extract_consts.asc | awk 'NR==1 {print $2}'`
+set ellx=`cat extract_consts.asc | awk 'NR==2 {print $1}'`
+set ymin=`cat extract_consts.asc | awk 'NR==2 {print $2}'`
+set ymax=`cat extract_consts.asc | awk 'NR==2 {print $3}'`
+set uref=`cat extract_consts.asc | awk 'NR==3 {print $1}'`
+
+set ncontb=100
+set ncontz=20
+
+echo
+echo ' Length of simulation ?'
+set var=$<
+if ($var != "") set tsim=$var
+echo
+echo ' Grid save time interval ?'
+set var=$<
+if ($var != "") set tgsave=$var
+echo
+echo ' Contour save time interval ?'
+set var=$<
+if ($var != "") set tcsave=$var
+
+test -d src || mkdir src
+cd src
+cp $srcdir/* .
+cp -r $hydradir/init .
+cp -r $hydradir/post .
+
+echo 
+echo " Compiling source files....."
+echo " ---------------------------------------------------"
+
+# Use C pre-processor to put chosen parameters $copts into parameters.f90
+set copts1="-DN_X=$nx -DN_Y=$ny -DL_X={$ellx}d0 -DY_MIN=${ymin}d0 -DY_MAX={$ymax}d0"
+set copts2="-DN_CONTB=$ncontb -DN_CONTZ=$ncontz -DT_SIM={$tsim}d0 -DT_GSAVE={$tgsave}d0 -DT_CSAVE={$tcsave}d0"
+set copts3="-DU_REF=-{$uref}d0"
+set copts=`echo $copts1 $copts2 $copts3`
+pre_compile $copts parameters.f90
+
+# Compile all codes and move sources to sub-directory:
+make all clean
+cd ..
+echo " ---------------------------------------------------"
+echo 
+echo " to run the job type..."
+echo " cd casl_"$nstate
+echo " bat log casl"
+
+#============================================================

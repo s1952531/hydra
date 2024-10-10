@@ -1,0 +1,59 @@
+#!/usr/bin/env csh
+
+#=========================================================================#
+#   Job setup script for the thermal relaxation case
+#=========================================================================#
+
+set datagen = "relax"
+
+# Default input parameters:
+set phi0 = "20.0" # Height gradients concentrated at phi = +/-phi0 (degrees)
+set b    = "5.0"  # Half width of height variation (degrees)
+set eps  = "0.5"  # Pole - Equator difference in height field
+set a   = "0.01"  # Amplitude of latitude shift
+set m   = "5"     # Longitudinal wavenumber of perturbation
+#=========================================================================#
+
+echo ' We consider a thermal equilibrium height field which increases by'
+echo ' a fraction, epsilon, of the mean height from equator to pole.'
+echo ' The main increase occurs around the latitudes phi = +/-phi_0,'
+echo ' and occurs over a half width of b degrees.'
+echo
+echo -n ' Enter pole - equator height difference (default' $eps'): '
+set var=$<
+if ($var != "") set eps=$var
+echo -n ' Enter phi_0 in degrees (default' $phi0'): ' 
+set var=$<
+if ($var != "") set phi0=$var
+echo -n ' Enter b in degrees (default' $b'): '
+set var=$<
+if ($var != "") set b=$var
+
+echo ' To induce instability, we displace the latitudes by the function'
+echo ' A*cos(phi)*cos(m*lambda), where lambda is the longitude.'
+echo
+echo -n ' Enter the amplitude A (default' $a'): ' 
+set var=$<
+if ($var != "") set a=$var
+echo -n ' Enter the wavenumber m (integer, default' $m'): '
+set var=$<
+if ($var != "") set m=$var
+
+echo ' ' >> job_info
+echo ' Pole-Eq height difference, epsilon: ' $eps >> job_info
+echo ' Rise latitudes phi=+/-phi_0; phi_0: ' $phi0 >> job_info
+echo ' Half width of rise, b (degrees):    ' $b >> job_info
+echo ' ' >> job_info
+echo ' Latitudes displaced by A*cos(phi)*cos(m*lambda)' >> job_info
+echo ' Amplitude, A:                       ' $a >> job_info
+echo ' Longitudinal wavenumber, m:         ' $m >> job_info
+
+cat << /EOF > in_$datagen
+$eps
+$phi0
+$b
+$a
+$m
+/EOF
+
+$datagen < in_$datagen > out_$datagen

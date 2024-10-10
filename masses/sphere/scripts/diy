@@ -1,0 +1,65 @@
+#!/bin/csh
+
+#=========================================================================#
+#   Job setup script for a set of masses on a sphere
+#=========================================================================#
+set datagen = "diy"
+
+# Default input parameters:
+set s1 = "1.0"        # mass/4*pi of mass 1
+set theta1 = "30.0"   # co-latitude (degrees) of mass 1
+set phi1 = "48.0"     # longitude (degrees) of mass 1
+set utheta1 = "1.0"   # co-latitudinal speed of mass 1
+set uphi1 = "-1.0"    # longitudinal speed of mass 1
+
+set s2 = "1.0"        # mass/4*pi of mass 2
+set theta2 = "100.0"  # co-latitude (degrees) of mass 2
+set phi2 = "140.0"    # longitude (degrees) of mass 2
+set utheta2 = "-0.4"  # co-latitudinal speed of mass 2
+set uphi2 = "1.4"     # longitudinal speed of mass 2
+
+set n=`cat n_points`
+
+#==========================================================================
+echo ' There are' $n 'masses overall.'
+
+echo
+echo -n ' Mass/4*pi of mass 1 (default' $s1')? '
+set var=$<
+if ($var != "") set s1=$var
+echo -n ' Co-latitude of mass 1 (degrees, default' $theta1')? '
+set var=$<
+if ($var != "") set theta1=$var
+echo -n ' Longitude of mass 1 (degrees, default' $phi1')? '
+set var=$<
+if ($var != "") set phi1=$var
+echo -n ' Co-latitudinal speed of mass 1 (default' $utheta1')? '
+set var=$<
+if ($var != "") set utheta1=$var
+echo -n ' Longitudinal speed of mass 1 (default' $uphi1')? '
+set var=$<
+if ($var != "") set uphi1=$var
+
+echo
+echo -n ' Mass/4*pi of mass 2 (default' $s2')? '
+set var=$<
+if ($var != "") set s2=$var
+echo -n ' Co-latitude of mass 2 (degrees, default' $theta2')? '
+set var=$<
+if ($var != "") set theta2=$var
+echo -n ' Longitude of mass 2 (degrees, default' $phi2')? '
+set var=$<
+if ($var != "") set phi2=$var
+echo -n ' Co-latitudinal speed of mass 2 (default' $utheta2')? '
+set var=$<
+if ($var != "") set utheta2=$var
+echo -n ' Longitudinal speed of mass 2 (default' $uphi2')? '
+set var=$<
+if ($var != "") set uphi2=$var
+
+cat << /EOF > in_$datagen
+$s1 $theta1 $phi1 $utheta1 $uphi1
+$s2 $theta2 $phi2 $utheta2 $uphi2
+/EOF
+
+./$datagen < in_$datagen > out_$datagen

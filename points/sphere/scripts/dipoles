@@ -1,0 +1,40 @@
+#!/usr/bin/env csh
+
+#=========================================================================#
+#   Job setup script for dipoles on a sphere
+#=========================================================================#
+set datagen = "dipoles"
+
+# Default input parameters:
+set alp = "0.1"     # Dipole separation / mean inter-dipole distance
+set emin = "-0.0343"  # Minimum energy allowed to accept initial state
+set emax = "-0.0340"  # Maximum energy allowed to accept initial state
+
+# Number of point vortices:
+set n=`cat n_vortices`
+
+#==========================================================================
+@ ndip = ( $n / 2 )
+echo ' There are' $ndip 'dipoles overall.'
+
+echo
+echo -n ' Dipole separation divided by mean inter-dipole distance (default' $alp')? '
+set var=$<
+if ($var != "") set alp=$var
+
+echo
+echo -n ' Minimum energy to accept initial state (default' $emin')? '
+set var=$<
+if ($var != "") set emin=$var
+
+echo -n ' Maximum energy to accept initial state (default' $emax')? '
+set var=$<
+if ($var != "") set emax=$var
+
+cat << /EOF > in_$datagen
+$alp
+$emin $emax
+/EOF
+
+echo ' Searching for a state within this energy range ...'
+./$datagen < in_$datagen > out_$datagen

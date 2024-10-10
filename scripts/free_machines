@@ -1,0 +1,55 @@
+#!/usr/bin/env python
+import getpass,paramiko,os
+uname=os.getlogin()
+homedir=os.getenv('HOME')
+rootdir=os.path.join(homedir,'hydra','scripts')
+from multiprocessing import Pool
+
+def processHost(args):
+  machine=args[0];uname=args[1];password=args[2]
+  output=[]
+  ssh_sess = paramiko.SSHClient()
+  ssh_sess.load_system_host_keys()
+  try:
+    ssh_sess.connect(machine,username=uname,password=password)
+    stdin,stdout,stderr = ssh_sess.exec_command('short_top')
+    raw_output = stdout.readlines()
+    ssh_sess.close()    
+    for line in raw_output:
+      output.append(line.rstrip())
+  except:
+    print 'Problem with %s' %machine
+    print '------------------'
+  for line in output: 
+    print line
+
+if __name__ == '__main__':
+  # Open input file:
+  try:
+    in_file = open(os.path.join(rootdir,'machine_list'),'r')# try opening passed filename  
+  except IOError, message:# error if file not found 
+    print >> sys.stderr, ' machine_list file could not be opened', message
+    sys.exit()
+  machine_list = [machine.rstrip() for machine in in_file.readlines()]
+
+  in_file.close()
+  print machine_list
+  uname=getpass.getuser()
+  print ''
+  print 'Hostnames queried:'
+  print ', '.join(machine_list)
+  print ''
+  print 'password for %s@ all listed hosts' %uname
+  password=getpass.getpass()
+  print 'Getting output now from across listed machines...'
+  print '------------------'
+
+  uname_list=[uname for m in machine_list]
+  pass_list=[password for m in machine_list]
+  full_list=zip(machine_list,uname_list,pass_list)
+
+  pool = Pool(len(machine_list))
+  pool.map(processHost, full_list)
+  pool.close()
+  pool.join()
+

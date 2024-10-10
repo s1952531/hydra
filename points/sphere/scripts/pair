@@ -1,0 +1,51 @@
+#!/usr/bin/env csh
+
+#=========================================================================#
+#   Job setup script for monopoles on a sphere
+#=========================================================================#
+set datagen = "pair"
+
+# Number of point vortices:
+set n=`cat n_vortices`
+
+#==========================================================================
+echo ' There are' $n 'vortices overall.'
+
+set str1=1.0
+set str2=-1.0
+set lat1=0.0
+set lon1=0.0
+set lat2=0.0
+set lon2=-1.0
+
+echo
+echo -n ' Strength of vortex 1 (default' $str1')? '
+set var=$<
+if ($var != "") set str1=$var
+
+echo
+echo -n ' Strength of vortex 2 (default' $str2')? '
+set var=$<
+if ($var != "") set str2=$var
+
+echo -n ' Latitude of vortex 1 (default' $lat1')? '
+set var=$<
+if ($var != "") set lat1=$var
+echo -n ' Longitude of vortex 1 (default' $lon1')? '
+set var=$<
+if ($var != "") set lon1=$var
+echo -n ' Latitude of vortex 2 (default' $lat2')? '
+set var=$<
+if ($var != "") set lat2=$var
+echo -n ' Longitude of vortex 2 (default' $lon2')? '
+set var=$<
+if ($var != "") set lon2=$var
+
+cat << /EOF > in_$datagen
+$str1 $str2
+$lat1 $lon1
+$lat2 $lon2
+/EOF
+
+echo ' Initialising with the specified vortices ...'
+./$datagen < in_$datagen > out_$datagen

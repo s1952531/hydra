@@ -1,0 +1,183 @@
+#!/usr/bin/env python
+
+# This script plots spectra for a chosen field and for each vertical mode
+
+#=====perform the various generic imports========
+import warnings
+import numpy as np
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import matplotlib.colors as clrs
+# Set default plot save resolution to a large value:
+mpl.rcParams['savefig.dpi'] = 200
+# Set label size:
+mpl.rcParams['xtick.labelsize'] = 30
+mpl.rcParams['ytick.labelsize'] = 30
+mpl.rcParams['axes.linewidth'] = 3
+warnings.simplefilter("ignore",DeprecationWarning)
+
+#========================================
+#=====----------Main code----------======
+#========================================
+
+print()
+print('   ---------------------------------------------------------------')
+print('   | Plots spectra for vertical modes 1 and 2 for a chosen field |')
+print('   ---------------------------------------------------------------')
+print()
+print(' Choose one of the following:')
+print()
+print('   (1)  relative vorticity,')
+print('   (2)  velocity divergence,')
+print('   (3)  acceleration divergence, or')
+print('   (4)  dimensionless height anomaly')
+print()
+option=int(input(' Option (default 2)? ') or 2)
+
+if option==1:
+   filename='spectra/zspec.asc'
+   label1='${\\zeta}_1$'
+   label2='${\\zeta}_2$'
+   labely='$\log_{10}\,|\hat{\\zeta}|^2$'
+elif option==2:
+   filename='spectra/dspec.asc'
+   label1='${\\delta}_1$'
+   label2='${\\delta}_2$'
+   labely='$\log_{10}\,|\hat{\\delta}|^2$'
+elif option==3:
+   filename='spectra/gspec.asc'
+   label1='${\\gamma}_1$'
+   label2='${\\gamma}_2$'
+   labely='$\log_{10}\,|\hat{\\gamma}|^2$'
+else:
+   filename='spectra/hspec.asc'
+   label1='${h}_1$'
+   label2='${h}_2$'
+   labely='$\log_{10}\,|\hat{h}|^2$'
+
+# Open input file:
+in_file=open(filename,'r')
+# Read the first header line to get kmax:
+first_line=in_file.readline()
+kmax=int(first_line.split()[-1])
+in_file.seek(0)
+
+# Plot only to the de-aliasing cutoff:
+kc=int(2.0*float(kmax)/3.0)
+print()
+print(' Plotting up to the de-aliasing wavenumber kc = %i' %kc)
+xmin=0.0
+xmax=0.1*int(10.0*np.log10(float(kc))+1.0)
+
+nx=kc
+
+# Read in the full data to a 1d array and close input file:
+raw_data = np.fromfile(file=in_file,dtype=float,sep='\n')
+in_file.close()
+
+# Set the number of frames:
+nframes = int(len(raw_data)/(3*kmax+2))  
+print()
+print(' Number of time frames found: %i' %nframes)
+print()
+
+# Shape the data array into a useful shape for plotting and work out
+# min/max values over all time:
+frames=range(0,nframes)
+time=[raw_data[i*(3*kmax+2)] for i in frames]
+tim_eles = [i*(3*kmax+2)+j for i in frames for j in range(2)]
+shaped_data = np.delete(raw_data,tim_eles)[0:(3*kmax+2)*nframes].reshape((nframes,kmax,3))
+k=np.zeros((nframes,nx))
+s1=np.zeros((nframes,nx))
+s2=np.zeros((nframes,nx))
+smin=1000.0
+smax=-1000.0
+for i in frames:
+   k[i,:]=shaped_data[i].transpose()[0][0:nx]
+   s1[i,:]=shaped_data[i].transpose()[1][0:nx]
+   s2[i,:]=shaped_data[i].transpose()[2][0:nx]
+   smin=min(smin,np.amin(s1[i,:]),np.amin(s2[i,:]))
+   smax=max(smax,np.amax(s1[i,:]),np.amax(s2[i,:]))
+
+smin=0.5*int(2.0*(smin+1000.0))-1000.0
+smax=0.5*int(2.0*(smax+1000.0)+1.0)-1000.0
+ymin=float(input(' Minimum log_10(spectrum) to plot (default '+str(smin)+')? ') or smin)
+ymax=float(input(' Maximum log_10(spectrum) to plot (default '+str(smax)+')? ') or smax)
+print
+
+#======================================================================
+# Grab the correct sub-array for plotting (ic is the current frame):
+global ic 
+ic = 0
+
+# Initiate a plotting window and plot relevant data into it:
+fig = plt.figure(1,figsize=[11,12])
+ax = plt.axes([0.17, 0.17, 0.77, 0.77])
+im  = ax.plot(k[ic],s1[ic],'b-',lw=3,label=label1)
+im2 = ax.plot(k[ic],s2[ic],'r-',lw=3,label=label2)
+
+# Set plot title, legend and limits of the plot:
+ax.set_title('Spectra at $t =$'+str('%.2f'%time[ic]), fontsize=36)
+ax.set_xlabel('$\log_{10}\,k$', fontsize=36)
+ax.set_ylabel(labely, fontsize=36)
+ax.tick_params(length=10, width=3)
+ax.legend(loc='lower left',prop={'size':27}, shadow=True)
+ax.set_xlim(xmin,xmax)
+ax.set_ylim(ymin,ymax)
+
+def on_press(event):
+  # Routine to deal with re-plotting the window on keypress. 
+  # The keys -/= (ie. -/+ without the shift key) cycle through frames 
+  # forward and backwards.
+  global ic
+  if event.key=='=':
+    axes=event.canvas.figure.get_axes()[0]
+    ic = (ic+1+nframes) % nframes
+    xlim=axes.get_xlim()
+    ylim=axes.get_ylim()
+
+    # Clear the axes for replot:
+    axes.clear()
+
+    # Replot the relevant data:
+    axes.plot(k[ic],s1[ic],'b-',lw=3,label=label1)
+    axes.plot(k[ic],s2[ic],'r-',lw=3,label=label2)
+
+    # Set the title, legend and plot limits:
+    axes.set_title('Spectra at $t =$'+str('%.2f'%time[ic]), fontsize=36)
+    axes.set_xlabel('$\log_{10}\,k$', fontsize=36)
+    axes.set_ylabel(labely, fontsize=36)
+    axes.tick_params(length=10, width=3)
+    axes.legend(loc='lower left',prop={'size':27}, shadow=True)
+    axes.set_xlim(xlim)  
+    axes.set_ylim(ylim)
+    plt.draw()
+
+  if event.key=='-':
+    axes=event.canvas.figure.get_axes()[0]
+    ic = (ic-1+nframes) % nframes
+    xlim=axes.get_xlim()
+    ylim=axes.get_ylim()
+
+    # Clear the axes for replot:
+    axes.clear()
+
+    # Replot the relevant data:
+    axes.plot(k[ic],s1[ic],'b-',lw=3,label=label1)
+    axes.plot(k[ic],s2[ic],'r-',lw=3,label=label2)
+
+    # Set the title, legend and plot limits:
+    axes.set_title('Spectra at $t =$'+str('%.2f'%time[ic]), fontsize=36)
+    axes.set_xlabel('$\log_{10}\,k$', fontsize=36)
+    axes.set_ylabel(labely, fontsize=36)
+    axes.tick_params(length=10, width=3)
+    axes.legend(loc='lower left',prop={'size':27}, shadow=True)
+    axes.set_xlim(xlim)  
+    axes.set_ylim(ylim)
+
+    # Finally redraw the plot:
+    plt.draw()
+
+# Begin the plot and link keypress events to the above handler:
+cid=fig.canvas.mpl_connect('key_press_event',on_press)
+plt.show()

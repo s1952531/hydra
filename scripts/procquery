@@ -1,0 +1,42 @@
+#!/usr/bin/env python
+
+#=====perform the various imports========
+#=======needed by the main code==========
+import sys,os,re
+uname=os.getlogin()
+homedir=os.getenv('HOME')
+rootdir=os.path.join(homedir,'hydra','scripts')
+moddir=os.path.join(rootdir,'modules')
+graphicsdir=os.path.join(rootdir,'graphics')
+sys.path.append(moddir)
+import argparse
+
+
+#========================================
+#=====various function definitions=======
+#========================================
+
+def parse_args():
+  parser = argparse.ArgumentParser(prog='procquery')
+  parser.add_argument('input', metavar='input_procnum' , type=str , help='Input proc number')
+  args = parser.parse_args() 
+  return args
+
+#---------------------------
+
+#========================================
+#============main code===================
+
+if __name__ == '__main__':
+  # Read and parse command line arguments
+  args = parse_args()
+  fname=os.path.join('/proc',args.input,'environ')
+  proc_file=open(fname,'r')
+  proc_raw=proc_file.readlines()
+  proc_file.close()
+  proc_det=proc_raw[0].split('\x00')
+  for line in proc_det:
+    a=re.findall('PWD=[\a-z]*',line)
+    if a:
+      print a[0]
+

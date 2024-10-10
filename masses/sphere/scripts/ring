@@ -1,0 +1,48 @@
+#!/bin/csh
+
+#=========================================================================#
+#   Job setup script for a ring of masses on a sphere
+#=========================================================================#
+set datagen = "ring"
+
+# Default input parameters:
+set thetar = "60"     # Co-latitude of ring
+set dtheta = "0.1"    # Perturbation in co-latitude
+set rseed = "123456"  # Random number seed
+set omega = "1.0"     # Angular velocity of ring / 2*pi
+
+set n=`cat n_points`
+
+#==========================================================================
+echo ' There are' $n 'masses overall.'
+
+echo
+echo -n ' Co-latitude of ring (degrees, default' $thetar')? '
+set var=$<
+if ($var != "") set thetar=$var
+
+echo ' All of the vortices have m/4*pi = (2*pi*sin(theta))^2/(n-1) so that they'
+echo ' rotate around the North pole in unit time with an angular velocity of 2*pi.'
+
+echo
+echo -n ' Perturbation in co-latitude (degrees, default' $dtheta')? '
+set var=$<
+if ($var != "") set dtheta=$var
+
+echo
+echo -n ' Random seed (integer, default' $rseed')? '
+set var=$<
+if ($var != "") set rseed=$var
+
+echo -n ' Angular velocity of ring / 2*pi (default' $omega')? '
+set var=$<
+if ($var != "") set omega=$var
+
+cat << /EOF > in_$datagen
+$thetar
+$dtheta
+$rseed
+$omega
+/EOF
+
+./$datagen < in_$datagen > out_$datagen

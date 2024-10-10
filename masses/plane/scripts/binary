@@ -1,0 +1,36 @@
+#!/bin/csh
+
+#=========================================================================#
+#   Job setup script for a binary system of masses
+#=========================================================================#
+set datagen = "binary"
+
+# Default input parameters:
+set alpha = "0.1"     # Mass ratio
+set disp = "0.001"    # Maximum random displacement
+set rseed = "123456"  # Random number seed
+
+set n=`cat n_points`
+
+#==========================================================================
+echo -n ' Mass ratio (default' $alpha')? '
+set var=$<
+if ($var != "") set alpha=$var
+
+echo ' The masses are a distance 2 apart in equilibrium.'
+echo -n ' Maximum random displacement (default' $disp')?'
+set var=$<
+if ($var != "") set disp=$var
+
+echo
+echo -n ' Random seed (integer, default' $rseed')? '
+set var=$<
+if ($var != "") set rseed=$var
+
+cat << /EOF > in_$datagen
+$alpha
+$disp
+$rseed
+/EOF
+
+./$datagen < in_$datagen > out_$datagen

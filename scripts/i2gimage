@@ -1,0 +1,93 @@
+#!/usr/bin/env csh
+
+#========================================================================
+# Generates a grayscale image in a chosen format from a selected short integer
+# image file (ending in .i2) generated e.g. by r4toi2.f90
+
+#   ===> Run this in the working directory containing the image <===
+#========================================================================
+
+# Specify the FORTRAN compiler together with compiler options:
+alias f90 "gfortran -O3 -mcmodel=medium"
+
+# Look for i2 files in current working directory
+set i2files=`/bin/ls *.i2`
+set nf=$#i2files
+# Choose one prefix as the default:
+set infile_prefix = `echo $i2files[$nf] | awk -F. '{print $(NF-1)}'`
+
+# Default input parameters to i2topgm.f90:
+set nx     = "256"   # Horizontal image dimension
+set ny     = "256"   #  Vertical  image dimension
+set irec   = "1"     # Frame in character image file to convert to image
+set format = "png"   # Set default output image format
+#========================================================================
+# Get home directory from a script:
+set local_home=`homedir`
+# Location of the hydra script directory:
+set bindir=$local_home/$user/hydra/scripts
+
+echo
+echo '          --------------------------------------------'
+echo '          |   Integer map -> image conversion tool   |'
+echo '          --------------------------------------------'
+echo
+
+echo -n ' Prefix (before .i2) of the character map file (default:' $infile_prefix')? '
+set var=$<
+if ($var != "") set infile_prefix=$var
+
+# Check that file exists:
+if (!(-e $infile_prefix.i2)) then
+   echo ' *** File does not exist!!!  Exiting.'
+   exit(-1)
+endif
+
+echo
+echo -n ' Horizontal dimension of file (default:' $nx')? '
+set var=$<
+if ($var != "") set nx=$var
+
+echo -n '   Vertical dimension of file (default:' $ny')? '
+set var=$<
+if ($var != "") set ny=$var
+
+echo -n ' Frame or record to image (default:' $irec')? '
+set var=$<
+if ($var != "") set irec=$var
+
+echo -n ' Output image format (default:' $format')? '
+set var=$<
+if ($var != "") set format=$var
+
+
+#========================================================================
+# Use C pre-processor to put chosen parameters $copts into c2topgm.f90:
+set copts="-DN_X=$nx -DN_Y=$ny"
+/bin/cp $bindir/graphics/i2topgm.f90 .
+precomp $copts i2topgm.f90
+
+# Compile programme:
+f90 -o i2topgm i2topgm.f90
+
+# Create input data file:
+cat << /EOF > input_i2topgm
+$infile_prefix
+$irec
+/EOF
+
+# Run programme (creates a PGM file):
+i2topgm < input_i2topgm > junk
+
+# Extract pgm filename:
+set pgmfile = `cat pgmfilename`
+
+# Get prefix of filename:
+set basename = `echo $pgmfile | awk -F. '{print $(NF-1)}'`
+
+convert $basename.pgm $basename.$format
+echo
+echo ' Created' $basename.$format
+
+# Clean up unwanted files:
+/bin/rm $pgmfile pgmfilename input_i2topgm junk i2topgm*

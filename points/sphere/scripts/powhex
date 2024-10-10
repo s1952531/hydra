@@ -1,0 +1,48 @@
+#!/usr/bin/env csh
+
+#=========================================================================#
+#   Job setup script for hexagons on a sphere
+#=========================================================================#
+set datagen = "powhex"
+
+# Default input parameters:
+@ nclu = ( $n / 6 ) # Total number of hexagons
+set rho = "1.0"     # Maximum to minimum vortex strength ratio
+set rmax = "0.25"   # Radius of largest hexagon / avg cluster sep dist
+set emin = "-7.75"  # Minimum energy allowed to accept initial state
+set emax = "-7.70"  # Maximum energy allowed to accept initial state
+
+# Number of point vortices:
+set n=`cat n_vortices`
+
+#==========================================================================
+echo
+echo ' There are' $nclu 'hexagons overall.'
+
+echo
+echo -n ' Maximum to minimum vortex strength ratio (default' $rho')? '
+set var=$<
+if ($var != "") set rho=$var
+
+echo -n 'Radius of largest hexagon / avg cluster sep dist (default' $rmax')? '
+set var=$<
+if ($var != "") set rmax=$var
+
+echo
+echo -n ' Minimum energy to accept initial state (default' $emin')? '
+set var=$<
+if ($var != "") set emin=$var
+
+echo -n ' Maximum energy to accept initial state (default' $emax')? '
+set var=$<
+if ($var != "") set emax=$var
+
+cat << /EOF > in_$datagen
+$rho
+$rmax
+1
+$emin $emax
+/EOF
+
+echo ' Searching for a state within this energy range ...'
+./$datagen < in_$datagen > out_$datagen

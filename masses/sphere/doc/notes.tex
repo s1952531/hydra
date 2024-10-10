@@ -1,0 +1,123 @@
+\documentclass[12pt]{article}
+%\usepackage{palatino}
+\usepackage{amsmath,amssymb}
+%\usepackage{latexsym}
+\textheight 26cm
+\textwidth 16cm
+\topmargin -2.2cm
+\oddsidemargin -.5cm
+\evensidemargin 0 cm
+%\setlength{\parskip}{12pt}
+%\setlength{\parindent}{0pt}
+\newcounter{queno}
+\newenvironment{quelist}{\begin{list}{{\arabic{queno}.}}{\usecounter{queno}
+\setlength{\leftmargin}{7mm} \setlength{\rightmargin}{0mm}
+\setlength{\labelwidth}{3mm} \setlength{\labelsep}{4mm}
+\setlength{\itemsep}{7mm}\setlength{\parsep}{0mm}}}{\end{list}}
+
+\begin{document}
+\thispagestyle{empty}
+\hrule
+\vspace{.25cm}
+\hfill{\emph{\small David Dritschel \quad (dgd@mcs.st-and.ac.uk)}}
+
+\begin{center}
+\LARGE Using the {\bf pvs} suite of Fortran90 codes\\[2mm]
+\LARGE to study point vortex dynamics on a sphere \\[2mm]
+\end{center}
+
+\hrule
+\vspace{0.8cm}
+\noindent\underline{\it Download and installation}
+
+\medskip
+The {\tt pvs} package can be downloaded from \\[2mm]
+{\tt www-vortex.mcs.st-and.ac.uk/$\sim$dgd/rio2012/pvs.tar.gz}
+
+\medskip
+Once downloaded, uncompress and expand the archive using \\[2mm]
+{\tt gunzip pvs.tar}\\
+{\tt tar xvf pvs.tar}\\[2mm]
+You will then see a directory {\tt pvs/}, which 
+contains a subdirectory {\tt src/}, itself containing a 
+suite of Fortran90 source codes (ending in {\tt .f90}) and
+a makefile (called ``{\tt makefile}'') which sets up a simulation.  There
+is also a subdirectory {\tt doc/} which contains this file ({\tt notes.pdf}).
+
+\vspace{0.5cm}
+\noindent\underline{\it Compiling and graphics}
+
+\medskip
+To set up and run a simulation, you need an operating system which has
+the free Fortran compiler {\tt gfortran}.  Also, for displaying graphical
+output, it would be handy to install {\tt whirlgif}, which you can download
+from the web for free.
+
+\medskip
+When starting a new simulation, \underline{first} 
+make a new directory {\it in the} {\tt pvs/} {\it directory}, e.g.\\[2mm]
+{\tt mkdir case1}\\[2mm]
+Then, go into this directory and copy everything from {\tt src/} there, 
+e.g.\\[2mm]
+{\tt cd case1}\\
+{\tt cp ../src/* .}\\[2mm]
+Now follow the instructions in the projects available at\\
+{\tt www-vortex.mcs.st-and.ac.uk/$\sim$dgd/rio2012/projects} 
+to see what parameters you need to change in the file 
+{\tt parameters.f90} --- {\it this is the only file you ever need to edit}.
+In particular, you probably need to change the number of point vortices,
+{\tt n}, but you can also change how frequently you output data through 
+{\tt tsave} and the duration of the simulation through {\tt tmax}.  The
+final parameter, {\tt ng}, controls the image resolution of the graphical
+output (the default value {\tt 512} is normally adequate).
+
+\medskip
+Next, compile all codes with a single command,\\[2mm]
+{\tt make all clean}\\[2mm]
+Set up your initial conditions using either {\tt powhex} or {\tt trihex}, 
+e.g.\\[2mm]
+{\tt powhex}\\[2mm]
+Just input the parameters it asks for.  Finally, start the simulation
+by typing\\[2mm]
+{\tt pvs > log \&}\\[2mm]
+--- the file {\tt log} gives information about the running job.  It
+lists time, energy and the number of time steps taken between data saves.
+Type {\tt tail -f log} to monitor the output.
+
+\medskip
+When a simulation has finished (which can take a while depending on the
+number of vortices {\tt n} and the speed of your computer processor), 
+you can view the results with the program {\tt image}.  Just type\\[2mm]
+{\tt image}
+
+\medskip
+The movie produced by {\tt image} can be viewed using a special command
+{\tt xvidi} (which might not work on local machines).  Alternatively,
+use the command {\tt b2gif}, which will convert the movie to a gif
+movie (using the command {\tt whirlgif}).  All of these commands are
+provided in \\[2mm]
+{\tt www-vortex.mcs.st-and.ac.uk/$\sim$dgd/rio2012/graphics.tar.gz} \\[2mm]
+Download this file in the same ``parent''
+directory containing {\tt pvs/}, then uncompress and expand it with \\[2mm]
+{\tt gunzip graphics.tar}\\
+{\tt tar xvf graphics.tar}\\[2mm]
+You will see a directory {\tt graphics}.  Go into it 
+and determine its full `path', i.e.\\[2mm]
+{\tt cd graphics}\\
+{\tt pwd}\\[2mm]
+This last command will give you the `current working directory'.
+Use this for the variable {\tt gradir} in the scripts 
+{\tt xvidi} or {\tt b2gif} --- {\it you will need to edit both files}.
+You are now ready.  To run {\tt b2gif},
+for example from the subdirectory {\tt case1} illustrated above, 
+type e.g.\\[2mm]
+{\tt ../../graphics/b2gif} \\[2mm]
+and follow the instructions.
+
+\medskip
+The gif movie can be displayed using the command\\[2mm]
+{\tt animate z000-100.gif}\\[2mm]
+assuming the gif movie is called {\tt z000-100.gif}, or you
+can display it in any web browser.
+
+\end{document}
