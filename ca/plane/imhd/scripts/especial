@@ -84,8 +84,8 @@ set equa="imhd"
 # Specify code version (typically OpenMP or not):
 set algo="caps"
 
-set local_home=`homedir`
-set hydradir=$local_home/$user/hydra/$meth/$geom/$equa
+set local_home=${HOME}
+set hydradir=$local_home/hydra/$meth/$geom/$equa
 
 # Get output base directory:
 set workdir=`workdir`

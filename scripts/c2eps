@@ -27,9 +27,9 @@ set irps  = "1"   # Frame in character image file to convert to eps
 set dpi = "200"   # DPI resolution (pixels per inch)
 #========================================================================
 # Get home directory from a script:
-set local_home=`homedir`
+set local_home=${HOME}
 # Location of the hydra script directory:
-set bindir=$local_home/$user/hydra/scripts
+set bindir=$local_home/hydra/scripts
 
 echo
 echo '          --------------------------------------------'
