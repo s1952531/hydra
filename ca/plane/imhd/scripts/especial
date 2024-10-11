@@ -1,4 +1,4 @@
-#!/usr/bin/env csh
+#!/bin/csh
 
 #=========================================================================#
 #  Special job setup script for investigating the early time behaviour
@@ -219,7 +219,7 @@ echo $datadir
 cd $datadir
 
 cat << /EOF > mhdrun
-#!/usr/bin/env csh
+#!/bin/csh
 caps
 scale
 /EOF

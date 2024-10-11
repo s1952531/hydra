@@ -1,4 +1,4 @@
-#!/usr/bin/env csh
+#!/bin/csh
 
 #=========================================================================#
 #   Job setup script for the planar sw class of f90 codes.

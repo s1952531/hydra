@@ -1,4 +1,4 @@
-#!/usr/bin/env csh
+#!/bin/csh
 
 #=========================================================================#
 #   Special job setup script for investigating the evolution of a

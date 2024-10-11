@@ -1,4 +1,4 @@
-#!/usr/bin/env csh
+#!/bin/csh
 
 #=========================================================================#
 #   Job setup script for the random initial PV anomaly case

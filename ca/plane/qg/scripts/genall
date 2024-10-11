@@ -1,4 +1,4 @@
-#!/usr/bin/env csh
+#!/bin/csh
 
 set k=101
 while ($k < 424)

@@ -1,4 +1,4 @@
-#!/usr/bin/env csh
+#!/bin/csh
 
 #===========================================================================#
 # General script for launching a simulation from one of the hydra 

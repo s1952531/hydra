@@ -1,4 +1,4 @@
-#!/usr/bin/env csh
+#!/bin/csh
 
 #========================================================================
 # Generates a colour movie in a chosen format from a selected character

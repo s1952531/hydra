@@ -1,4 +1,4 @@
-#!/usr/bin/env csh
+#!/bin/csh
 
 # Assigns a disk where the job output will go
 

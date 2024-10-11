@@ -1,4 +1,4 @@
-#!/usr/bin/env csh
+#!/bin/csh
 
 # Runs a given exectuable in the background niced to +19 in a clean manner. 
 # Directs standard out/error into a named log file.

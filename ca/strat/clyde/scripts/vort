@@ -1,4 +1,4 @@
-#!/usr/bin/env csh
+#!/bin/csh
 
 #=========================================================================#
 #   Job setup script for the vort initial condition

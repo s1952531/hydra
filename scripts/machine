@@ -1,4 +1,4 @@
-#!/usr/bin/env csh
+#!/bin/csh
 
 # Works out the generic machine type as one of the following:
 # (1) gfortran [64 bit processor]
