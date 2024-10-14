@@ -13,7 +13,7 @@ else if ( ($host == cyclone) || ($host == vortex) || ($host == tornado) || ($hos
 
    echo /scratch/$user
 
-else if ( ($host == taybeh) || ($host =~ "login-[1-4]") ) then
+else if ( ($host == taybeh) || ($host == login-1) || ($host == login-2) || ($host == login-3) || ($host == login-4) ) then
 
    echo $HOME/output-hydra
 

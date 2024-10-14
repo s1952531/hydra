@@ -121,7 +121,7 @@ while ($lay <= $nz)
         set var=$<
         if ($var != "") set kd=$var
 	set kdsq=`echo "$kd*$kd" | bc -l`
-	echo ' K_i = f_0/sqrt{(b_i-b_{i+1})*H}:    ' $kd >> job_info
+    echo ' K_i = f_0/sqrt{(b_i-b_{i+1})*H}:    ' $kd >> job_info
     else
         set kdsq="0.0"
     endif
@@ -225,9 +225,9 @@ if ($bathymetry == "y") then
       set var=$<
       if ($var != "") set rms=$var
 
-      echo -n ' Mean slope in y (default' $slope')? '
-      set var=$<
-      if ($var != "") set slope=$var
+   echo -n ' Mean slope in y (default' $slope')? '
+   set var=$<
+   if ($var != "") set slope=$var
 
       echo $pow $rk0 > in_$bathgen
       echo $rms >> in_$bathgen
@@ -299,7 +299,7 @@ if ($bathymetry == "y") then
       echo ' b:                                  ' $bel >> job_info
       echo ' Angle rotated through (degrees):    ' $phi >> job_info
 
-         else
+   else
       echo ' Not a valid choice - exiting...'
       /bin/rm -r $tmpdir  
       exit(-1)

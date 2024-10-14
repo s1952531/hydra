@@ -9,9 +9,9 @@ if ( ($host == "davidd-latitude-5430") || ($host == "taybeh") ) then
 
    echo '/home'
 
-else if ($host =~ "login-[1-4]") then
+else if ( ($host == login-1) || ($host == login-2) || ($host == login-3) || ($host == login-4) ) then
 
-   echo $HOME
+   echo /fp/homes01/u01
 
 else
 # all other machines:
