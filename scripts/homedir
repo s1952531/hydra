@@ -4,14 +4,18 @@
 
 set host = `hostname | awk -F. '{print $(1)}'`
 
-if ( $host == "davidd-latitude-5430" ) then
+if ( ($host == "davidd-latitude-5430") || ($host == "taybeh") ) then
 # laptop at home:
 
    echo '/home'
 
+else if ($host =~ "login-[1-4]") then
+
+   echo $HOME
+
 else
 # all other machines:
 
-   echo '/home'
+   echo '/user'
 
 endif

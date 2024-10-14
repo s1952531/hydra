@@ -13,9 +13,13 @@ else if ( ($host == cyclone) || ($host == vortex) || ($host == tornado) || ($hos
 
    echo /scratch/$user
 
+else if ( ($host == taybeh) || ($host =~ "login-[1-4]") ) then
+
+   echo $HOME/output-hydra
+
 else
 # all other machines:
 
-   echo /home/hennesh/output-hydra
+   echo /local_raid/$user
 
 endif
