@@ -1,4 +1,4 @@
-#!/usr/bin/env csh
+#!/bin/csh
 
 #=========================================================================#
 #         Job setup script for the strat aper class of f90 codes
@@ -32,8 +32,8 @@ endif
 
 #==========================================================================
 # The following is totally generic!
-set local_home=`homedir`
-set hydradir=$local_home/$user/hydra/$meth/$geom/$equa
+set local_home=${HOME}
+set hydradir=$local_home/hydra/$meth/$geom/$equa
 
 # Get output base directory:
 set basedir=`workdir`
@@ -246,7 +246,7 @@ if ($topogr == "1") then
    precomp $copts conform.f90
 
     # Location of FFT library needed in compilation:
-   set b_fft = $local_home/$user/hydra/lib/stafft
+   set b_fft = $local_home/hydra/lib/stafft
    set fft_lib = "$b_fft/stafft.f90 $b_fft/sta2dfft.f90 $b_fft/deriv1d.f90"
 
    echo

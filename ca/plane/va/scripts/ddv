@@ -1,4 +1,4 @@
-#!/usr/bin/env csh
+#!/bin/csh
 
 #============================================================================#
 # Runs diffview on any selected pair of fields in the evolution subdirectory

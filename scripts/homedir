@@ -1,4 +1,4 @@
-#!/usr/bin/env csh
+#!/bin/csh
 
 # Assigns the user's home disk where all source codes and scripts are kept
 
