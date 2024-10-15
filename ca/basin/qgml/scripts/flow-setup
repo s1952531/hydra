@@ -550,11 +550,11 @@ endif
 $datagen < in_$datagen > out_$datagen
 
 # Copy useful data view scripts to job directory:
+/bin/cp $bindir/create_video .
 /bin/cp $bindir/image.py .
 /bin/cp $bindir/image2.py .
 /bin/cp $bindir/penergy.py .
 /bin/cp $bindir/pzetanorms.py .
-/bin/cp $bindir/createVideo.sh .
 
 #==========================================================================
 # Create a directory named after the data generation script:

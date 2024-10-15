@@ -1,0 +1,19 @@
+#!/bin/csh
+
+set nz = `grep "Number of layers:" job_info | awk '{print $4}'`
+set interval = `grep "Time interval between data saves:" job_info | awk '{print $6}'`
+set total_time = `grep "Total simulation time:" job_info | awk '{print $4}'`
+
+set interval = `echo "$interval" | bc`
+set total_time = `echo "$total_time" | bc`
+
+set t = 0.0
+
+while (`echo "$t <= $total_time" | bc` == 1)
+    # Use printf to simulate input "l" and the loop number $i
+    printf "\n$t\n\n" | python image$nz.py
+    # Increment t by $interval using bc to handle floating-point addition
+    set t = `echo "$t + $interval" | bc`
+end
+
+ffmpeg -framerate 10 -i %06d.png -c:v libx264 -pix_fmt yuv420p video.mp4

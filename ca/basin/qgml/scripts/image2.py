@@ -403,7 +403,7 @@ if new_width != width or new_height != height:
 if frame2 > frame1:
     figname=option+'_t'+str(t1)+'-'+str(t2)+'.png'
 else:
-    figname=option+'_t'+str(t1)+'.png'
+    figname=figname = f"{int(t1*40):06d}.png"
 
 fig.savefig(figname, dpi=300) # avoided use of options: bbox_inches='tight', pad_inches=0.025
 
