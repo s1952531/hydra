@@ -12,9 +12,9 @@ echo '       The hydra flow simulation package '
 echo '      ==================================='
 
 # Get home directory from a script:
-set local_home=`homedir`
+set local_home=${HOME}
 # Location of the hydra flow simulation package:
-set basedir=$local_home/$user/hydra 
+set basedir=$local_home/hydra
 
 if ($#argv != 0) then
    echo
