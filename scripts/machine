@@ -12,7 +12,7 @@
 # Get hostname:
 set host = `hostname | awk -F. '{print $(1)}'`
 
-if ( ($host == storm2) || ($host == storm3) || ($host == storm4) || ($host == storm5) || ($host == storm6) || ($host == storm7) || ($host == storm10) || ($host == storm11) || ($host == storm12) || ($host == storm13) || ($host == storm14) || ($host == storm15) || ($host == fortran1) || ($host == andrea) || ($host == wave1) || ($host == wave2) || ($host == wave3) || ($host == wave4) || ($host == wave5) || ($host == dritschel) || ($host =~ "login-[1-4]") ) then
+if ( ($host == storm2) || ($host == storm3) || ($host == storm4) || ($host == storm5) || ($host == storm6) || ($host == storm7) || ($host == storm10) || ($host == storm11) || ($host == storm12) || ($host == storm13) || ($host == storm14) || ($host == storm15) || ($host == fortran1) || ($host == andrea) || ($host == wave1) || ($host == wave2) || ($host == wave3) || ($host == wave4) || ($host == wave5) || ($host == dritschel) || ($host == login-1) || ($host == login-2) || ($host == login-3) || ($host == login-4) ) then
 # 64 bit machines running gfortran:
 
    echo 'gfortran'
