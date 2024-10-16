@@ -176,6 +176,43 @@ with open('evolution/zz.r4','rb') as in_file:
     zz_array=np.fromfile(in_file,dtype=np.float32)
 min_vals[:,2],max_vals[:,2]=get_layer_min_max(zz_array,nz,NH,N)
 
+zmin_arr=[0]*nim
+zmax_arr=[0]*nim
+clevels_arr=[[] for _ in range(nim)]
+
+for j in range(nim):
+
+    row=int(j/3)
+    col=j-3*row
+
+    # Work out the overall min/max values:
+    zmin=min_vals[row,col]
+    zmax=max_vals[row,col]
+
+    zmag=max(abs(zmin),abs(zmax))
+    zmin_arr[j]=-zmag
+    zmax_arr[j]=zmag
+
+    dz=2.0*contint(zmin,zmax)
+    jmin=-int(-zmin/dz)
+    jmax=int(zmax/dz)
+    clevels_arr[j]=np.linspace(dz*float(jmin),dz*float(jmax),jmax-jmin+1)
+
+#=========================================================================
+# Adjust figure size to make it divisible by 2
+# Get the current size of the figure in pixels
+fig.canvas.draw()
+width,height=fig.canvas.get_width_height()
+
+# Check if width and height are divisible by 2
+new_width=width if width % 2 == 0 else width-1
+new_height=height if height % 2 == 0 else height-1
+
+# Resize the figure if necessary
+if new_width != width or new_height != height:
+    fig.set_size_inches(new_width/fig.dpi,new_height/fig.dpi)
+#=========================================================================
+
 t=0.0
 while t <= tsim:
     frame=int(t/dtsave+0.5)
@@ -183,90 +220,43 @@ while t <= tsim:
     for iz in range(nz):
         k=3*iz
         offset=frame*N
-        d[k,:,:]=qq_array[offset+iz*NH+1:offset+(iz+1)*NH+1].reshape(nx,ny)
-
-    for iz in range(nz):
-        k=3*iz+1
-        offset=frame*N
-        d[k,:,:]=pp_array[offset+iz*NH+1:offset+(iz+1)*NH+1].reshape(nx,ny)
-
-    for iz in range(nz):
-        k=3*iz+2
-        offset=frame*N
-        d[k,:,:]=zz_array[offset+iz*NH+1:offset+(iz+1)*NH+1].reshape(nx,ny)
+        d[k  ,:,:]=pp_array[offset+iz*NH+1:offset+(iz+1)*NH+1].reshape(nx,ny)
+        d[k+1,:,:]=qq_array[offset+iz*NH+1:offset+(iz+1)*NH+1].reshape(nx,ny)
+        d[k+2,:,:]=zz_array[offset+iz*NH+1:offset+(iz+1)*NH+1].reshape(nx,ny)
 
     #=================================================================
     # Plot each image with its own colorbar:
-
-    # Permutation map: original index -> new index
-    permutation=[1,0,2,4,3,5]
-
     for j in range(nim):
-        ax1=ax[permutation[j]]
-        ax1.set_xlim([xmin,xmax])
-        ax1.set_ylim([ymin,ymax])
+        ax[j].cla()
 
+        ax[j].set_xlim([xmin,xmax])
+        ax[j].set_ylim([ymin,ymax])
+        
         # Label x axis only for images in bottom row:
-        row=int(permutation[j]/3)
+        row=int(j/3)
         if row < nz-1:
-            plt.setp(ax1.get_xticklabels(),visible=False)
+            plt.setp(ax[j].get_xticklabels(),visible=False)
         else:
-            ax1.set_xlabel('$x$',fontsize=20)
-
+            ax[j].set_xlabel('$x$',fontsize=20)
+        
         # Label y axis only for images in leftmost column:
-        col=permutation[j]-3*row
+        col=j-3*row
         if col > 0:
-            plt.setp(ax1.get_yticklabels(),visible=False)
+            plt.setp(ax[j].get_yticklabels(),visible=False)
         else:
-            ax1.set_ylabel('$y$',fontsize=20)
-
-        # Use existing layer data:
-        Z=d[j]
-
-        # Work out the overall min/max values:
-        zmin=min_vals[row,col]
-        zmax=max_vals[row,col]
-
-        zmag=max(abs(zmin),abs(zmax))
-        zmin=-zmag
-        zmax=zmag
-
-        dz=2.0*contint(zmin,zmax)
-        jmin=-int(-zmin/dz)
-        jmax=int(zmax/dz)
-        clevels=np.linspace(dz*float(jmin),dz*float(jmax),jmax-jmin+1)
-
-        # Plot the image in an array with an optional colorbar:
-        im1=ax1.imshow( Z.T,cmap=cm.seismic,vmin=zmin,vmax=zmax,extent=(xmin,xmax,ymin,ymax),
-                        origin='lower',interpolation='bilinear' )
-        divider=make_axes_locatable(ax1)
-        cax=divider.append_axes("right",size="4%",pad=0.1)
-        cbar=fig.colorbar(im1,cax=cax,ticks=clevels)
+            ax[j].set_ylabel('$y$',fontsize=20)
 
         if row == 0:
-            # Add title:
-            ax1.set_title(field[col],fontsize=36)
+            ax[j].set_title(field[col],fontsize=36)
+        
+        # Plot the image in an array with an optional colorbar:
+        im1=ax[j].imshow( d[j].T,cmap=cm.seismic,vmin=zmin_arr[j],vmax=zmax_arr[j],
+                        extent=(xmin,xmax,ymin,ymax), origin='lower',interpolation='bilinear' )
+        #ax[j].set_aspect('equal') # Lock aspect ratio to avoid image shifting
+        divider=make_axes_locatable(ax[j])
+        cax=divider.append_axes("right",size="4%",pad=0.1)
+        cbar=fig.colorbar(im1,cax=cax,ticks=clevels_arr[j])
+        fig.subplots_adjust(wspace=0.8, hspace=0.8)
 
-    fig.subplots_adjust(wspace=0.8,hspace=0.8)
-
-    #=========================================================================
-    # Adjust figure size to make it divisible by 2
-    # Get the current size of the figure in pixels
-    fig.canvas.draw()
-    width,height=fig.canvas.get_width_height()
-
-    # Check if width and height are divisible by 2
-    new_width=width if width % 2 == 0 else width-1
-    new_height=height if height % 2 == 0 else height-1
-
-    # Resize the figure if necessary
-    if new_width != width or new_height != height:
-        fig.set_size_inches(new_width/fig.dpi,new_height/fig.dpi)
-
-    #=========================================================================
-    # Save image:
-    figname=f"{frame:06d}.png"
-
-    fig.savefig(figname,dpi=300)
-
+    fig.savefig(f"{frame:06d}.png",dpi=300)
     t+=dtsave
