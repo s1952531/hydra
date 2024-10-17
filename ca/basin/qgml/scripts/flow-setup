@@ -592,6 +592,7 @@ set jobdir={$basejobdir}r{$pind}
 mv $tmpdir $jobdir
 cd $jobdir
 set datadir=`pwd`
+set logfile="log"
 
 echo ' ' >> job_info
 echo ' Job directory:' >> job_info
@@ -599,11 +600,11 @@ echo $datadir >> job_info
 
 echo ' Launching job in'
 echo $datadir
-touch log
-bat log $algo
+touch $logfile
+bat $logfile $algo
 echo
 
 echo ' To view the log file, type'
 echo 'cd' $datadir
-echo 'tail -f log'
+echo 'tail -f' $logfile
 echo

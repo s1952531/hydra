@@ -56,5 +56,3 @@ ax1.plot(t,etot,color='k',lw=2,label='$\\mathcal{K}+\\mathcal{P}$')
 ax1.legend(loc='best',prop={'size':25})
 
 plt.savefig('energy.png', bbox_inches='tight', pad_inches = 0.025, dpi=300)
-
-plt.show()

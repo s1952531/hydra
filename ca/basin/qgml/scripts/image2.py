@@ -1,18 +1,15 @@
 #!/usr/bin/env python
 
 # This script plots the PV, streamfunction and vorticity in
-# evolution/qq.r4, pp.r4 and zz.r4, for all layers or for all
-# modes --- either at a single time or as a time average.
+# evolution/qq.r4, pp.r4 and zz.r4, for all layers and all output times.
 
 #  @@@@   Run from the current job directory   @@@@
 
 #========== Perform the generic imports =========
-import sys,os,warnings
+import warnings
 import numpy as np
-import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from matplotlib.artist import setp
 import matplotlib.cm as cm
 import matplotlib as mpl
 from matplotlib import rcParams
@@ -80,7 +77,7 @@ def contint(fmin,fmax):
 #=================================================================
 # Function to calculate global min and max for a field across all frames
 def get_layer_min_max(field_data,nz,NH,N):
-    layer_min=np.full(nz,np.inf)  # Initialize min with inf
+    layer_min=np.full(nz, np.inf) # Initialize min with  inf
     layer_max=np.full(nz,-np.inf) # Initialize max with -inf
 
     # Loop over layers and update min/max values
@@ -141,7 +138,7 @@ ncol=3
 nim=nrow*ncol
 
 # Ensure square images:
-fig,ax=plt.subplots(figsize=[12,8],nrows=nrow,ncols=ncol)
+fig,ax=plt.subplots(figsize=[12,7],nrows=nrow,ncols=ncol)
 ax=ax.flatten()
 
 # Set up an array to store all images to be plotted:
@@ -157,8 +154,8 @@ N=nz*NH+1
 # Field titles over each column:
 field=['$\\psi$','$q$','$\\zeta$']
 
-min_vals=np.full((nz,3),0)
-max_vals=np.full((nz,3),0)
+min_vals=np.full((nz,3),0.0)
+max_vals=np.full((nz,3),0.0)
 
 #=================================================================
 # Read streamfunction data into array for plotting:
@@ -176,12 +173,15 @@ with open('evolution/zz.r4','rb') as in_file:
     zz_array=np.fromfile(in_file,dtype=np.float32)
 min_vals[:,2],max_vals[:,2]=get_layer_min_max(zz_array,nz,NH,N)
 
+im=[] # To store the images
+cbar=[] # To store the colorbars
+cax=[0]*nim
 zmin_arr=[0]*nim
 zmax_arr=[0]*nim
 clevels_arr=[[] for _ in range(nim)]
 
 for j in range(nim):
-
+    ax[j].set_aspect('equal')
     row=int(j/3)
     col=j-3*row
 
@@ -194,9 +194,39 @@ for j in range(nim):
     zmax_arr[j]=zmag
 
     dz=2.0*contint(zmin,zmax)
-    jmin=-int(-zmin/dz)
-    jmax=int(zmax/dz)
-    clevels_arr[j]=np.linspace(dz*float(jmin),dz*float(jmax),jmax-jmin+1)
+    jj=int(zmag/dz)
+    z=dz*float(jj)
+    clevels_arr[j]=np.linspace(-z,z,max(3,jj+1))
+
+    ax[j].set_xlim([xmin,xmax])
+    ax[j].set_ylim([ymin,ymax])
+
+    # Label x axis only for images in the bottom row:
+    if row < nz - 1:
+        plt.setp(ax[j].get_xticklabels(),visible=False)
+    else:
+        ax[j].set_xlabel('$x$',fontsize=20)
+
+    # Label y axis only for images in the leftmost column:
+    if col > 0:
+        plt.setp(ax[j].get_yticklabels(),visible=False)
+    else:
+        ax[j].set_ylabel('$y$',fontsize=20)
+
+    if row == 0:
+        ax[j].set_title(field[col],fontsize=36)
+
+    # Initialize imshow with placeholder data
+    img=ax[j].imshow( np.zeros((nx,ny)).T,cmap=cm.seismic,vmin=zmin_arr[j],vmax=zmax_arr[j],
+                      extent=(xmin,xmax,ymin,ymax),origin='lower',interpolation='bilinear' )
+
+    # Create colorbar for each subplot (only once)
+    divider=make_axes_locatable(ax[j])
+    cax[j]=divider.append_axes("right",size="4%",pad=0.1)
+    cbar_j=fig.colorbar(img,cax=cax[j],ticks=clevels_arr[j])
+
+    im.append(img)
+    cbar.append(cbar_j)
 
 #=========================================================================
 # Adjust figure size to make it divisible by 2
@@ -214,7 +244,7 @@ if new_width != width or new_height != height:
 #=========================================================================
 
 t=0.0
-while t <= tsim:
+while t<=tsim:
     frame=int(t/dtsave+0.5)
 
     for iz in range(nz):
@@ -224,39 +254,10 @@ while t <= tsim:
         d[k+1,:,:]=qq_array[offset+iz*NH+1:offset+(iz+1)*NH+1].reshape(nx,ny)
         d[k+2,:,:]=zz_array[offset+iz*NH+1:offset+(iz+1)*NH+1].reshape(nx,ny)
 
-    #=================================================================
-    # Plot each image with its own colorbar:
     for j in range(nim):
-        ax[j].cla()
+        im[j].set_data(d[j].T)
+        # im[j].set_clim(vmin=zmin_arr[j],vmax=zmax_arr[j]) # such could be used if colorbars are adjusted
 
-        ax[j].set_xlim([xmin,xmax])
-        ax[j].set_ylim([ymin,ymax])
-        
-        # Label x axis only for images in bottom row:
-        row=int(j/3)
-        if row < nz-1:
-            plt.setp(ax[j].get_xticklabels(),visible=False)
-        else:
-            ax[j].set_xlabel('$x$',fontsize=20)
-        
-        # Label y axis only for images in leftmost column:
-        col=j-3*row
-        if col > 0:
-            plt.setp(ax[j].get_yticklabels(),visible=False)
-        else:
-            ax[j].set_ylabel('$y$',fontsize=20)
-
-        if row == 0:
-            ax[j].set_title(field[col],fontsize=36)
-        
-        # Plot the image in an array with an optional colorbar:
-        im1=ax[j].imshow( d[j].T,cmap=cm.seismic,vmin=zmin_arr[j],vmax=zmax_arr[j],
-                        extent=(xmin,xmax,ymin,ymax), origin='lower',interpolation='bilinear' )
-        #ax[j].set_aspect('equal') # Lock aspect ratio to avoid image shifting
-        divider=make_axes_locatable(ax[j])
-        cax=divider.append_axes("right",size="4%",pad=0.1)
-        cbar=fig.colorbar(im1,cax=cax,ticks=clevels_arr[j])
-        fig.subplots_adjust(wspace=0.8, hspace=0.8)
-
-    fig.savefig(f"{frame:06d}.png",dpi=300)
+    fig.subplots_adjust(wspace=0.0,hspace=0.0)
+    fig.savefig(f"{frame:06d}.png",dpi=150)
     t+=dtsave

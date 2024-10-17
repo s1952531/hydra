@@ -1,0 +1,14 @@
+ca/plane/msw/scripts/vortex_setup~
+ca/plane/mva/scripts/vortex_setup~
+ca/plane/sw2l/scripts/spec_view~
+ca/plane/va/scripts/vortex_setup~
+ca/sphere/bt/dev/diffuse
+ca/strat/clyde/mapgen/mapgen
+ps/3d/upv/scripts/vstrip~
+
+*.f90~
+*.make~
+*.pdf
+*.py~
+*.pyc
+
