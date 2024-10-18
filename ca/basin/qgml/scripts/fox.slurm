@@ -1,17 +1,10 @@
-#!/bin/bash
+#!/bin/csh
 
-##SBATCH --exclusive
 #SBATCH --ntasks-per-node=1
 #SBATCH --account=ec12
-#SBATCH --job-name=qgbasin
+#SBATCH --job-name=hydra
 #SBATCH --output=log
-#SBATCH --mem-per-cpu=1G
-#SBATCH --time=0-01:00:00
-##SBATCH --partition=bigmem
+#SBATCH --mem-per-cpu=2G
+#SBATCH --time=0-18:00:00
 
-# Recommended safety settings
-set -o errexit # Make bash exit on any error
-set -o nounset # Treat unset variables as errors
-
-rm log
-./caps
+caps
