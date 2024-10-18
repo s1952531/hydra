@@ -137,8 +137,8 @@ nrow=nz
 ncol=3
 nim=nrow*ncol
 
-# Ensure square images:
-fig,ax=plt.subplots(figsize=[12,7],nrows=nrow,ncols=ncol)
+# The following figure might need to be adjusted depending on the problem
+fig,ax=plt.subplots(figsize=[12+1*(nz>2),1+3*nrow],nrows=nrow,ncols=ncol)
 ax=ax.flatten()
 
 # Set up an array to store all images to be plotted:
