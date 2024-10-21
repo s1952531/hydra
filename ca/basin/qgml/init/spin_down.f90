@@ -5,9 +5,10 @@ use constants
 ! Sets up initial conditions for a spin-down experiment.
 
 implicit none
+double precision:: bb(0:ny,0:nx)
 double precision:: qq(0:ny,0:nx,nz)
 double precision:: xg(0:nx),yg(0:ny)
-double precision:: amp_psi1,k_psi1,l_psi1,k2l2,pv_aux,d1,K1sq,d2,K2,F1,F2
+double precision:: amp_psi1,k_psi1,l_psi1,k2l2,pv_aux,d1,K1sq,d2,K2,F1,F2,tmp
 integer:: ix,iy,iz
 
 ! Define x & y grid points:
@@ -28,10 +29,15 @@ write(*,*) ' Enter the y-wavenumbers l'
 read(*,*) l_psi1
 
 ! Get stretching term coefficients for the top two layers
-open(unit=10, file='vertical.asc', status='old')
-read(10,*) d1, K1sq
+open(unit=10,file='vertical.asc',status='old')
+read(10,*) d1,K1sq
 read(10,*) d2
 close(10)
+
+! Get bathymetry
+open(unit=11,file='bath.r8',form='unformatted',access='direct',status='old',recl=2*nbytes)
+read(11,rec=1) tmp, bb
+close(11)
 
 do ix=0,nx
    do iy=0,ny
@@ -44,15 +50,20 @@ enddo
 do iz=3,nz
    do ix=0,nx
       do iy=0,ny
-         qq(iy,ix,iz)=beta * yg(iy)
+         qq(iy,ix,iz) = beta * yg(iy)
       enddo
    enddo
 enddo
 
+do ix=0,nx
+   do iy=0,ny
+      qq(iy,ix,nz) = qq(iy,ix,nz) + bb(iy,ix)
+   enddo
+enddo
+
  !Write PV distribution to a file:
-open(20,file='qq_init.r8',form='unformatted', &
-      access='direct',status='replace',recl=2*nbytes)
+open(20,file='qq_init.r8',form='unformatted',access='direct',status='replace',recl=2*nbytes)
 write(20,rec=1) zero,qq
 close(20)
-      
+
 end program spin_down
