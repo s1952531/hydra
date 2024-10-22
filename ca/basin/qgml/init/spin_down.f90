@@ -5,6 +5,7 @@ use constants
 ! Sets up initial conditions for a spin-down experiment.
 
 implicit none
+logical :: nonzero_bath
 double precision:: bb(0:ny,0:nx)
 double precision:: qq(0:ny,0:nx,nz)
 double precision:: xg(0:nx),yg(0:ny)
@@ -34,11 +35,6 @@ read(10,*) d1,K1sq
 read(10,*) d2
 close(10)
 
-! Get bathymetry
-open(unit=11,file='bath.r8',form='unformatted',access='direct',status='old',recl=2*nbytes)
-read(11,rec=1) tmp, bb
-close(11)
-
 do ix=0,nx
    do iy=0,ny
       pv_aux = amp_psi1 * sin(k_psi1*xg(ix)) * cos(l_psi1*yg(iy))
@@ -55,11 +51,20 @@ do iz=3,nz
    enddo
 enddo
 
-do ix=0,nx
-   do iy=0,ny
-      qq(iy,ix,nz) = qq(iy,ix,nz) + bb(iy,ix)
-   enddo
-enddo
+! Get bathymetry
+inquire(file='bath.r8', exist=nonzero_bath)
+
+if (nonzero_bath) then
+    open(unit=11,file='bath.r8',form='unformatted',access='direct',status='old',recl=2*nbytes)
+    read(11,rec=1) tmp, bb
+    close(11)
+
+    do ix=0,nx
+        do iy=0,ny
+            qq(iy,ix,nz) = qq(iy,ix,nz) + bb(iy,ix)
+        enddo
+    enddo
+endif
 
  !Write PV distribution to a file:
 open(20,file='qq_init.r8',form='unformatted',access='direct',status='replace',recl=2*nbytes)
