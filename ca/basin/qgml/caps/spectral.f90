@@ -262,7 +262,7 @@ danorm(ny,nx)=f14*dsumi
  !If bathymetry eta_b is present, read in qb = f_0*eta_b/H_{nz}:
 if (bath) then
    open(11,file='bath.r8',form='unformatted', &
-        access='direct',status='old',recl=2*nbytes)
+        access='direct',status='old',recl=2*nhbytes)
    read(11,rec=1) td,qb
    close(11)
 endif

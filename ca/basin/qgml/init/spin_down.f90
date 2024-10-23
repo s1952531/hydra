@@ -55,7 +55,7 @@ enddo
 inquire(file='bath.r8', exist=nonzero_bath)
 
 if (nonzero_bath) then
-    open(unit=11,file='bath.r8',form='unformatted',access='direct',status='old',recl=2*nbytes)
+    open(unit=11,file='bath.r8',form='unformatted',access='direct',status='old',recl=2*nhbytes)
     read(11,rec=1) tmp, bb
     close(11)
 

@@ -168,7 +168,7 @@ enddo
 
 ! Write data to a file:
 open(11,file='bath.r8',form='unformatted', &
-      access='direct',status='replace',recl=2*nbytes)
+      access='direct',status='replace',recl=2*nhbytes)
 write(11,rec=1) zero,br
 close(11)
 

@@ -36,6 +36,7 @@ integer,parameter:: nxup1=nxu+1,nxum1=nxu-1
 integer,parameter:: nyup1=nyu+1,nyum1=nyu-1
 
  !For reading & writing direct access data:
+integer,parameter:: nhgridp=nxp1*nyp1,nhbytes=4*(nhgridp+1)
 integer,parameter:: ngridp=nxp1*nyp1*nz,nbytes=4*(ngridp+1)
 
  !Maximum number of contour levels (used in surgery and congen):
