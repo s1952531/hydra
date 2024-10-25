@@ -553,17 +553,21 @@ tke=f12*tke
 
 ! Compute available potential energy per unit mass:
 ape=zero
-do iz=1,nz-1
-   ape=ape+kkb(iz)*sum((pp(:,:,iz)-pp(:,:,iz+1))**2*danorm)
+do iz=1,nz
+   if ((bath) .and. (iz<nz)) then
+        ape=ape-hhat(iz)*sum(pp(:,:,iz)*(qq(:,:,iz)-bety(:,:))*danorm)
+   else
+      ape=ape-hhat(iz)*sum(pp(:,:,iz)*(qq(:,:,iz)-bety(:,:)-qb)*danorm)
+   endif
 enddo
 ape=f12*ape
 ! Above, danorm = dx * dy / (L_x * L_y) essentially.
 
 ! Write energy components and total:
-write(15,'(f10.3,3(1x,f14.9))') t,tke,ape,tke+ape
+write(15,'(f10.3,3(1x,f14.9))') t,tke,ape-tke,ape
 
 write(*,'(a,f10.3,3(a,f10.7))') &
-    & ' t = ',t,'  K = ',tke,'  P = ',ape,'  K + P = ',tke+ape
+    & ' t = ',t,'  K = ',tke,'  P = ',ape-tke,'  K + P = ',ape
 
 return
 end subroutine savegrid
