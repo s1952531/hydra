@@ -5,11 +5,10 @@ use constants
 ! Sets up initial conditions for a spin-down experiment.
 
 implicit none
-logical :: nonzero_bath
-double precision:: bb(0:ny,0:nx)
+double precision:: qb(0:ny,0:nx)
 double precision:: qq(0:ny,0:nx,nz)
 double precision:: xg(0:nx),yg(0:ny)
-double precision:: amp_psi1,k_psi1,l_psi1,k2l2,pv_aux,d1,K1sq,d2,K2,F1,F2,tmp
+double precision:: amp_psi1,k_psi1,l_psi1,k2l2,pv_aux,d1,K1sq,d2,K2,F1,F2,td
 integer:: ix,iy,iz
 
 ! Define x & y grid points:
@@ -52,16 +51,15 @@ do iz=3,nz
 enddo
 
 ! Get bathymetry
-inquire(file='bath.r8', exist=nonzero_bath)
-
-if (nonzero_bath) then
-    open(unit=11,file='bath.r8',form='unformatted',access='direct',status='old',recl=2*nhbytes)
-    read(11,rec=1) tmp, bb
-    close(11)
+if (bath) then
+   open(11,file='bath.r8',form='unformatted', &
+        access='direct',status='old',recl=2*nhbytes)
+   read(11,rec=1) td,qb
+   close(11)
 
     do ix=0,nx
         do iy=0,ny
-            qq(iy,ix,nz) = qq(iy,ix,nz) + bb(iy,ix)
+            qq(iy,ix,nz) = qq(iy,ix,nz) + qb(iy,ix)
         enddo
     enddo
 endif

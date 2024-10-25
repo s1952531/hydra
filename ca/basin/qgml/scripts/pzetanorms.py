@@ -56,5 +56,3 @@ ax1.plot(t,zzrms,color='b',lw=2,label='$\\zeta_{\\mathsf{rms}}$')
 ax1.legend(loc='best',prop={'size':25})
 
 plt.savefig('zetanorms.png', bbox_inches='tight', pad_inches = 0.025, dpi=300)
-
-plt.show()

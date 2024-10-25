@@ -1,3 +1,10 @@
+#!/usr/bin/python
+
+# This script plots the bathymetry bath.r8.
+
+#  @@@@   Run from the current job directory   @@@@
+
+#========== Perform the generic imports =========
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm

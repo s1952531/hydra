@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 
 # This script plots the PV, streamfunction and vorticity in
 # evolution/qq.r4, pp.r4 and zz.r4, for all layers and all output times.

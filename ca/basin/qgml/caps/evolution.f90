@@ -560,9 +560,9 @@ ape=f12*ape
 ! Above, danorm = dx * dy / (L_x * L_y) essentially.
 
 ! Write energy components and total:
-write(15,'(f9.2,3(1x,f14.9))') t,tke,ape,tke+ape
+write(15,'(f10.3,3(1x,f14.9))') t,tke,ape,tke+ape
 
-write(*,'(a,f9.2,3(a,f10.7))') &
+write(*,'(a,f10.3,3(a,f10.7))') &
     & ' t = ',t,'  K = ',tke,'  P = ',ape,'  K + P = ',tke+ape
 
 return

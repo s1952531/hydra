@@ -5,5 +5,8 @@ set python="python3"
 $python image_sequence.py
 ffmpeg -framerate 10 -i %06d.png -c:v libx264 -pix_fmt yuv420p video.mp4
 rm *.png
-$python pbath.py
+if (-e bath.r8) then
+    $python pbath.py
+endif
 $python penergy.py
+$python pzetanorms.py
