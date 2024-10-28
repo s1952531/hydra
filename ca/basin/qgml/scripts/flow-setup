@@ -330,7 +330,7 @@ if ($var != "") set dataopt=$var
 if ($dataopt == "1") then
     # A state of rest initially
     echo ' ' >> job_info
-    echo ' Starting from a flow at rest (in absence of bathymetry)' >> job_info
+    echo ' Starting from a flow at rest' >> job_info
     set datagen = "rest"
     
     # Create empty input file for routine:
