@@ -551,7 +551,7 @@ do iz=1,nz
 enddo
 tke=f12*tke
 
-! Compute available potential energy per unit mass:
+! Compute total energy per unit mass:
 tot=zero
 do iz=1,nz
    if ((bath) .and. (iz<nz)) then
