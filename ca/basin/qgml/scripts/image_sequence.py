@@ -84,14 +84,15 @@ def get_layer_min_max(field_data,nz,NH,N,option="l",vec=[]):
 
     for frame in range(nt):
         for iz in range(nz):
-            offset=frame*N+iz*NH+1
             if option=="m":
                 # Project data onto vertical modes:
                 for jz in range(nz):
+                    offset=frame*N+jz*NH+1
                     data_array[:,:,iz,frame]+=vec[jz,iz]*field_data[offset:offset+NH].reshape(nx,ny)
 
             else:
                 # Use existing layer data:
+                offset=frame*N+iz*NH+1
                 data_array[:,:,iz,frame]=field_data[offset:offset+NH].reshape(nx,ny)
 
             layer_min[iz]=min(layer_min[iz],np.min(data_array[:,:,iz,frame]))
