@@ -76,19 +76,28 @@ def contint(fmin,fmax):
 
 #=================================================================
 # Function to calculate global min and max for a field across all frames
-def get_layer_min_max(field_data,nz,NH,N):
-    layer_min=np.full(nz, np.inf) # Initialize min with  inf
-    layer_max=np.full(nz,-np.inf) # Initialize max with -inf
+def get_layer_min_max(field_data,nz,NH,N,option="l",vec=[]):
+    nt=len(field_data) // N
+    layer_min=np.full(nz, np.inf)
+    layer_max=np.full(nz,-np.inf)
+    data_array=np.zeros((nx,ny,nz,nt))
 
-    # Loop over layers and update min/max values
-    for iz in range(nz):
-        for frame in range(len(field_data) // N):
+    for frame in range(nt):
+        for iz in range(nz):
             offset=frame*N+iz*NH+1
-            layer=field_data[offset:offset+NH].reshape(nx,ny)
-            layer_min[iz]=min(layer_min[iz],np.min(layer))
-            layer_max[iz]=max(layer_max[iz],np.max(layer))
+            if option=="m":
+                # Project data onto vertical modes:
+                for jz in range(nz):
+                    data_array[:,:,iz,frame]+=vec[jz,iz]*field_data[offset:offset+NH].reshape(nx,ny)
 
-    return layer_min,layer_max
+            else:
+                # Use existing layer data:
+                data_array[:,:,iz,frame]=field_data[offset:offset+NH].reshape(nx,ny)
+
+            layer_min[iz]=min(layer_min[iz],np.min(data_array[:,:,iz,frame]))
+            layer_max[iz]=max(layer_max[iz],np.max(data_array[:,:,iz,frame]))
+
+    return layer_min,layer_max,data_array
 
 #=================================================================
 # Work out grid resolution (nx,ny & nz) by reading parameters.f90:
@@ -131,6 +140,25 @@ with open('evolution/energy.asc','r') as in_file:
 tsim=time[-1]
 
 #=================================================================
+# Select layer or modes view:
+print()
+op_in = input(' View layers or modes (l/m) (default l)? ')
+option = str(op_in or "l")
+
+# Read in vertical mode matrix if required:
+vec=np.empty((nz,nz))
+if option == "m":
+    in_file=open('modes.asc','r')
+    for m in range(nz):
+        line=in_file.readline()
+    for m in range(nz):
+        for iz in range(nz):
+            line=in_file.readline()
+            string=line.split()
+            vec[iz,m]=string[0]
+    in_file.close()
+
+#=================================================================
 # Set up figure:
 # Layout is nz rows and 3 columns:
 nrow=nz
@@ -161,17 +189,18 @@ max_vals=np.full((nz,3),0.0)
 # Read streamfunction data into array for plotting:
 with open('evolution/pp.r4','rb') as in_file:
     pp_array=np.fromfile(in_file,dtype=np.float32)
-min_vals[:,0],max_vals[:,0]=get_layer_min_max(pp_array,nz,NH,N)
 
 # Read PV data into array for plotting:
 with open('evolution/qq.r4','rb') as in_file:
     qq_array=np.fromfile(in_file,dtype=np.float32)
-min_vals[:,1],max_vals[:,1]=get_layer_min_max(qq_array,nz,NH,N)
 
 # Read vertical vorticity data into array for plotting:
 with open('evolution/zz.r4','rb') as in_file:
     zz_array=np.fromfile(in_file,dtype=np.float32)
-min_vals[:,2],max_vals[:,2]=get_layer_min_max(zz_array,nz,NH,N)
+
+min_vals[:,0],max_vals[:,0],pp_array=get_layer_min_max(pp_array,nz,NH,N,option,vec)
+min_vals[:,1],max_vals[:,1],qq_array=get_layer_min_max(qq_array,nz,NH,N,option,vec)
+min_vals[:,2],max_vals[:,2],zz_array=get_layer_min_max(zz_array,nz,NH,N,option,vec)
 
 im=[] # To store the images
 cbar=[] # To store the colorbars
@@ -249,10 +278,9 @@ while t<=tsim:
 
     for iz in range(nz):
         k=3*iz
-        offset=frame*N
-        d[k  ,:,:]=pp_array[offset+iz*NH+1:offset+(iz+1)*NH+1].reshape(nx,ny)
-        d[k+1,:,:]=qq_array[offset+iz*NH+1:offset+(iz+1)*NH+1].reshape(nx,ny)
-        d[k+2,:,:]=zz_array[offset+iz*NH+1:offset+(iz+1)*NH+1].reshape(nx,ny)
+        d[k  ,:,:]=pp_array[:,:,iz,frame]
+        d[k+1,:,:]=qq_array[:,:,iz,frame]
+        d[k+2,:,:]=zz_array[:,:,iz,frame]
 
     for j in range(nim):
         im[j].set_data(d[j].T)
