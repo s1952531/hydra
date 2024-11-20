@@ -108,26 +108,26 @@ echo ' ' >> job_info
 touch vertical.asc
 set lay=1
 while ($lay <= $nz)
-    set thick=`echo "$a + $b * $lay" | bc -l`
-    set thick_trunc=0`echo "scale=4; $thick / 1" | bc -l`
-    echo -n ' (Fractional) depth of layer (default' $thick_trunc')? '
-    set var=$<
-    if ($var != "") set thick=$var
-    set thick_trunc=0`echo "scale=4; $thick / 1" | bc -l`
-    echo ' (Fractional) depth of layer' $lay':      ' $thick_trunc >> job_info
-    if ($lay < $nz) then
-        set kd=`echo "$c * $lay" | bc -l`
-	echo -n ' Inverse length K_i (default' $kd')? '
-        set var=$<
-        if ($var != "") set kd=$var
-	set kdsq=`echo "$kd*$kd" | bc -l`
-    echo ' K_i = f_0/sqrt{(b_i-b_{i+1})*H}:    ' $kd >> job_info
-    else
-        set kdsq="0.0"
-    endif
-    echo $thick $kdsq >> vertical.asc
-    echo ' ' >> job_info
-    @ lay ++
+   set thick=`echo "$a + $b * $lay" | bc -l`
+   set thick_trunc=0`echo "scale=4; $thick / 1" | bc -l`
+   echo -n ' (Fractional) depth of layer (default' $thick_trunc')? '
+   set var=$<
+   if ($var != "") set thick=$var
+   set thick_trunc=0`echo "scale=4; $thick / 1" | bc -l`
+   echo ' (Fractional) depth of layer' $lay':      ' $thick_trunc >> job_info
+   if ($lay < $nz) then
+      set kd=`echo "$c * $lay" | bc -l`
+   echo -n ' Inverse length K_i (default' $kd')? '
+      set var=$<
+      if ($var != "") set kd=$var
+   set kdsq=`echo "$kd*$kd" | bc -l`
+   echo ' K_i = f_0/sqrt{(b_i-b_{i+1})*H}:    ' $kd >> job_info
+   else
+      set kdsq="0.0"
+   endif
+   echo $thick $kdsq >> vertical.asc
+   echo ' ' >> job_info
+   @ lay ++
 end
 
 #==========================================================================
@@ -173,13 +173,13 @@ if ($var != "") set ny=$var
 echo ' Inversion grid resolution in y:     ' $ny >> job_info
 
 # Set number of contours used to represent PV:
-set nq="80"         # Default 
+set nq="80"         # Default
 echo -n ' Number of PV jumps to represent the total PV variation (default' $nq')? '
 set var=$<
 if ($var != "") set nq=$var
 echo ' ' >> job_info
 echo ' Number of jumps to represent PV, nq:' $nq >> job_info
- 
+
 #==========================================================================
 # Set up bathymetry if desired:
 
@@ -204,7 +204,7 @@ if ($bathymetry == "y") then
    if ($var != "") set bathopt=$var
    echo
 
-   if ($bathopt == "1") then 
+   if ($bathopt == "1") then
       echo ' ' >> job_info
       echo ' Random bathymetry, with variance spectrum c k^{2p+1} exp[-p(k/k_0)^2]' >> job_info
       set bathgen = "random_bath"
@@ -225,9 +225,9 @@ if ($bathymetry == "y") then
       set var=$<
       if ($var != "") set rms=$var
 
-   echo -n ' Mean slope in y (default' $slope')? '
-   set var=$<
-   if ($var != "") set slope=$var
+      echo -n ' Mean slope in y (default' $slope')? '
+      set var=$<
+      if ($var != "") set slope=$var
 
       echo $pow $rk0 > in_$bathgen
       echo $rms >> in_$bathgen
@@ -238,7 +238,7 @@ if ($bathymetry == "y") then
       echo ' rms field amplitude:                ' $rms >> job_info
       echo ' Mean slope in y:                    ' $slope >> job_info
 
-   else if ($bathopt == "2") then 
+   else if ($bathopt == "2") then
       echo ' ' >> job_info
       echo ' Periodic bathymetry, of the form A sin(k(x-x_min)) sin(k(y-y_min))' >> job_info
       set bathgen = "sine_bath"
@@ -259,7 +259,7 @@ if ($bathymetry == "y") then
       echo ' A:                                  ' $amp >> job_info
       echo ' k:                                  ' $k_bath >> job_info
 
-   else if ($bathopt == "3") then 
+   else if ($bathopt == "3") then
       echo ' ' >> job_info
       echo ' Rotated elliptical-Gaussian bathymetry in the domain centre' >> job_info
       echo ' f_0*eta_b/H_nz = A*exp(-(X/a)^2-(Y/b)^2)' >> job_info
@@ -301,7 +301,7 @@ if ($bathymetry == "y") then
 
    else
       echo ' Not a valid choice - exiting...'
-      /bin/rm -r $tmpdir  
+      /bin/rm -r $tmpdir
       exit(-1)
 
    endif
@@ -328,92 +328,92 @@ if ($var != "") set dataopt=$var
 # Set defaults for each data generation type:
 
 if ($dataopt == "1") then
-    # A state of rest initially
-    echo ' ' >> job_info
-    echo ' Starting from a flow at rest' >> job_info
-    set datagen = "rest"
-    
-    # Create empty input file for routine:
-    touch in_$datagen
+   # A state of rest initially
+   echo ' ' >> job_info
+   echo ' Starting from a flow at rest' >> job_info
+   set datagen = "rest"
+
+   # Create empty input file for routine:
+   touch in_$datagen
 
 else if ($dataopt == "2") then
-    # A circular eddy in each layer
-    echo ' ' >> job_info
-    echo ' Starting from a circular eddy in each layer' >> job_info
-    echo ' ' >> job_info
-    set datagen = "eddy"
+   # A circular eddy in each layer
+   echo ' ' >> job_info
+   echo ' Starting from a circular eddy in each layer' >> job_info
+   echo ' ' >> job_info
+   set datagen = "eddy"
 
-    # Create input file for routine:
-    touch in_$datagen
-    set lay=1
-    echo
-    echo ' We consider a PV anomaly in the form of a circular eddy.'
-    while ($lay <= $nz)
-        echo ' For layer' $lay', enter'
-        set xc="0"
-	echo -n ' its centre in x (default' $xc,'): '
-        set var=$<
-        if ($var != "") set xc=$var
-        set yc="0"
-	echo -n ' its centre in y (default' $yc,'): '
-        set var=$<
-        if ($var != "") set yc=$var
-        set rr="1"
-	echo -n ' its radius (default' $rr,'): '
-        set var=$<
-        if ($var != "") set rr=$var
-        set qm="1"
-	echo -n ' and its PV anomaly at the centre (default' $qm,'): '
-        set var=$<
-        if ($var != "") set qm=$var
-	echo ' Centre of eddy (xc,yc) in layer' $lay':' '(',$xc,',',$yc,')' >> job_info
-        echo ' Radius, R:                          ' $rr >> job_info
-        echo ' PV anomaly at centre, qm:           ' $qm >> job_info
-        echo $xc $yc >> in_$datagen
-        echo $rr $qm >> in_$datagen
-	@ lay ++
-    end
+   # Create input file for routine:
+   touch in_$datagen
+   set lay=1
+   echo
+   echo ' We consider a PV anomaly in the form of a circular eddy.'
+   while ($lay <= $nz)
+      echo ' For layer' $lay', enter'
+      set xc="0"
+   echo -n ' its centre in x (default' $xc,'): '
+      set var=$<
+      if ($var != "") set xc=$var
+      set yc="0"
+   echo -n ' its centre in y (default' $yc,'): '
+      set var=$<
+      if ($var != "") set yc=$var
+      set rr="1"
+   echo -n ' its radius (default' $rr,'): '
+      set var=$<
+      if ($var != "") set rr=$var
+      set qm="1"
+   echo -n ' and its PV anomaly at the centre (default' $qm,'): '
+      set var=$<
+      if ($var != "") set qm=$var
+   echo ' Centre of eddy (xc,yc) in layer' $lay':' '(',$xc,',',$yc,')' >> job_info
+      echo ' Radius, R:                          ' $rr >> job_info
+      echo ' PV anomaly at centre, qm:           ' $qm >> job_info
+      echo $xc $yc >> in_$datagen
+      echo $rr $qm >> in_$datagen
+   @ lay ++
+   end
 else if ($dataopt == "3") then
-    # A spin-down experiment with sinusoidal Rossby waves in the upper layer only
-    echo ' ' >> job_info
-    echo ' Starting from a spin-down experiment' >> job_info
-    echo ' ' >> job_info
-    set datagen = "spin_down"
+   # A spin-down experiment with sinusoidal Rossby waves in the upper layer only
+   echo ' ' >> job_info
+   echo ' Starting from a spin-down experiment' >> job_info
+   echo ' ' >> job_info
+   set datagen = "spin_down"
 
-    # Create input file for routine:
-    touch in_$datagen
-    set lay=1
-    echo
-    echo ' We consider the upper layer streamfunction psi1(x,y) = A sin(kx) sin(ly).'
-    
-    set k_psi1 = "2"
-    set l_psi1 = "0.5"
-    set amp_psi1 = "1.0"
+   # Create input file for routine:
+   touch in_$datagen
+   set lay=1
+   echo
+   echo ' We consider the upper layer streamfunction psi1(x,y) = A sin(kx) sin(ly).'
 
-    echo -n ' A (default' $amp_psi1')? '
-    set var=$<
-    if ($var != "") set amp_psi1=$var
+   set k_psi1 = "2"
+   set l_psi1 = "0.5"
+   set amp_psi1 = "1.0"
 
-    echo -n ' k (default' $k_psi1')? '
-    set var=$<
-    if ($var != "") set k_psi1=$var
+   echo -n ' A (default' $amp_psi1')? '
+   set var=$<
+   if ($var != "") set amp_psi1=$var
 
-    echo -n ' l (default' $l_psi1')? '
-    set var=$<
-    if ($var != "") set l_psi1=$var
+   echo -n ' k (default' $k_psi1')? '
+   set var=$<
+   if ($var != "") set k_psi1=$var
 
-    echo ' Upper layer streamfunction psi1(x,y) = A sin(kx) sin(ly) with ' >> job_info
-    echo ' Amplitude A:                          ' $amp_psi1 >> job_info
-    echo ' x-wavenumber k:                       ' $k_psi1 >> job_info
-    echo ' y-wavenumber l:                       ' $l_psi1 >> job_info
-    echo $amp_psi1 >> in_$datagen
-    echo $k_psi1   >> in_$datagen
-    echo $l_psi1   >> in_$datagen
+   echo -n ' l (default' $l_psi1')? '
+   set var=$<
+   if ($var != "") set l_psi1=$var
 
-else 
-    echo ' Not a valid choice - exiting...'
-    /bin/rm -r $tmpdir  
-    exit(-1)
+   echo ' Upper layer streamfunction psi1(x,y) = A sin(kx) sin(ly) with ' >> job_info
+   echo ' Amplitude A:                          ' $amp_psi1 >> job_info
+   echo ' x-wavenumber k:                       ' $k_psi1 >> job_info
+   echo ' y-wavenumber l:                       ' $l_psi1 >> job_info
+   echo $amp_psi1 >> in_$datagen
+   echo $k_psi1   >> in_$datagen
+   echo $l_psi1   >> in_$datagen
+
+else
+   echo ' Not a valid choice - exiting...'
+   /bin/rm -r $tmpdir
+   exit(-1)
 endif
 
 #==========================================================================
@@ -513,7 +513,7 @@ cd src
 /bin/cp -r $hydradir/init .
 /bin/cp -r $hydradir/post .
 
-echo 
+echo
 echo " Compiling source files....."
 echo " -----------------------------------------------------------------------"
 
@@ -535,7 +535,7 @@ endif
 
 cd ..
 echo " -----------------------------------------------------------------------"
-echo 
+echo
 
 #=========================================================================
 # Generate vertical modes:
