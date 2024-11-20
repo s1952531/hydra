@@ -59,6 +59,7 @@ implicit none
 double precision:: qq(0:ny,0:nx,nz)
 
  !Local variables:
+double precision:: dqmin
 integer:: ix,ixf,ix0,ix1
 integer:: iy,iyf,iy0,iy1
 integer:: i,j,iz
@@ -98,14 +99,18 @@ do iz=1,nz
          enddo
       enddo
 
+      ! Compute new contour interval
+      qjump(iz)=(maxval(qa)-minval(qa))/dble(ncontq)
+
    else
       !There are no contours (the usual situation at t = 0):
 
-      !Check if field requires contouring by computing PV variation:
-      create=maxval(qq(:,:,iz))-minval(qq(:,:,iz)) > small
+      ! Compute new contour interval
+      qjump(iz)=(maxval(qq(:,:,iz))-minval(qq(:,:,iz)))/dble(ncontq)
+      create=qjump(iz) > small
       if (create) then
 
-         !No contours: interpolate qq (which here contains the full field)
+         !Interpolate qq (which here contains the full field)
          !to the fine grid as qa:
          do ix=0,nxu
             ixf=ixfw(ix)
@@ -123,6 +128,9 @@ do iz=1,nz
                         +w11(iyf,ixf)*qq(iy1,ix1,iz)
             enddo
          enddo
+
+      else
+         qjump(iz)=0.0
       endif
    endif
 
@@ -143,6 +151,20 @@ do iz=1,nz
 
 enddo
  !Ends loop over layers
+
+dqmin=maxval(qjump)
+
+do iz=1,nz
+   if (qjump(iz)>small) then
+      dqmin=min(dqmin,qjump(iz))
+   endif
+enddo
+
+do iz=1,nz
+   if (qjump(iz)<small) then
+      qjump(iz)=dqmin
+   endif
+enddo
 
  !Copy arrays back to those in the argument of the subroutine:
 do i=1,npta

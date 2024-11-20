@@ -42,10 +42,16 @@ implicit none
 double precision,parameter:: twistmax=2.5d0
 !      twistmax: the maximum value of the time integral of |zeta|_max
 !                between regularisations of the contours.
+double precision,parameter:: qratmax=0.2d0
+!      qratmax:  the maximum ratio r of the mean-square residual PV qd
+!                to the mean-square PV qc in the contours
 integer,parameter:: nregmax=20
 !      Every nregmax contour regularisations, or when r > qratmax, 
 !      the code rebuild the PV contours in a separate memory space.
-integer:: ireg
+integer:: ireg,iz
+
+double precision:: qc(0:ny,0:nx,nz)
+double precision:: wkp(0:nx,0:ny),wks(0:ny,0:nx),qrat
 
 !------------------------------------------------------------------
 ! Initialise after contour regeneration:
@@ -65,8 +71,20 @@ do while (t .le. tsim)
    if (twist .gt. twistmax) then
       ireg=ireg+1
 
+      ! Compute ratio of mean-square residual and contour PV:
+      call con2grid(qc)
+      qrat=zero
+      do iz=1,nz
+         ! Only process layers having contours:
+         if (jl2q(iz) .gt. 0) then
+            wkp=qd(:,:,iz)
+            call spctop(nx,ny,wkp,wks,xfactors,yfactors,xtrig,ytrig)
+            qrat=max(qrat,sum(danorm*wks**2)/sum(danorm*qc(:,:,iz)**2))
+         endif
+      enddo
+
       ! Don't continue if maximum number of regularisations reached:
-      if (ireg .eq. nregmax) then
+      if (ireg .eq. nregmax .or. qrat .gt. qratmax) then
          ! Prepare PV residual for recontouring:
          call prepare
          ! Exit module and go to recontouring:
@@ -595,6 +613,9 @@ write(pind(1:3),'(i3.3)') iconts-1
 
 ! Write contours to the cont subdirectory:
 write(80,'(i8,1x,i9,1x,f9.2)') nq,nptq,t
+
+! Write PV jumps for potentially restoring PV fields from contours
+write(80,*) qjump
 
 ! Convert PV contours (xq,yq) to gridded values as qc:
 call con2grid(qc)

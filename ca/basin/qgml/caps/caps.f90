@@ -82,7 +82,6 @@ implicit none
 
  !Local variables:
 double precision:: wkp(0:ny,0:nx),wks(0:nx,0:ny)
-double precision:: dq
 integer:: ix,iz
 
 !------------------------------------------------------------------
@@ -169,20 +168,9 @@ use congen
 
 implicit none
 
- !Local variables:
-double precision:: dq
-integer:: iz
-
 !------------------------------------------------------------------
  !Obtain new PV contours:
 if (t < small) write(*,*) ' Contouring initial PV field ...'
-
- !Compute (fixed) contour interval for PV:
-dq=(maxval(qq)-minval(qq))/dble(ncontq)
-
-do iz=1,nz
-   qjump(iz)=dq !Could allow different PV jumps in different layers.
-enddo
 
 call recontour(qq)
 
