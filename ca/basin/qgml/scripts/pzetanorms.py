@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 
 #=====================================================================
 #       Plots |zeta|_max and zeta_rms as a function of time.
