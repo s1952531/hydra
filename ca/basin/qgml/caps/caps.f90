@@ -82,7 +82,6 @@ implicit none
 
  !Local variables:
 double precision:: wkp(0:ny,0:nx),wks(0:nx,0:ny)
-double precision:: dq
 integer:: ix,iz
 
 !------------------------------------------------------------------
@@ -101,13 +100,9 @@ open(11,file='qq_init.r8',form='unformatted', &
 read(11,rec=1) t,qq
 close(11)
 
- !Compute (fixed) contour interval for PV:
-dq=(maxval(qq)-minval(qq))/dble(ncontq)
-
  !Compute horizontal average in each layer (to be preserved):
 do iz=1,nz
    qavg(iz)=sum(qq(:,:,iz)*danorm)
-   qjump(iz)=dq !Could allow different PV jumps in different layers.
 enddo
  !Here, danorm = dx * dy / (L_x * L_y) essentially.
 

@@ -98,14 +98,18 @@ do iz=1,nz
          enddo
       enddo
 
+      ! Compute new contour interval
+      qjump(iz)=(maxval(qa)-minval(qa))/dble(ncontq)
+
    else
       !There are no contours (the usual situation at t = 0):
 
-      !Check if field requires contouring by computing PV variation:
-      create=maxval(qq(:,:,iz))-minval(qq(:,:,iz)) > small
+      ! Compute new contour interval
+      qjump(iz)=(maxval(qq(:,:,iz))-minval(qq(:,:,iz)))/dble(ncontq)
+      create=qjump(iz) > small
       if (create) then
 
-         !No contours: interpolate qq (which here contains the full field)
+         !Interpolate qq (which here contains the full field)
          !to the fine grid as qa:
          do ix=0,nxu
             ixf=ixfw(ix)
@@ -123,6 +127,9 @@ do iz=1,nz
                         +w11(iyf,ixf)*qq(iy1,ix1,iz)
             enddo
          enddo
+
+      else
+         qjump(iz)=0.0
       endif
    endif
 
