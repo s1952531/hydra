@@ -59,7 +59,6 @@ implicit none
 double precision:: qq(0:ny,0:nx,nz)
 
  !Local variables:
-double precision:: dqmin
 integer:: ix,ixf,ix0,ix1
 integer:: iy,iyf,iy0,iy1
 integer:: i,j,iz
@@ -151,20 +150,6 @@ do iz=1,nz
 
 enddo
  !Ends loop over layers
-
-dqmin=maxval(qjump)
-
-do iz=1,nz
-   if (qjump(iz)>small) then
-      dqmin=min(dqmin,qjump(iz))
-   endif
-enddo
-
-do iz=1,nz
-   if (qjump(iz)<small) then
-      qjump(iz)=dqmin
-   endif
-enddo
 
  !Copy arrays back to those in the argument of the subroutine:
 do i=1,npta
