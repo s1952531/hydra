@@ -620,7 +620,7 @@ echo " -----------------------------------------------------------------------"
 set copts1="-DN_X=$nx -DN_Y=$ny -DN_CONTQ=$nq -DT_SIM={$tsim}d0 -DT_GSAVE={$tgsave}d0 -DT_CSAVE={$tcsave}d0"
 set copts2="-DDENSITY_RATIO={$alpha}d0 -DH_1={$h1}d0 -DK_DBAR={$kdbar}d0 -DL_X={$ellx}d0 -DL_Y={$elly}d0 -DY_M={$ymin}d0 -DPV_GRAD={$beta}d0 -DU_TOPO={$utopo}d0 -DF_TOPO={$ftopo}d0"
 set copts3="-DFPV_GRAD1={$epsilon}d0 -DR_THERM1={$rtherm1}d0 -DR_THERM2={$rtherm2}d0 -DR_EKMAN={$rekman}d0" 
-set copts4="-DF_WIND={$fwind}d0 -DTOP_FLAG=$topflag"
+set copts4="-DF_WIND={$fwind}d0 -DTOP_FLAG=$topflag -DI_SEED=$iseed"
 set copts=`echo $copts1 $copts2 $copts3 $copts4`
 precomp $copts parameters.f90
 

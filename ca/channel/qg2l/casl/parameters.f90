@@ -71,4 +71,7 @@ logical,parameter:: topogr=TOP_FLAG
 ! topogr : logical variable to indicate presence of topography
 !----------------------------------------------------------------
 
+ !Random number seed:
+integer,parameter:: iseed=I_SEED
+
 end module parameters
