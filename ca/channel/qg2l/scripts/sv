@@ -42,10 +42,10 @@ def running(args):
 
     # Open input file:
     try:
-       in_file=open('spectra/qspec.asc','r') # try opening qspec.asc
+        in_file=open('spectra/qspec.asc','r') # try opening qspec.asc
     except IOError as message: # error if file not found
-       print('qspec.asc does not exist!', message, file=sys.stderr)
-       sys.exit()
+        print('qspec.asc does not exist!', message, file=sys.stderr)
+        sys.exit()
 
     # Read the first header line to get kmax:
     first_line=in_file.readline()
