@@ -36,16 +36,16 @@ close(10)
 
 do ix=0,nx
    do iy=0,ny
-      pv_aux = amp_psi1 * sin(k_psi1*xg(ix)) * cos(l_psi1*yg(iy))
-      qq(iy,ix,1) = -(k_psi1**2 + l_psi1**2 + K1sq/d1) * pv_aux + beta * yg(iy)
-      qq(iy,ix,2) = K1sq/d2 * pv_aux + beta * yg(iy)
+      pv_aux=amp_psi1*sin(k_psi1*xg(ix))*cos(l_psi1*yg(iy))
+      qq(iy,ix,1)=-(k_psi1**2+l_psi1**2+K1sq/d1)*pv_aux+beta*yg(iy)
+      qq(iy,ix,2)=K1sq/d2*pv_aux+beta*yg(iy)
    enddo
 enddo
 
 do iz=3,nz
    do ix=0,nx
       do iy=0,ny
-         qq(iy,ix,iz) = beta * yg(iy)
+         qq(iy,ix,iz)=beta*yg(iy)
       enddo
    enddo
 enddo
@@ -59,7 +59,7 @@ if (bath) then
 
     do ix=0,nx
         do iy=0,ny
-            qq(iy,ix,nz) = qq(iy,ix,nz) + qb(iy,ix)
+            qq(iy,ix,nz)=qq(iy,ix,nz)+qb(iy,ix)
         enddo
     enddo
 endif

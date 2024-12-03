@@ -30,7 +30,7 @@ if (bath) then
 
     do ix=0,nx
         do iy=0,ny
-            qq(iy,ix,nz) = qq(iy,ix,nz) + qb(iy,ix)
+            qq(iy,ix,nz)=qq(iy,ix,nz)+qb(iy,ix)
         enddo
     enddo
 endif
@@ -40,5 +40,5 @@ open(20,file='qq_init.r8',form='unformatted', &
       access='direct',status='replace',recl=2*nbytes)
 write(20,rec=1) zero,qq
 close(20)
-      
+
 end program rest
