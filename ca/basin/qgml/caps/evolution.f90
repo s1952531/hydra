@@ -572,10 +572,10 @@ tke=f12*tke
 ! Compute total energy per unit mass:
 tot=zero
 do iz=1,nz
-   if ((bath) .and. (iz<nz)) then
-        tot=tot-hhat(iz)*sum(pp(:,:,iz)*(qq(:,:,iz)-bety(:,:))*danorm)
-   else
+   if (bath .and. iz==nz) then
       tot=tot-hhat(iz)*sum(pp(:,:,iz)*(qq(:,:,iz)-bety(:,:)-qb)*danorm)
+   else
+      tot=tot-hhat(iz)*sum(pp(:,:,iz)*(qq(:,:,iz)-bety(:,:))*danorm)
    endif
 enddo
 tot=f12*tot

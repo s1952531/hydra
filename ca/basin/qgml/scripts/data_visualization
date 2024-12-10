@@ -1,24 +1,10 @@
 #!/bin/csh
 
-set vistype="m"
-set remove="true"
-
-if ("$vistype" == "m") then
-    set video="modes"
-else if ("$vistype" == "l") then
-    set video="layers"
-else
-    echo "Error: Unsupported option '$vistype', use 'm' or 'l'."
-    exit 1
-endif
-
-echo $vistype | image_sequence.py
-
-ffmpeg -framerate 10 -i %06d.png -c:v libx264 -pix_fmt yuv420p $video.mp4
-
-if ($remove == "true") then
-    rm *.png
-endif
+echo m | image_sequence.py
+ffmpeg -framerate 10 -i %06d.png -c:v libx264 -pix_fmt yuv420p modes.mp4
+echo l | image_sequence.py
+ffmpeg -framerate 10 -i %06d.png -c:v libx264 -pix_fmt yuv420p layers.mp4
+rm *.png
 
 if (-e bath.r8) then
     pbath.py
@@ -26,7 +12,3 @@ endif
 
 penergy.py
 pzetanorms.py
-
-if ($remove == "true") then
-    rmhydra
-endif
