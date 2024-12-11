@@ -540,7 +540,7 @@ subroutine savegrid
 implicit none
 
 ! Local variables:
-double precision:: tke,ape,tot
+double precision:: tke,ape,ape2,tot
 integer:: iz
 
 !------------------------------------------------------------------
@@ -569,6 +569,13 @@ do iz=1,nz
 enddo
 tke=f12*tke
 
+! Compute available potential energy per unit mass:
+ape=zero
+do iz=1,nz-1
+   ape=ape+kkb(iz)*sum((pp(:,:,iz)-pp(:,:,iz+1))**2*danorm)
+enddo
+ape=f12*ape
+
 ! Compute total energy per unit mass:
 tot=zero
 do iz=1,nz
@@ -581,13 +588,13 @@ enddo
 tot=f12*tot
 ! Above, danorm = dx * dy / (L_x * L_y) essentially.
 
-ape=tot-tke
+ape2=tot-tke
 
 ! Write energy components and total:
-write(15,'(f10.3,3(1x,f14.9))') t,tke,ape,tot
+write(15,'(f10.3,4(1x,f14.9))') t,tke,ape,ape2,tot
 
-write(*,'(a,f10.3,3(a,f10.7))') &
-    & ' t = ',t,'  K = ',tke,'  P = ',ape,'  K + P = ',tot
+write(*,'(a,f10.3,4(a,f10.7))') &
+    & ' t = ',t,'  K = ',tke,'  P = ',ape,'  p = ',ape2,'  K + p = ',tot
 
 return
 end subroutine savegrid

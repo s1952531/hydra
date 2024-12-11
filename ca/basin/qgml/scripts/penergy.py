@@ -38,7 +38,7 @@ rc('text', usetex=True)
 
 # Read data and plot:
 in_file=open('evolution/energy.asc','r')
-t, ekin, epot, etot = np.loadtxt(in_file,dtype=float,unpack=True)
+t, ekin, epot, epot2, etot = np.loadtxt(in_file,dtype=float,unpack=True)
 in_file.close()
 
 #-------------------------------------------------------------------------
