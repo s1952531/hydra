@@ -569,19 +569,15 @@ do iz=1,nz
 enddo
 tke=f12*tke
 
-! Compute total energy per unit mass:
-tot=zero
-do iz=1,nz
-   if (bath .and. iz==nz) then
-      tot=tot-hhat(iz)*sum(pp(:,:,iz)*(qq(:,:,iz)-bety(:,:)-qb)*danorm)
-   else
-      tot=tot-hhat(iz)*sum(pp(:,:,iz)*(qq(:,:,iz)-bety(:,:))*danorm)
-   endif
+! Compute available potential energy per unit mass:
+ape=zero
+do iz=1,nz-1
+   ape=ape+kkb(iz)*sum((pp(:,:,iz)-pp(:,:,iz+1))**2*danorm)
 enddo
-tot=f12*tot
+ape=f12*ape
 ! Above, danorm = dx * dy / (L_x * L_y) essentially.
 
-ape=tot-tke
+tot=tke+ape
 
 ! Write energy components and total:
 write(15,'(f10.3,3(1x,f14.9))') t,tke,ape,tot

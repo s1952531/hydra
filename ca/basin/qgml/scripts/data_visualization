@@ -1,14 +1,15 @@
 #!/bin/csh
 
-echo m | image_sequence.py
-ffmpeg -framerate 10 -i %06d.png -c:v libx264 -pix_fmt yuv420p modes.mp4
 echo l | image_sequence.py
-ffmpeg -framerate 10 -i %06d.png -c:v libx264 -pix_fmt yuv420p layers.mp4
-rm *.png
+ffmpeg -framerate 10 -i %04d.png -c:v libx264 -pix_fmt yuv420p layers.mp4
 
 if (-e bath.r8) then
     pbath.py
+else
+    echo m | image_sequence.py
+    ffmpeg -framerate 10 -i %04d.png -c:v libx264 -pix_fmt yuv420p modes.mp4
 endif
+find . -type f -name "*.png" ! -name "bath.png" -exec rm -f {} +
 
 penergy.py
 pzetanorms.py

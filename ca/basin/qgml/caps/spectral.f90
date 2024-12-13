@@ -325,7 +325,7 @@ double precision:: qm(0:ny,0:nx,nz),pm(0:ny,0:nx)
 double precision:: wks(0:nx,0:ny)
 double precision:: pbot(nx),ptop(nx),cppy(nym1,nx)
 double precision:: plft(ny),prgt(ny),cppx(nxm1,ny)
-double precision:: pmbar(nz),circul(nz),ppbar(nz)
+double precision:: pmbar(nz)
 double precision:: sw00,sw01,sw10,sw11
 integer:: ix,iy,iz,kx,ky,m
 
@@ -456,40 +456,6 @@ enddo
  !Compute the velocity field (uu,vv) from pp:
 call velocity(pp,uu,vv)
 
-!------------------------------------------------------------------
- !Correct layer-mean streamfunction using the boundary circulation:
-do iz=1,nz
-   circul(iz)=glx*sum(uu(0,:,iz)-uu(ny,:,iz))+ &
-              gly*sum(vv(:,nx,iz)-vv(:,0,iz))
-enddo
- !circul(iz) is the boundary circulation in layer iz.
-
- !Compute mean streamfunction in modes m > 1:
-do m=2,nz
-   do iz=1,nz
-      pmbar(m)=pmbar(m)+vl2m(iz,m)*circul(iz)
-   enddo
-   pmbar(m)=pmbar(m)/kdsq(m)
-enddo
- !Above, pmbar(m) initially contains the mean PV in mode m;
- !the sum over iz projects the layer circulation onto mode m.
-
- !Compute mean streamfunction in layer iz:
-ppbar=zero
-do m=2,nz
-   do iz=1,nz
-      ppbar(iz)=ppbar(iz)+vm2l(iz,m)*pmbar(m)
-   enddo
-enddo
- !Above, we are projecting mode mean values onto each layer iz.
-
- !Restore correct mean streamfunction in layer iz:
-do iz=1,nz
-   sw00=ppbar(iz)-sum(pp(:,:,iz)*danorm)
-    !The sum above removes the incorrect mean streamfunction
-   pp(:,:,iz)=pp(:,:,iz)+sw00
-enddo
-
 return
 end subroutine main_invert
 
@@ -573,7 +539,7 @@ integer:: iz
 zz(:,:,1)=qq(:,:,1)-bety+kk0(1)*(pp(:,:,1)-pp(:,:,2))
 ! bety = beta*y here
 
-! Intermediate layer (iz = 1):
+! Intermediate layers:
 do iz=2,nz-1
    zz(:,:,iz)=qq(:,:,iz)-bety+kkm(iz)*(pp(:,:,iz)-pp(:,:,iz-1))+ &
                               kk0(iz)*(pp(:,:,iz)-pp(:,:,iz+1))
