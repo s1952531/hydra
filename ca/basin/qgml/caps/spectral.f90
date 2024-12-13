@@ -539,7 +539,7 @@ integer:: iz
 zz(:,:,1)=qq(:,:,1)-bety+kk0(1)*(pp(:,:,1)-pp(:,:,2))
 ! bety = beta*y here
 
-! Intermediate layer (iz = 1):
+! Intermediate layers:
 do iz=2,nz-1
    zz(:,:,iz)=qq(:,:,iz)-bety+kkm(iz)*(pp(:,:,iz)-pp(:,:,iz-1))+ &
                               kk0(iz)*(pp(:,:,iz)-pp(:,:,iz+1))
