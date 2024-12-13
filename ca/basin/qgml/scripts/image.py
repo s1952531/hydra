@@ -170,7 +170,7 @@ in_file.close()
 #-----------------------------------------------------
 # Read energy data to get final time in data:
 in_file=open('evolution/energy.asc','r')
-time, ekin, epot, epot2, etot = np.loadtxt(in_file,dtype=float,unpack=True)
+time, ekin, epot, etot = np.loadtxt(in_file,dtype=float,unpack=True)
 in_file.close()
 tsim = time[-1]
 

@@ -137,7 +137,7 @@ with open('src/parameters.f90','r') as in_file:
 
 # Read energy data to get final time in data:
 with open('evolution/energy.asc','r') as in_file:
-    time,ekin,epot,epot2,etot=np.loadtxt(in_file,dtype=float,unpack=True)
+    time,ekin,epot,etot=np.loadtxt(in_file,dtype=float,unpack=True)
 tsim=time[-1]
 
 #=================================================================
