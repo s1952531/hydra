@@ -2,7 +2,6 @@
 
 echo l | image_sequence.py
 ffmpeg -framerate 10 -i %04d.png -c:v libx264 -pix_fmt yuv420p layers.mp4
-rm *.png
 
 if (-e bath.r8) then
     pbath.py

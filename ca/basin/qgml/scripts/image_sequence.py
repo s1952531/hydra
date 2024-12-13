@@ -288,5 +288,5 @@ while t<=tsim:
         # im[j].set_clim(vmin=zmin_arr[j],vmax=zmax_arr[j]) # such could be used if colorbars are adjusted
 
     fig.subplots_adjust(wspace=0.0,hspace=0.0)
-    fig.savefig(f"{frame:06d}.png",dpi=150)
+    fig.savefig(f"{frame:04d}.png",dpi=150)
     t+=dtsave
