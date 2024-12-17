@@ -27,9 +27,10 @@ sine_bath: $(objects) $(sourcedir)/init/sine_bath.f90
 random_bath: $(fft_lib) $(objects) $(sourcedir)/init/random_bath.f90
 	$(f90) $(fft_lib) parameters.o constants.o $(sourcedir)/init/random_bath.f90 -o random_bath $(flags)
 
+random_km2_bath: $(fft_lib) $(objects) $(sourcedir)/init/random_km2_bath.f90
+	$(f90) $(fft_lib) parameters.o constants.o $(sourcedir)/init/random_km2_bath.f90 -o random_km2_bath $(flags)
+
  # Phony definitions:
 .PHONY: init_all
  # Rule for 'make all' in the main make file:
 init_all: $(present_init_files)
-
-

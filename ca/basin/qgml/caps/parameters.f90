@@ -57,6 +57,6 @@ logical,parameter:: bath=BATH_FLAG
 !----------------------------------------------------------------
 
  !Random number seed:
-integer,parameter:: iseed=I_SEED
+integer,parameter:: iseed=2073600
 
 end module parameters
