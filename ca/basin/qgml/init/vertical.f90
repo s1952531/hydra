@@ -9,10 +9,11 @@ use parameters
 implicit none
 
 integer,parameter:: nzm1=nz-1
+integer(kind=8),parameter:: lwork=4*nz
 
  !Declarations
 double precision:: hhat(nz),kdsq(nz),bmat(nz),binv(nz)
-double precision:: amat(nz,nz),ainv(nz,nz),eval(nz),work(4*nz)
+double precision:: amat(nz,nz),ainv(nz,nz),eval(nz),work(lwork)
 double precision:: fac
 
 integer:: ipiv(nz)
@@ -61,7 +62,7 @@ enddo
 !-----------------------------------------------------------------
  !Solve symmetric eigensystem with sorted eigenvalues (info = 0):
 info=0
-call dsyev('V','U',nz,amat,nz,eval,work,4*nz,info)
+call dsyev('V','U',nz,amat,nz,eval,work,lwork,info)
 
  !Barotropic mode is always present; ensure eigenvalue is zero:
 eval(1)=0.d0
@@ -81,7 +82,7 @@ enddo
  !Find inverse matrix "ainv":
 ainv=amat
 call dgetrf(nz,nz,ainv,nz,ipiv,info)
-call dgetri(nz,ainv,nz,ipiv,work,4*nz,info)
+call dgetri(nz,ainv,nz,ipiv,work,lwork,info)
 
 !-----------------------------------------------------------------
  !Write data:
