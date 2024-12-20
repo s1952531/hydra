@@ -1,13 +1,26 @@
  # Set existence of directory variable used in main makefile:
 init_exists = true
  # Calculate f90 codes existing in init directory for making
- # with 'make all': 
+ # with 'make all':
 present_init_files = $(notdir $(basename $(wildcard $(sourcedir)/init/*.f90)))
+# Check if LAPACK or OpenBLAS is installed
+lapack_installed := $(shell command -v lapack-config >/dev/null 2>&1 && echo true || echo false)
+openblas_installed := $(shell ldconfig -p | grep -q libopenblas && echo true || echo false)
+
+# Debugging output (optional, to check the values during the make process)
+$(info LAPACK installed: $(lapack_installed))
+$(info OpenBLAS installed: $(openblas_installed))
 
 #---------------------------------------------------------------------------------
- #Rules:
+# Rules:
 vertical: $(objects) $(sourcedir)/init/vertical.f90
+ifeq ($(lapack_installed), true)
+	$(f90) parameters.o $(sourcedir)/init/vertical.f90 -o vertical $(flags) -llapack
+else ifeq ($(openblas_installed), true)
 	$(f90) parameters.o $(sourcedir)/init/vertical.f90 -o vertical $(flags) -lopenblas
+else
+	$(error Either LAPACK or OpenBLAS must be installed.)
+endif
 
 eddy: $(objects) $(sourcedir)/init/eddy.f90
 	$(f90) parameters.o constants.o $(sourcedir)/init/eddy.f90 -o eddy $(flags)
