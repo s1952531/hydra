@@ -494,7 +494,7 @@ enddo
 zzrms=sqrt(zzrms/dble(nz))
 
 ! Save data to monitor.asc:
-write(16,'(f9.2,2(1x,f15.7))') t,zzmax,zzrms
+write(16,'(f12.5,2(1x,f15.7))') t,zzmax,zzrms
 
 ! Time step needed for accuracy:
 dtacc=dtfac/max(zzmax,srwfm)
