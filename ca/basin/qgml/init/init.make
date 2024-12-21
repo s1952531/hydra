@@ -4,7 +4,7 @@ init_exists = true
  # with 'make all':
 present_init_files = $(notdir $(basename $(wildcard $(sourcedir)/init/*.f90)))
 # Check if LAPACK is installed, otherwise try to use OpenBLAS
-lapack_installed := $(shell command -v lapack-config >/dev/null 2>&1 && echo true || echo false)
+echo locate liblapack.so | grep -q "/liblapack.so" && echo true || echo false
 
 #---------------------------------------------------------------------------------
 # Rules:
