@@ -32,6 +32,9 @@ caps: $(fft_lib) $(objects) $(sourcedir)/caps.f90
 $(objects): $(fft_lib) $(sources) 
 	$(f90) $(fft_lib) $(sources) -c $(flags)
 
+ # Suppress output apart from errors and warnings:
+.SILENT:
+
 .PHONY: clean setup
 clean:
 	rm -f *.o *.mod

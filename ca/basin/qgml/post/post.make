@@ -7,6 +7,9 @@ present_post_files = $(notdir $(basename $(wildcard $(sourcedir)/post/*.f90)))
 #---------------------------------------------------------------------------------
  #Rules:
 
+ # Suppress output apart from errors and warnings:
+.SILENT:
+
  # Phony definitions:
 .PHONY: post_all
  # Rule for 'make all' in the main make file:
