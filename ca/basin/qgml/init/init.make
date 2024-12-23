@@ -4,12 +4,12 @@ init_exists = true
  # with 'make all':
 present_init_files = $(notdir $(basename $(wildcard $(sourcedir)/init/*.f90)))
 # Check if LAPACK is installed, otherwise try to use OpenBLAS
-lapack_installed := $(shell locate liblapack.so | grep -q "/liblapack.so" && echo true || echo false)
+lapack_installed = locate liblapack.so | grep -s "/liblapack.so" | wc -l
 
 #---------------------------------------------------------------------------------
 # Rules:
 vertical: $(objects) $(sourcedir)/init/vertical.f90
-	if [ "$(lapack_installed)" = "true" ]; then \
+	if [ "$(lapack_installed)" != "0" ]; then \
 		$(f90) parameters.o $(sourcedir)/init/vertical.f90 -o vertical $(flags) -llapack; \
 	else \
 		$(f90) parameters.o $(sourcedir)/init/vertical.f90 -o vertical $(flags) -lopenblas; \
@@ -35,6 +35,9 @@ random_bath: $(fft_lib) $(objects) $(sourcedir)/init/random_bath.f90
 
 random_km2_bath: $(fft_lib) $(objects) $(sourcedir)/init/random_km2_bath.f90
 	$(f90) $(fft_lib) parameters.o constants.o $(sourcedir)/init/random_km2_bath.f90 -o random_km2_bath $(flags)
+
+ # Suppress output apart from errors and warnings:
+.SILENT:
 
  # Phony definitions:
 .PHONY: init_all

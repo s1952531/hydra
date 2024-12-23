@@ -537,7 +537,6 @@ cd src
 
 echo
 echo " Compiling source files....."
-echo " -----------------------------------------------------------------------"
 
 # Use C pre-processor to put chosen parameters $copts into parameters.f90
 set copts1="-DN_X=$nx -DN_Y=$ny -DN_Z=$nz -DX_MIN={$xmin} -DX_MAX={$xmax} -DY_MIN={$ymin} -DY_MAX={$ymax} -DN_CONTQ=$nq"
@@ -556,19 +555,21 @@ if ($bathymetry == "y") then
 endif
 
 cd ..
-echo " -----------------------------------------------------------------------"
-echo
 
 #=========================================================================
 # Generate vertical modes:
+echo ' Generating vertical modes...'
 vertical < vertical.asc
 
 # For bathymetry, execute the bathymetry generation routine:
 if ($bathymetry == "y") then
+# Generate vertical modes:
+   echo ' Generating bathymetry...'
    $bathgen < in_$bathgen > out_$bathgen
 endif
 
 # Execute the data generation script:
+echo ' Generating initial PV distribution...'
 $datagen < in_$datagen > out_$datagen
 
 # Copy useful data view scripts to job directory:
