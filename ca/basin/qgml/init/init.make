@@ -3,13 +3,12 @@ init_exists = true
  # Calculate f90 codes existing in init directory for making
  # with 'make all':
 present_init_files = $(notdir $(basename $(wildcard $(sourcedir)/init/*.f90)))
-# Check if LAPACK is installed, otherwise try to use OpenBLAS
-lapack_installed = locate liblapack.so | grep -s "/liblapack.so" | wc -l
 
 #---------------------------------------------------------------------------------
 # Rules:
 vertical: $(objects) $(sourcedir)/init/vertical.f90
-	if [ "$(lapack_installed)" != "0" ]; then \
+	# Check if LAPACK is installed, otherwise try to use OpenBLAS
+	if [ "$$(locate liblapack.so | grep -s "/liblapack.so" | wc -l)" != "0" ]; then \
 		$(f90) parameters.o $(sourcedir)/init/vertical.f90 -o vertical $(flags) -llapack; \
 	else \
 		$(f90) parameters.o $(sourcedir)/init/vertical.f90 -o vertical $(flags) -lopenblas; \
