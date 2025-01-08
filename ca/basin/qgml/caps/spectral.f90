@@ -26,6 +26,7 @@ double precision:: sfwind(0:nx,0:ny)
 double precision:: srwfm
 
 double precision:: hhat(nz),kdsq(nz),kkb(nz),kk0(nz),kkm(nz)
+double precision:: am(1:nz),etd(1:nz),htd(1:nz)
 double precision:: vl2m(nz,nz),vm2l(nz,nz)
 
 double precision:: rkx(0:nx),rky(0:ny)
@@ -52,7 +53,8 @@ implicit none
 
  !Local variables:
 double precision:: wkp(0:ny,0:nx),skx(nx),sky(ny)
-double precision:: dafx(0:nx),dafy(0:ny) 
+double precision:: dafx(0:nx),dafy(0:ny)
+double precision:: ap(1:nz),a0(1:nz)
 double precision:: scx,rkxmax,scy,rkymax
 double precision:: td,fac,div,argm,argp
 double precision:: rkmsi
@@ -132,6 +134,20 @@ close(60)
  !Ensure hhat sums to 1 - this is essential:
 fac=1.d0/sum(hhat)
 hhat=fac*hhat
+
+!-----------------------------------------------------------------
+ !Set up tri-diagonal matrix A for repeated solves in main_invert
+do iz=1,nz-1
+   am(iz+1)=-kdsq(iz)/hhat(iz+1)
+   ap(iz)=-kdsq(iz)/hhat(iz)
+enddo
+a0(1)=-ap(1)
+do iz=2,nz-1
+   a0(iz)=-am(iz)-ap(iz)
+enddo
+a0(nz)=-am(nz)
+
+call init_tridiag(am,ap,a0,etd,htd)
 
  !For computing vorticity and implementing Ekman drag:
 do iz=1,nz-1
@@ -325,7 +341,7 @@ double precision:: qm(0:ny,0:nx,nz),pm(0:ny,0:nx)
 double precision:: wks(0:nx,0:ny)
 double precision:: pbot(nx),ptop(nx),cppy(nym1,nx)
 double precision:: plft(ny),prgt(ny),cppx(nxm1,ny)
-double precision:: pmbar(nz)
+double precision:: pmbar(nz),rhs(1:nz),ppmean(1:nz)
 double precision:: sw00,sw01,sw10,sw11
 integer:: ix,iy,iz,kx,ky,m
 
@@ -335,6 +351,7 @@ qm=zero
  !Take away bathymetry contribution to bottom layer (iz = nz):
 if (bath) qq(:,:,nz)=qq(:,:,nz)-qb
 do m=1,nz
+   rhs(m)=sum(qq(:,:,m)*danorm)
    do iz=1,nz
       qm(:,:,m)=qm(:,:,m)+vl2m(iz,m)*qq(:,:,iz)
    enddo
@@ -455,6 +472,22 @@ enddo
 !------------------------------------------------------------------
  !Compute the velocity field (uu,vv) from pp:
 call velocity(pp,uu,vv)
+
+!------------------------------------------------------------------
+ !Subtract the boundary circulation from the right hand side:
+do iz=1,nz
+   rhs(iz)=rhs(iz)-(glx*sum(uu(0,:,iz)-uu(ny,:,iz))- &
+                    gly*sum(vv(:,nx,iz)-vv(:,0,iz)))/domarea
+enddo
+
+if (bath) rhs(nz)=rhs(nz)-sum(qb*danorm)
+
+call solve_tridiag(am,etd,htd,ppmean,rhs)
+
+ !Restore correct mean streamfunction values:
+do iz=1,nz
+   pp(:,:,iz)=pp(:,:,iz)+ppmean(iz)-sum(pp(:,:,iz)*danorm)
+enddo
 
 return
 end subroutine main_invert
@@ -598,6 +631,60 @@ enddo
 
 return
 end subroutine gradient
+
+!=======================================================================
+
+subroutine init_tridiag(etd,htd,am,a0,ap)
+! Used to initialise, given am, a0, ap
+
+implicit none
+
+! Local index:
+integer:: j
+
+double precision:: etd(1:nz),htd(1:nz)
+double precision:: am(1:nz),a0(1:nz),ap(1:nz)
+
+htd(1)=1.d0/a0(1)
+etd(1)=-ap(1)*htd(1)
+
+do j=2,nz-1
+   htd(j)=1.d0/(a0(j)+am(j)*etd(j-1))
+   etd(j)=-ap(j)*htd(j)
+enddo
+
+htd(nz)=1.d0/(a0(nz)+am(nz)*etd(nz-1))
+
+return
+end subroutine init_tridiag
+
+!=========================================================
+
+subroutine solve_tridiag(am,etd,htd,x,r)
+! Used to solve for x, given r and vectors am, etd & htd
+! from init_tridiag.
+
+! Local index:
+integer:: j
+
+double precision:: am(1:nz),etd(1:nz),htd(1:nz)
+
+! Solution vector and given RHS:
+double precision:: x(1:nz),r(1:nz)
+
+x(1)=r(1)*htd(1)
+
+do j=2,nz
+   x(j)=(r(j)-am(j)*x(j-1))*htd(j)
+enddo
+
+do j=nz-1,1,-1
+   x(j)=etd(j)*x(j+1)+x(j)
+enddo
+
+return
+
+end subroutine solve_tridiag
 
 !=======================================================================
 
