@@ -480,13 +480,12 @@ do iz=1,nz
                     gly*sum(vv(:,nx,iz)-vv(:,0,iz)))/domarea
 enddo
 
-if (bath) rhs(nz)=rhs(nz)-sum(qb*danorm)
-
 call solve_tridiag(am,etd,htd,ppmean,rhs)
 
  !Restore correct mean streamfunction values:
 do iz=1,nz
-   pp(:,:,iz)=pp(:,:,iz)+ppmean(iz)-sum(pp(:,:,iz)*danorm)
+   ppmean(iz)=ppmean(iz)-sum(pp(:,:,iz)*danorm)
+   pp(:,:,iz)=pp(:,:,iz)+ppmean(iz)
 enddo
 
 return
