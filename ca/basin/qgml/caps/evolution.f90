@@ -78,7 +78,7 @@ do while (t .le. tsim)
          ! Only process layers having contours:
          if (jl2q(iz) .gt. 0) then
             wkp=qd(:,:,iz)
-            call spctop(nx,ny,wkp,wks,xfactors,yfactors,xtrig,ytrig)
+            call spctop_cc(nx,ny,wkp,wks,xfactors,yfactors,xtrig,ytrig)
             qrat=max(qrat,sum(danorm*wks**2)/sum(danorm*qc(:,:,iz)**2))
          endif
       enddo
