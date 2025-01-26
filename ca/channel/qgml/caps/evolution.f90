@@ -11,13 +11,13 @@ use common
 implicit none
 
 ! Streamfunction and velocity field:
-double precision:: pp(0:ny,0:nx,nz),uu(0:ny,0:nx,nz),vv(0:ny,0:nx,nz)
+double precision:: pp(0:ny,0:nxm1,nz),uu(0:ny,0:nxm1,nz),vv(0:ny,0:nxm1,nz)
 
 ! Relative vertical vorticity field:
-double precision:: zz(0:ny,0:nx,nz)
+double precision:: zz(0:ny,0:nxm1,nz)
 
 ! Spectral integrating factors used for residual PV evolution:
-double precision:: emq(0:nx,0:ny),epq(0:nx,0:ny)
+double precision:: emq(0:nxm1,0:ny),epq(0:nxm1,0:ny)
 
 ! Time step, time step fractions and "twist" parameter:
 double precision:: dt,dt2,dt3,dt6,twist
@@ -50,8 +50,8 @@ integer,parameter:: nregmax=20
 !      the code rebuild the PV contours in a separate memory space.
 integer:: ireg,iz
 
-double precision:: qc(0:ny,0:nx,nz)
-double precision:: wkp(0:nx,0:ny),wks(0:ny,0:nx),qrat
+double precision:: qc(0:ny,0:nxm1,nz)
+double precision:: wkp(0:ny,0:nxm1),wks(0:nxm1,0:ny),qrat
 
 !------------------------------------------------------------------
 ! Initialise after contour regeneration:
@@ -77,9 +77,9 @@ do while (t .le. tsim)
       do iz=1,nz
          ! Only process layers having contours:
          if (jl2q(iz) .gt. 0) then
-            wkp=qd(:,:,iz)
-            call spctop(nx,ny,wkp,wks,xfactors,yfactors,xtrig,ytrig)
-            qrat=max(qrat,sum(danorm*wks**2)/sum(danorm*qc(:,:,iz)**2))
+            wks=qd(:,:,iz)
+            call spctop_fc(nx,ny,wks,wkp,xfactors,yfactors,xtrig,ytrig)
+            qrat=max(qrat,sum(danorm*wkp**2)/sum(danorm*qc(:,:,iz)**2))
          endif
       enddo
 
@@ -123,8 +123,8 @@ subroutine init
 implicit none
 
 ! Local variables:
-double precision:: qc(0:ny,0:nx,nz)
-double precision:: wkp(0:ny,0:nx),wks(0:nx,0:ny)
+double precision:: qc(0:ny,0:nxm1,nz)
+double precision:: wkp(0:ny,0:nxm1),wks(0:nxm1,0:ny)
 integer:: iz
 
 !-------------------------------------------------------------
@@ -138,7 +138,7 @@ call con2grid(qc)
 ! Define (spectral) residual PV qd = (1-F)[qs-qc]:
 do iz=1,nz
    wkp=qc(:,:,iz)
-   call ptospc_cc(nx,ny,wkp,wks,xfactors,yfactors,xtrig,ytrig)
+   call ptospc_fc(nx,ny,wkp,wks,xfactors,yfactors,xtrig,ytrig)
    qd(:,:,iz)=bfhi*(qs(:,:,iz)-wks)
 enddo
 ! Here bfhi = 1-F is a high-pass spectral filter
@@ -157,8 +157,8 @@ subroutine prepare
 implicit none
 
 ! Local variables:
-double precision:: qc(0:ny,0:nx,nz)
-double precision:: wkp(0:ny,0:nx),wks(0:nx,0:ny)
+double precision:: qc(0:ny,0:nxm1,nz)
+double precision:: wkp(0:ny,0:nxm1),wks(0:nxm1,0:ny)
 integer:: iz
 
 !-------------------------------------------------------------
@@ -168,12 +168,12 @@ call con2grid(qc)
 ! Define (spectral) PV qs and residual PV qd:
 do iz=1,nz
    wkp=qc(:,:,iz)
-   call ptospc_cc(nx,ny,wkp,wks,xfactors,yfactors,xtrig,ytrig)
+   call ptospc_fc(nx,ny,wkp,wks,xfactors,yfactors,xtrig,ytrig)
    qs(:,:,iz)=bflo*qs(:,:,iz)+bfhi*wks+qd(:,:,iz)
    ! Here bflo = F and bfhi = 1-F are low- and high-pass filters
    qd(:,:,iz)=qs(:,:,iz)-wks
    ! Convert qd to physical space as qq (used in recontouring):
-   call spctop_cc(nx,ny,qd(:,:,iz),qq(:,:,iz),xfactors,yfactors,xtrig,ytrig)
+   call spctop_fc(nx,ny,qd(:,:,iz),qq(:,:,iz),xfactors,yfactors,xtrig,ytrig)
    ! Note: qd is overwritten, but we are leaving this module next and
    !       qd will be redefined upon re-entry in subroutine init.
 enddo
@@ -198,8 +198,8 @@ implicit none
 integer:: level
 
 ! Local variables:
-double precision:: qc(0:ny,0:nx,nz)
-double precision:: wkp(0:ny,0:nx),wks(0:nx,0:ny)
+double precision:: qc(0:ny,0:nxm1,nz)
+double precision:: wkp(0:ny,0:nxm1),wks(0:nxm1,0:ny)
 integer:: iz
 
 !-------------------------------------------------------------
@@ -211,12 +211,12 @@ if (level == 0) then
    ! the full PV field qq:
    do iz=1,nz
       wkp=qc(:,:,iz)
-      call ptospc_cc(nx,ny,wkp,wks,xfactors,yfactors,xtrig,ytrig)
+      call ptospc_fc(nx,ny,wkp,wks,xfactors,yfactors,xtrig,ytrig)
       ! Here wks is qc in spectral space.
       qs(:,:,iz)=bflo*qs(:,:,iz)+bfhi*wks+qd(:,:,iz)
       qd(:,:,iz)=bfhi*(qs(:,:,iz)-wks)
       wks=qs(:,:,iz)
-      call spctop_cc(nx,ny,wks,qq(:,:,iz),xfactors,yfactors,xtrig,ytrig)
+      call spctop_fc(nx,ny,wks,qq(:,:,iz),xfactors,yfactors,xtrig,ytrig)
    enddo
    ! bflo & bfhi = 1 - bflo are low- & high-pass filters (see spectral.f90)
 
@@ -228,10 +228,10 @@ else
    ! Combine qs, qd & qc to update the full PV field qq:
    do iz=1,nz
       wkp=qc(:,:,iz)
-      call ptospc_cc(nx,ny,wkp,wks,xfactors,yfactors,xtrig,ytrig)
+      call ptospc_fc(nx,ny,wkp,wks,xfactors,yfactors,xtrig,ytrig)
       ! Here wks is qc in spectral space.
       wks=bflo*qs(:,:,iz)+bfhi*wks+qd(:,:,iz)
-      call spctop_cc(nx,ny,wks,qq(:,:,iz),xfactors,yfactors,xtrig,ytrig)
+      call spctop_fc(nx,ny,wks,qq(:,:,iz),xfactors,yfactors,xtrig,ytrig)
    enddo
 endif
 
@@ -251,10 +251,11 @@ subroutine advance
 implicit none
 
 ! Local variables:
-double precision:: qsi(0:nx,0:ny,nz),qsf(0:nx,0:ny,nz),sqs(0:nx,0:ny,nz)
-double precision:: qdi(0:nx,0:ny,nz),qdf(0:nx,0:ny,nz),sqd(0:nx,0:ny,nz)
+double precision:: qsi(0:nxm1,0:ny,nz),qsf(0:nxm1,0:ny,nz),sqs(0:nxm1,0:ny,nz)
+double precision:: qdi(0:nxm1,0:ny,nz),qdf(0:nxm1,0:ny,nz),sqd(0:nxm1,0:ny,nz)
 double precision:: xqi(nptq),yqi(nptq),xqf(nptq),yqf(nptq)
 double precision:: uq(nptq),vq(nptq)
+double precision:: xx
 integer:: i,iz
 
 !------------------------------------------------------------------
@@ -277,9 +278,11 @@ call velint(uu,vv,uq,vq)
 do i=1,nptq
    xqi(i)=xq(i)
    yqi(i)=yq(i)
-   xq(i)=max(xmin,min(xmax,xqi(i)+dt2*uq(i)))
+   xx=xqi(i)+dt2*uq(i)
+   xq(i)=oms*(xx-ellx*dble(int(xx*hlxi)))
    yq(i)=max(ymin,min(ymax,yqi(i)+dt2*vq(i)))
-   xqf(i)=max(xmin,min(xmax,xqi(i)+dt6*uq(i)))
+   xx=xqi(i)+dt6*uq(i)
+   xqf(i)=oms*(xx-ellx*dble(int(xx*hlxi)))
    yqf(i)=max(ymin,min(ymax,yqi(i)+dt6*vq(i)))
 enddo
 
@@ -304,9 +307,11 @@ call source(sqs,sqd,1)
 
 call velint(uu,vv,uq,vq)
 do i=1,nptq
-   xq(i)=max(xmin,min(xmax,xqi(i)+dt2*uq(i)))
+   xx=xqi(i)+dt2*uq(i)
+   xq(i)=oms*(xx-ellx*dble(int(xx*hlxi)))
    yq(i)=max(ymin,min(ymax,yqi(i)+dt2*vq(i)))
-   xqf(i)=max(xmin,min(xmax,xqf(i)+dt3*uq(i)))
+   xx=xqf(i)+dt3*uq(i)
+   xqf(i)=oms*(xx-ellx*dble(int(xx*hlxi)))
    yqf(i)=max(ymin,min(ymax,yqf(i)+dt3*vq(i)))
 enddo
 
@@ -328,9 +333,11 @@ call source(sqs,sqd,1)
 
 call velint(uu,vv,uq,vq)
 do i=1,nptq
-   xq(i)=max(xmin,min(xmax,xqi(i)+dt*uq(i)))
+   xx=xqi(i)+dt*uq(i)
+   xq(i)=oms*(xx-ellx*dble(int(xx*hlxi)))
    yq(i)=max(ymin,min(ymax,yqi(i)+dt*vq(i)))
-   xqf(i)=max(xmin,min(xmax,xqf(i)+dt3*uq(i)))
+   xx=xqf(i)+dt3*uq(i)
+   xqf(i)=oms*(xx-ellx*dble(int(xx*hlxi)))
    yqf(i)=max(ymin,min(ymax,yqf(i)+dt3*vq(i)))
 enddo
 
@@ -354,7 +361,8 @@ call source(sqs,sqd,2)
 
 call velint(uu,vv,uq,vq)
 do i=1,nptq
-   xq(i)=max(xmin,min(xmax,xqf(i)+dt6*uq(i)))
+   xx=xqf(i)+dt6*uq(i)
+   xq(i)=oms*(xx-ellx*dble(int(xx*hlxi)))
    yq(i)=max(ymin,min(ymax,yqf(i)+dt6*vq(i)))
 enddo
 
@@ -380,12 +388,12 @@ subroutine source(sqs,sqd,lev)
 implicit none
 
 ! Passed variables:
-double precision:: sqs(0:nx,0:ny,nz),sqd(0:nx,0:ny,nz)
+double precision:: sqs(0:nxm1,0:ny,nz),sqd(0:nxm1,0:ny,nz)
 integer:: lev
 
 ! Local variables:
-double precision:: qx(0:ny,0:nx,nz),qy(0:ny,0:nx,nz)
-double precision:: wkp(0:ny,0:nx),wks(0:nx,0:ny)
+double precision:: qx(0:ny,0:nxm1,nz),qy(0:ny,0:nxm1,nz)
+double precision:: wkp(0:ny,0:nxm1),wks(0:nxm1,0:ny)
 integer:: iz
 
 !---------------------------------------------------------------
@@ -393,7 +401,7 @@ integer:: iz
 call gradient(qs,qx,qy)
 qx=-uu*qx-vv*qy
 do iz=1,nz
-   call ptospc_cc(nx,ny,qx(:,:,iz),sqs(:,:,iz),xfactors,yfactors,xtrig,ytrig)
+   call ptospc_fc(nx,ny,qx(:,:,iz),sqs(:,:,iz),xfactors,yfactors,xtrig,ytrig)
    ! Mean source must remain zero since Dq_s/Dt = 0 & div(u,v) = 0
    sqs(0,0,iz)=zero
 enddo
@@ -403,7 +411,7 @@ enddo
 call gradient(qd,qx,qy)
 qx=-uu*qx-vv*qy
 do iz=1,nz
-   call ptospc_cc(nx,ny,qx(:,:,iz),sqd(:,:,iz),xfactors,yfactors,xtrig,ytrig)
+   call ptospc_fc(nx,ny,qx(:,:,iz),sqd(:,:,iz),xfactors,yfactors,xtrig,ytrig)
    ! Mean advective source must remain zero
    sqd(0,0,iz)=zero
 enddo
@@ -422,12 +430,11 @@ endif
 if (friction) then
    ! Add contribution of Ekman damping to the lowest layer (iz = nz):
    wkp=qq(:,:,nz)-bety+kkm(nz)*(pp(:,:,nz)-pp(:,:,nz-1))
-   ! wkp is the vorticity in physical space
-   ! while kkm(iz) = f^2/(H_iz b'_{iz-1}),
-   ! see init_spectral in spectral.f90.
-   if (bath) qq(:,:,nz)=qq(:,:,nz)-qb
+   ! wkp is the lowest layer relative vorticity in physical space;
+   ! kkm(iz) = f^2/(H_iz b'_{iz-1}), see init_spectral in spectral.f90.
+   if (bath) wkp=wkp-qb
    ! Need to remove bathymetry if present.
-   call ptospc_cc(nx,ny,wkp,wks,xfactors,yfactors,xtrig,ytrig)   
+   call ptospc_fc(nx,ny,wkp,wks,xfactors,yfactors,xtrig,ytrig)   
    ! Add -r_ekman * vorticity to lowest layer PV tendency:
    sqd(:,:,nz)=sqd(:,:,nz)-rekman*wks
    ! *** Note, the mean tendency in sqd(0,0,nz) may change as a
@@ -474,7 +481,7 @@ implicit none
 double precision,parameter:: dtfac=pi/40.d0
 
 ! Other local variables:
-double precision:: wka(0:ny,0:nx)
+double precision:: wka(0:ny,0:nxm1)
 double precision:: zzmax,zzrms,dtacc,dfac
 integer:: iz
 
@@ -488,10 +495,9 @@ zzmax=zero
 zzrms=zero
 do iz=1,nz
    zzmax=max(zzmax,maxval(abs(zz(:,:,iz))))
-   zzrms=zzrms+sum(zz(:,:,iz)**2*danorm)
+   zzrms=zzrms+hhat(iz)*sum(zz(:,:,iz)**2*danorm)
    ! Here, danorm = dx * dy / (L_x * L_y) essentially.
 enddo
-zzrms=sqrt(zzrms/dble(nz))
 
 ! Save data to monitor.asc:
 write(16,'(f12.5,2(1x,f15.7))') t,zzmax,zzrms
@@ -577,6 +583,7 @@ enddo
 ape=f12*ape
 ! Above, danorm = dx * dy / (L_x * L_y) essentially.
 
+! Total energy:
 tot=tke+ape
 
 ! Write energy components and total:
@@ -597,7 +604,7 @@ subroutine savecont
 implicit none
 
 ! Local variables
-double precision:: qc(0:ny,0:nx,nz)
+double precision:: qc(0:ny,0:nxm1,nz)
 integer:: iop(nq),j
 character(len=3):: pind
 

@@ -9,7 +9,7 @@ use constants
 
 implicit none
 
-double precision:: bb(0:ny,0:nx)
+double precision:: bb(0:ny,0:nxm1)
 double precision:: amp,k_bath
 integer:: ix,iy
 
@@ -25,7 +25,7 @@ write(*,*) ' Enter k:'
 read(*,*) k_bath
 
  !Set up bathymetry:
-do ix=0,nx
+do ix=0,nxm1
    do iy=0,ny
       bb(iy,ix)=amp*sin(k_bath*(xmin+glx*dble(ix)))* &
                     sin(k_bath*(ymin+gly*dble(iy)))

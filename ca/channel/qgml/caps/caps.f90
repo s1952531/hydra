@@ -1,8 +1,9 @@
 !:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 !            The Combined Lagrangian Advection Method for
-!            Multi-Layer Quasi-Geostrophic Flow in a Basin
+!     Multi-Layer Quasi-Geostrophic Flow in an x-periodic channel
 
-!    Code written in early-mid 2024 by David Dritschel @ St Andrews
+!            Code adapted from basin code in January 2025
+!                   by David Dritschel @ St Andrews
 !:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 !        This code solves Dq_l/Dt = F_l, for layers l = 1, ..., nz,
@@ -12,8 +13,8 @@
 !     included by prescribing the scaled bathymetry f*eta_b/H_nz,
 !     referred to as qb in the code (H_l = the mean depth of layer l).
 
-!     The rectangular horizontal domain, xmin < x < xmax and
-!     ymin < y < ymax, has free-slip boundaries in each layer.
+!     The rectangular horizontal domain, xmin < x < xmax (periodic)
+!     and ymin < y < ymax, has free-slip boundaries in y in each layer.
 
 !     Contour advection + a pseudo-spectral scheme is used for the
 !     time evolution (see Dritschel & Fontane, J Comput. Phys. 229,
@@ -81,7 +82,7 @@ subroutine initialise
 implicit none
 
  !Local variables:
-double precision:: wkp(0:ny,0:nx),wks(0:nx,0:ny)
+double precision:: wkp(0:ny,0:nxm1),wks(0:nxm1,0:ny)
 integer:: ix,iz
 
 !------------------------------------------------------------------
@@ -109,7 +110,7 @@ enddo
  !Transform qq to spectral space as qs for time stepping:
 do iz=1,nz
    wkp=qq(:,:,iz)
-   call ptospc_cc(nx,ny,wkp,wks,xfactors,yfactors,xtrig,ytrig)
+   call ptospc_fc(nx,ny,wkp,wks,xfactors,yfactors,xtrig,ytrig)
    qs(:,:,iz)=wks
 enddo
 

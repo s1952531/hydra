@@ -9,17 +9,17 @@ use sta2dfft
 
 implicit none
 
- !Doubled domain in x & y:
-integer,parameter:: nxe=2*nx,nye=2*ny
- !Maximum x & y wavenumbers in doubled domain (which is periodic):
-integer,parameter:: nwx=nxe/2,nwy=nye/2
+ !Doubled domain in y:
+integer,parameter:: nye=2*ny
+ !Maximum x & y wavenumbers in doubled domain (which is doubly-periodic):
+integer,parameter:: nwx=nx/2,nwy=nye/2
 
  !Common arrays, constants:
-double precision:: bb(nye,nxe)
-double precision:: ss(nxe,nye)
-double precision:: br(0:ny,0:nx)
-double precision:: hrkx(nxe),hrky(nye),rkx(nxe),rky(nye)
-double precision:: xtrig(2*nxe),ytrig(2*nye)
+double precision:: bb(nye,nx)
+double precision:: ss(nx,nye)
+double precision:: br(0:ny,0:nxm1)
+double precision:: hrkx(nx),hrky(nye),rkx(nx),rky(nye)
+double precision:: xtrig(2*nx),ytrig(2*nye)
 double precision:: fac,s,rms,amp,k2,phase,slope
 
 integer:: xfactors(5),yfactors(5)
@@ -37,13 +37,13 @@ enddo
 
 !----------------------------------------------------------------------
 ! Initialise FFTs:
-call init2dfft(nxe,nye,ellx,elly,xfactors,yfactors,xtrig,ytrig,hrkx,hrky)
+call init2dfft(nx,nye,ellx,elly,xfactors,yfactors,xtrig,ytrig,hrkx,hrky)
 
 ! Define x wavenumbers:
 rkx(1)=zero
 do kx=1,nwx-1
   rkx(kx+1)    = hrkx(2*kx)
-  rkx(nxe+1-kx)= hrkx(2*kx)
+  rkx(nx+1-kx)= hrkx(2*kx)
 enddo
 rkx(nwx+1) = hrkx(nx)
 
@@ -86,17 +86,17 @@ ss(1,1)=zero
 ss(nwx+1,nwy+1)=zero
 
 ! Transform to physical space:
-call spctop(nxe,nye,ss,bb,xfactors,yfactors,xtrig,ytrig)
+call spctop(nx,nye,ss,bb,xfactors,yfactors,xtrig,ytrig)
 
 ! Work out rms:
-fac=sqrt(sum(bb**2)/dble(nxe*nye))
+fac=sqrt(sum(bb**2)/dble(nx*nye))
 
 ! Renormalise field:
 fac=rms/fac
 bb=fac*bb
 
 ! Add uniform sloping part in y:
-do ix=0,nx
+do ix=0,nxm1
   do iy=0,ny
     br(iy,ix)=bb(iy+1,ix+1)+slope*(ycen+gly*dble(iy))
   enddo

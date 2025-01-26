@@ -14,8 +14,8 @@ use parameters
 integer,parameter:: dbleint=selected_int_kind(16)
 integer,parameter:: halfint=selected_int_kind(-1)
 
- !Grid dimensions +/-1:
-integer,parameter:: nxp1=nx+1,nxm1=nx-1
+ !Grid dimensions +/-1 & 2:
+integer,parameter:: nxp1=nx+1,nxm1=nx-1,nxm2=nx-2
 integer,parameter:: nyp1=ny+1,nym1=ny-1
 
  !Fine grid used normally in contour -> grid conversion: 
@@ -23,21 +23,21 @@ integer,parameter:: mgf=4,nxf=mgf*nx,nyf=mgf*ny
  !mgf:  fine grid/coarse grid ratio (4 is required by subroutine 
  !      coarsen in contours.f90)
 
- !Fine grid dimensions +/-1:
-integer,parameter:: nxfp1=nxf+1,nxfm1=nxf-1
+ !Fine grid dimensions +/-1 & 2:
+integer,parameter:: nxfm1=nxf-1,nxfm2=nxf-2
 integer,parameter:: nyfp1=nyf+1,nyfm1=nyf-1
 
  !Ultra-fine grid used in contouring: 
 integer,parameter:: mgu=16,nxu=mgu*nx,nyu=mgu*ny
  !mgu:  ultra-fine grid/coarse grid ratio (16 is the default)
 
- !Ultra-fine grid dimensions +/-1:
-integer,parameter:: nxup1=nxu+1,nxum1=nxu-1
+ !Ultra-fine grid dimensions +/-1 & 2:
+integer,parameter:: nxum1=nxu-1,nxum2=nxu-2
 integer,parameter:: nyup1=nyu+1,nyum1=nyu-1
 
  !For reading & writing direct access data:
-integer,parameter:: nhgridp=nxp1*nyp1,nhbytes=4*(nhgridp+1)
-integer,parameter:: ngridp=nxp1*nyp1*nz,nbytes=4*(ngridp+1)
+integer,parameter:: nhgridp=nx*nyp1,nhbytes=4*(nhgridp+1)
+integer,parameter:: ngridp=nhgridp*nz,nbytes=4*(ngridp+1)
 
  !Maximum number of contour levels (used in surgery and congen):
 integer,parameter:: nlevm=2000
@@ -64,11 +64,12 @@ double precision,parameter:: twopi=two*pi
 double precision,parameter:: small=1.d-12,small3=small*small*small
 double precision,parameter:: oms=one-small
 
- !Domain lengths and centres:
-double precision,parameter:: ellx=xmax-xmin,xcen=(xmax+xmin)/two
-double precision,parameter:: elly=ymax-ymin,ycen=(ymax+ymin)/two
-double precision,parameter:: hlx=oms*f12*ellx,xbeg=xcen-hlx
-double precision,parameter:: hly=oms*f12*elly,ybeg=ycen-hly
+ !Domain half-widths, maximum & minimum coordinate values:
+ !(The domain ***must*** be centred at the origin, (0,0).)
+double precision,parameter:: hlx=f12*ellx,hlxi=one/hlx
+double precision,parameter:: xmax=hlx,xmin=-xmax
+double precision,parameter:: hly=oms*f12*elly,ybeg=-hly
+double precision,parameter:: ymax=f12*elly,ymin=-ymax
 
  !Basic constants:
 double precision,parameter:: domarea=ellx*elly,aspect=ellx/elly
@@ -76,6 +77,7 @@ double precision,parameter:: glx=ellx/dble(nx),glxi=dble(nx)/ellx
 double precision,parameter:: gly=elly/dble(ny),glyi=dble(ny)/elly
 double precision,parameter:: garea=glx*gly,dsumi=one/dble(nx*ny)
 double precision,parameter:: dnxi=one/dble(nx),dnyi=one/dble(ny)
+double precision,parameter:: hgly=gly/two
 
  !Logical control variables:
 logical,parameter:: friction=(rekman > zero)

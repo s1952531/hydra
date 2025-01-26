@@ -12,10 +12,10 @@ use spectral
 !-----------------------------------------------------------------------
 
  !Gridded PV field used for recontouring:
-double precision:: qq(0:ny,0:nx,nz)
+double precision:: qq(0:ny,0:nxm1,nz)
 
  !Spectral PV fields used in time stepping (note array order):
-double precision:: qs(0:nx,0:ny,nz),qd(0:nx,0:ny,nz)
+double precision:: qs(0:nxm1,0:ny,nz),qd(0:nxm1,0:ny,nz)
 
  !Current model time since beginning of simulation:
 double precision:: t

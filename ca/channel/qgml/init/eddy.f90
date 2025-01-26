@@ -6,13 +6,13 @@ use constants
 ! profile in each layer.
 
 implicit none
-double precision:: qq(0:ny,0:nx,nz)
-double precision:: xg(0:nx),yg(0:ny)
+double precision:: qq(0:ny,0:nxm1,nz)
+double precision:: xg(0:nxm1),yg(0:ny)
 double precision:: xc,yc,qc,rr,rrsq,rsq
 integer:: ix,iy,iz
 
 ! Define x & y grid points:
-do ix=0,nx
+do ix=0,nxm1
    xg(ix)=xmin+glx*dble(ix)
 enddo
 
@@ -27,7 +27,7 @@ do iz=1,nz
    write(*,*) ' Enter the radius and amplitude of the PV anomaly'
    read(*,*) rr,qc
    rrsq=rr**2
-   do ix=0,nx
+   do ix=0,nxm1
       do iy=0,ny
          rsq=(xg(ix)-xc)**2+(yg(iy)-yc)**2
          if (rsq < rrsq) then
@@ -44,5 +44,5 @@ open(20,file='qq_init.r8',form='unformatted', &
       access='direct',status='replace',recl=2*nbytes)
 write(20,rec=1) zero,qq
 close(20)
-      
+
 end program eddy

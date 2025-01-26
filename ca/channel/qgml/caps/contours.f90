@@ -2,7 +2,7 @@ module contours
 
 !:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ! This module contains all subroutines related to contour advection
-! in an aperiodic rectangular domain.
+! in a multi-layer periodic channel.
 !:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 ! Import constants and parameters:
@@ -17,31 +17,29 @@ integer:: il1q(nz),il2q(nz),jl1q(nz),jl2q(nz)
 integer:: nextq(npm),nptq,nq
 
  !For computing horizontal averages:
-double precision:: dxdy(0:ny,0:nx)
+double precision:: dxdy(0:ny,0:nxm1)
 
-!Contour to grid conversion quantities (fine grid used in this module):
-double precision,parameter:: dxxf=two*hlx/dble(nxf),dxxfi=dble(nxf)/(two*hlx)
-double precision,parameter:: dyyf=two*hly/dble(nyf),dyyfi=dble(nyf)/(two*hly)
-double precision:: xxf(0:nxf)
+ !Contour to grid conversion quantities (fine grid used in this module):
+double precision:: xgf(0:nxfm1)
+double precision,parameter:: glxf=ellx/dble(nxf),glxfi=dble(nxf)/ellx
+double precision,parameter:: glyf=elly/dble(nyf),dyyfi=dble(nyf)/(two*hly)
 
  !Contour to grid conversion quantities (ultra-fine grid used in congen):
-double precision,parameter:: dxxu=two*hlx/dble(nxu),dxxui=dble(nxu)/(two*hlx)
-double precision,parameter:: dyyu=two*hly/dble(nyu),dyyui=dble(nyu)/(two*hly)
-double precision:: xxu(0:nxu)
-
- !Ultra-fine grid needed for contour regeneration (module congen):
-double precision:: xgu(0:nxu),ygu(0:nyu)
-double precision,parameter:: glxu =ellx/dble(nxu),glxui=dble(nxu)/ellx
-double precision,parameter:: glyu =elly/dble(nyu),glyui=dble(nyu)/elly
+double precision:: xgu(0:nxum1),ygu(0:nyu)
+double precision,parameter:: glxu=ellx/dble(nxu),glxui=dble(nxu)/ellx
+double precision,parameter:: glyu=elly/dble(nyu),dyyui=dble(nyu)/(two*hly)
 
  !Next grid points used in bilinear interpolation:
-integer:: ixp(0:nx),iyp(0:ny)
+integer:: ixp(0:nxm1),iyp(0:ny)
 
  !Area weights used for interpolation in module congen:
 double precision:: w00(mgu,mgu),w10(mgu,mgu),w01(mgu,mgu),w11(mgu,mgu)
-integer:: ixfw(0:nxu),ix0w(0:nxu),ix1w(0:nxu)
-integer:: iyfw(0:nyu),iy0w(0:nyu),iy1w(0:nyu)
+integer:: ixfw(0:nxum1),ix0w(0:nxum1),ix1w(0:nxum1)
+integer:: iyfw(0:nyu)  ,iy0w(0:nyu)  ,iy1w(0:nyu)
 
+ !Grid box reference index used in congen:
+integer:: ibx(0:nxu)
+ 
  !Surgery & node redistribution quantities:
 double precision,parameter:: amu=0.2d0,ell=6.25d0*glx
 double precision,parameter:: dm=amu**2*ell/four,dm2=dm**2,d4small=small*glx**4
@@ -65,34 +63,27 @@ implicit none
 double precision:: fac,pxc,pxf,pyc,pyf
 integer:: ix,iy,ixx,iyy,ixf,iyf
 
-!-----------------------------------------------------------------------------
+!------------------------------------------------------------------------
  !Next grid points used in velocity interpolation (velint) and elsewhere; 
- !these are needed to avoid accessing array values at ix = nx+1 and iy = ny+1:
-do ix=0,nxm1
+ !enforces periodicity in x and avoids accessing iy = ny+1:
+do ix=0,nxm2
   ixp(ix)=ix+1
 enddo
-ixp(nx)=nx
+ixp(nxm1)=0
 
 do iy=0,nym1
   iyp(iy)=iy+1
 enddo
 iyp(ny)=ny
 
- !Fine dilated x-grid lines needed for contour-to-grid conversion:
-do ix=0,nxf
-  xxf(ix)=xbeg+dxxf*dble(ix)
+ !Fine x-grid lines needed for contour-to-grid conversion (con2grid):
+do ix=0,nxfm1
+  xgf(ix)=xmin+glxf*dble(ix)
 enddo
 
-!---------------------------------------------------------------------------
- !Initialise fixed quantities needed in contour regeneration (module congen)
-
- !Ultra-fine dilated x-grid lines needed for contour-to-grid conversion:
-do ix=0,nxu
-  xxu(ix)=xbeg+dxxu*dble(ix)
-enddo
-
- !Actual ultra-fine grid lines needed for contour regeneration:
-do ix=0,nxu
+!--------------------------------------------------------------------------
+ !Initialise ultra-fine grid lines needed in contour regeneration (congen):
+do ix=0,nxum1
   xgu(ix)=xmin+glxu*dble(ix)
 enddo
 
@@ -100,9 +91,15 @@ do iy=0,nyu
   ygu(iy)=ymin+glyu*dble(iy)
 enddo
 
-!-------------------------------------------------------------
- !Initialise area weights for interpolation of a gridded field
- !onto the ultra-fine horizontal grid:
+ !Grid box reference index used in congen:
+ibx(0)=nxu
+do ix=1,nxu
+  ibx(ix)=ix
+enddo
+
+!----------------------------------------------------------------------
+ !Area weights for interpolation of a gridded field onto the ultra-fine 
+ !horizontal grid (congen):
 fac=one/dble(mgu)
 
 do ixf=1,mgu
@@ -120,17 +117,19 @@ do ixf=1,mgu
   enddo
 enddo
 
-do ix=0,nxu-1
+do ix=0,nxum1-mgu
   ixx=ix/mgu
   ix0w(ix)=ixx
   ix1w(ix)=1+ixx
   ixfw(ix)=1+ix-mgu*ixx
 enddo
-ix0w(nxu)=nx
-ix1w(nxu)=nx
-ixfw(nxu)=1
+do ix=nxu-mgu,nxum1
+  ix0w(ix)=nxm1
+  ix1w(ix)=0
+  ixfw(ix)=1+ix-mgu*nxm1
+enddo
 
-do iy=0,nyu-1
+do iy=0,nyum1
   iyy=iy/mgu
   iy0w(iy)=iyy
   iy1w(iy)=1+iyy
@@ -140,17 +139,11 @@ iy0w(nyu)=ny
 iy1w(nyu)=ny
 iyfw(nyu)=1
 
-!-------------------------------------------------------------
+!------------------------------------------------------------
  !Define area weights needed to compute a horizontal average:
-dxdy(1:nym1,1:nxm1)=dsumi
-dxdy(1:nym1, 0)=f12*dsumi
-dxdy(1:nym1,nx)=f12*dsumi
-dxdy( 0,1:nxm1)=f12*dsumi
-dxdy(ny,1:nxm1)=f12*dsumi
-dxdy( 0, 0)=f14*dsumi
-dxdy( 0,nx)=f14*dsumi
-dxdy(ny, 0)=f14*dsumi
-dxdy(ny,nx)=f14*dsumi
+dxdy( 0,:)=f12*dsumi
+dxdy(1:nym1,:)=dsumi
+dxdy(ny,:)=f12*dsumi
  !The average of a field f is computed using sum(f*dxdy).
 
 return
@@ -166,7 +159,7 @@ subroutine velint(uu,vv,uq,vq)
 implicit none
 
  !Passed arrays:
-double precision:: uu(0:ny,0:nx,nz),vv(0:ny,0:nx,nz)
+double precision:: uu(0:ny,0:nxm1,nz),vv(0:ny,0:nxm1,nz)
 double precision:: uq(nptq),vq(nptq)
 
  !Local variables:
@@ -175,27 +168,27 @@ integer:: iz,i,ix0,ix1,iy0,iy1
 
 !----------------------------------------------------------
 do iz=1,nz
-   if (jl2q(iz) .gt. 0) then
-      do i=il1q(iz),il2q(iz)
-         xx=glxi*(xq(i)-xmin)
-         ix0=int(xx)
-         ix1=ixp(ix0)
-         px=xx-dble(ix0)
-         pxc=one-px
+  if (jl2q(iz) > 0) then
+    do i=il1q(iz),il2q(iz)
+      xx=glxi*(xq(i)-xmin)
+      ix0=int(xx)
+      ix1=ixp(ix0)
+      px=xx-dble(ix0)
+      pxc=one-px
+  
+      yy=glyi*(yq(i)-ymin)
+      iy0=int(yy)
+      iy1=iyp(iy0)
+      py=yy-dble(iy0)
+      pyc=one-py
 
-         yy=glyi*(yq(i)-ymin)
-         iy0=int(yy)
-         iy1=iyp(iy0)
-         py=yy-dble(iy0)
-         pyc=one-py
+      uq(i)=pyc*(pxc*uu(iy0,ix0,iz)+px*uu(iy0,ix1,iz)) &
+            +py*(pxc*uu(iy1,ix0,iz)+px*uu(iy1,ix1,iz))
 
-         uq(i)=pyc*(pxc*uu(iy0,ix0,iz)+px*uu(iy0,ix1,iz)) &
-               +py*(pxc*uu(iy1,ix0,iz)+px*uu(iy1,ix1,iz))
-
-         vq(i)=pyc*(pxc*vv(iy0,ix0,iz)+px*vv(iy0,ix1,iz)) &
-               +py*(pxc*vv(iy1,ix0,iz)+px*vv(iy1,ix1,iz))
-      enddo
-   endif
+      vq(i)=pyc*(pxc*vv(iy0,ix0,iz)+px*vv(iy0,ix1,iz)) &
+            +py*(pxc*vv(iy1,ix0,iz)+px*vv(iy1,ix1,iz))
+    enddo
+  endif
 enddo
 
 return
@@ -214,111 +207,117 @@ subroutine con2grid(qc)
 implicit none
 
  !Passed array:
-double precision:: qc(0:ny,0:nx,nz)
+double precision:: qc(0:ny,0:nxm1,nz)
 
  !Local variables:
-double precision:: qa(0:nyf+1,0:nxf)
-double precision:: qjx(0:nxf+1),qbot(0:nxf)
+double precision:: qa(0:nyfp1,0:nxfm1)
+double precision:: qjx(0:nxfm1),qbot(0:nxfm1)
 double precision:: dx(nptq),dy(nptq)
-double precision:: dq,px0,py0,sdq,qavg0,qadd
+double precision:: dq,px0,py0,sdq,qavg0,qadd,xx
 integer:: ixc(nptq),nxc(nptq)
-integer:: ix,iy,iz,i,ia,jump,ixbeg,icr,ncr
+integer:: ix,iy,iz,i,ia,ixdif,jump,ixbeg,icr,ncr
 logical:: crossx(nptq)
 
  !Begin a major loop over layers
 !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 do iz=1,nz
-   if (jl2q(iz) .gt. 0) then
-      !There are contours in this layer.  Initialise interior x grid line 
-      !crossing information and fill the PV jump array along lower boundary:
-      do i=il1q(iz),il2q(iz)
-         ixc(i)=int(one+dxxfi*(xq(i)-xbeg))
+  if (jl2q(iz) > 0) then
+     !There are contours in this layer.  Initialise interior x grid line 
+     !crossing information and fill the PV jump array along lower boundary:
+    do i=il1q(iz),il2q(iz)
+      ixc(i)=1+int(glxfi*(xq(i)-xmin))
+    enddo
+
+     !PV jump across all contours in this layer:
+    dq=qjump(iz)
+
+    do ix=0,nxfm1
+      qjx(ix)=zero
+    enddo
+
+    do i=il1q(iz),il2q(iz)
+      ia=nextq(i)
+      if (ia > 0) then
+         !A node with ia = 0 terminates a contour at a boundary
+        xx=xq(ia)-xq(i)
+        dx(i)=xx-ellx*dble(int(xx*hlxi))
+        dy(i)=yq(ia)-yq(i)
+        ixdif=ixc(ia)-ixc(i)
+        nxc(i)=ixdif-nxf*((2*ixdif)/nxf)
+        crossx(i)=(nxc(i) /= 0)
+        if ((yq(ia)-ybeg)*(ybeg-yq(i)) > zero) then
+           !The contour segment (i,ia) crosses y = ybeg; find x location:
+          py0=(ybeg-yq(i))/dy(i)
+          xx=xq(i)+py0*dx(i)
+          xx=oms*(xx-ellx*dble(int(xx*hlxi)))
+          ix=int(glxfi*(xx-xmin))
+          qjx(ix)=qjx(ix)-dq*sign(one,dy(i))
+           !Note: qjx gives the jump going from ix to ix+1
+        endif
+      else
+         !Here, there is no segment (i,next(i)) to consider:
+        crossx(i)=.false.
+      endif
+    enddo
+     !Above, ybeg is very slightly greater than ymin to detect boundary crossings
+
+     !Sum q jumps to obtain the gridded q along lower boundary:
+    qbot(0)=zero
+     !Corner value cannot be determined a priori; qavg is used for this below
+    do ix=0,nxf-2
+      qbot(ix+1)=qbot(ix)+qjx(ix)
+    enddo
+
+     !Initialise interior q jump array:
+    do ix=0,nxfm1
+      do iy=0,nyfp1
+        qa(iy,ix)=zero
       enddo
-      !Here xbeg is very slightly larger than xmin so that a point on
-      !the left edge has ixc = 0, but one with xq just greater than xbeg
-      !has ixc = 1.  Similarly, a point on the right edge has ixc = nxf+1.
-      !Note: dxxfi = dble(nxf)/((xmax-xmin)*(1-small)) where small = 1.d-12
+    enddo
 
-      !PV jump across all contours in this layer:
-      dq=qjump(iz)
+     !Determine x grid line crossings and accumulate q jumps:
+    do i=il1q(iz),il2q(iz)
+      if (crossx(i)) then
+        jump=sign(1,nxc(i))
+        ixbeg=ixc(i)+(jump-1)/2+nxf
+        sdq=dq*sign(one,dx(i))
+        ncr=0
+        do while (ncr /= nxc(i)) 
+          ix=mod(ixbeg+ncr,nxf)
+          xx=xgf(ix)-xq(i)
+          px0=(xx-ellx*dble(int(xx*hlxi)))/dx(i)
+           !The contour crossed the fine grid line ix at the point
+           !   x = xq(i) + px0*dx(i) and y = yq(i) + px0*dy(i):
+          iy=int(one+dyyfi*(yq(i)+px0*dy(i)-ybeg))
+           !Increment q jump between the grid lines iy-1 & iy:
+          qa(iy,ix)=qa(iy,ix)+sdq
+           !Go on to consider next x grid line (if there is one):
+          ncr=ncr+jump
+        enddo
+      endif
+    enddo
 
-      qjx=zero
-      do i=il1q(iz),il2q(iz)
-         ia=nextq(i)
-         if (ia .gt. 0) then
-            !A node with ia = 0 terminates a contour at a boundary
-            dx(i)=xq(ia)-xq(i)
-            dy(i)=yq(ia)-yq(i)
-            nxc(i)=ixc(ia)-ixc(i)
-            crossx(i)=(nxc(i) .ne. 0)
-            if ((yq(ia)-ybeg)*(ybeg-yq(i)) .gt. zero) then
-               !The contour segment (i,ia) crosses y = ybeg; find x location:
-               py0=(ybeg-yq(i))/dy(i)
-               ix=int(one+dxxfi*(xq(i)+py0*dx(i)-xbeg))
-               qjx(ix)=qjx(ix)-dq*sign(one,dy(i))
-               !Note: qjx gives the jump going from ix-1 to ix
-            endif
-         else
-            !Here, there is no segment (i,next(i)) to consider:
-            crossx(i)=.false.
-         endif
+     !Get q values by sweeping through y:
+    do ix=0,nxfm1
+      qa(0,ix)=qbot(ix)
+      do iy=1,nyf
+        qa(iy,ix)=qa(iy,ix)+qa(iy-1,ix)
       enddo
-      !Above, ybeg is very slightly greater than ymin to detect
-      !boundary crossings
+    enddo
 
-      !Sum q jumps to obtain the gridded q along lower boundary:
-      qbot(0)=zero
-      !Corner value cannot be determined a priori; qavg is used for this below
-      do ix=1,nxf
-         qbot(ix)=qbot(ix-1)+qjx(ix)
-      enddo
+     !Average to inversion grid by repeated 1-2-1 averages in each direction:
+    call coarsen(qa,qc(0,0,iz))
 
-      !----------------------------------------------------------------
-      !Initialise interior q jump array:
-      qa=zero
+     !Restore average (qavg(iz)):
+    qavg0=sum(qc(:,:,iz)*dxdy)
+    qadd=qavg(iz)-qavg0
+    qc(:,:,iz)=qc(:,:,iz)+qadd
+     !Now qc has the correct average in this layer
 
-      !Determine x grid line crossings and accumulate q jumps:
-      do i=il1q(iz),il2q(iz)
-         if (crossx(i)) then
-            jump=sign(1,nxc(i))
-            ixbeg=ixc(i)+(jump-1)/2
-            sdq=dq*sign(one,dx(i))
-            ncr=0
-            do while (ncr .ne. nxc(i)) 
-               ix=ixbeg+ncr
-               px0=(xxf(ix)-xq(i))/dx(i)
-               !The contour crossed the fine grid line ix at the point
-               !   x = xq(i) + px0*dx(i) and y = yq(i) + px0*dy(i):
-               iy=int(one+dyyfi*(yq(i)+px0*dy(i)-ybeg))
-               !Increment q jump between the grid lines iy-1 & iy:
-               qa(iy,ix)=qa(iy,ix)+sdq
-               !Go on to consider next x grid line (if there is one):
-               ncr=ncr+jump
-            enddo
-         endif
-      enddo
-
-      !Get q values by sweeping through y:
-      do ix=0,nxf
-         qa(0,ix)=qbot(ix)
-         do iy=1,nyf
-            qa(iy,ix)=qa(iy,ix)+qa(iy-1,ix)
-         enddo
-      enddo
-
-      !Average to inversion grid by repeated 1-2-1 averages in each direction:
-      call coarsen(qa,qc(0,0,iz))
-
-      !Restore average (qavg(iz)):
-      qavg0=sum(qc(:,:,iz)*dxdy)
-      qadd=qavg(iz)-qavg0
-      qc(:,:,iz)=qc(:,:,iz)+qadd
-      !Now qc has the correct average
-
-   else
-      !There are no contours in this layer; assign qc = qavg(iz):
-      qc(:,:,iz)=qavg(iz)
-   endif
+  else
+     !There are no contours in this layer; assign qc = qavg(iz):
+    qc(:,:,iz)=qavg(iz)
+  endif
 enddo
 
 return
@@ -357,7 +356,7 @@ integer,parameter:: ngbs=nx*ny
 double precision:: xa(npm),ya(npm)
 double precision:: xd(nprm),yd(nprm)
 double precision:: dx(nptq),dy(nptq),dsq(nptq)
-integer:: i1a(nm),i2a(nm)
+integer:: i1a(nm),i2a(nm),inda(nm)
 integer:: jq1(nlevm),jq2(nlevm),iq1(nlevm),iq2(nlevm),levq(nlevm)
 integer:: nspb(ngbs),kb1(ngbs),kb2(ngbs)
 integer:: loc(nplm),list(nplm),node(nplm)
@@ -368,37 +367,39 @@ logical:: avail(nptq),edge(nptq)
 logical:: open(nq),ave(nq),avs(nq)
 
  !If there are no contours, there is nothing to do:
-if (nq .eq. 0) return
+if (nq == 0) return
 
-!-----------------------------------------------------------------
+!--------------------------------------------------------------
  !Get work arrays for efficient surgery:
 do i=1,nptq-1
-   dx(i)=xq(i+1)-xq(i)
-   dy(i)=yq(i+1)-yq(i)
-   dsq(i)=dx(i)**2+dy(i)**2
-   avail(i)=.true.
-   edge(i)=.false.
+  xx=xq(i+1)-xq(i)
+  dx(i)=xx-ellx*dble(int(xx*hlxi))
+  dy(i)=yq(i+1)-yq(i)
+  dsq(i)=dx(i)**2+dy(i)**2
+  avail(i)=.true.
+  edge(i)=.false.
 enddo
 avail(nptq)=.true.
 edge(nptq)=.false.
 
 do j=1,nq
-   ie=i2q(j)
-   open(j)=(nextq(ie) .eq. 0)
-   if (open(j)) then
-      !Contour j is "open", i.e. it starts and ends at an edge
-      avail(ie-2)=.false.
-      avail(ie-1)=.false.
-      avail(ie)  =.false.
-      edge(ie-1)=.true.
-      edge(ie)  =.true.
-   else
-      !Contour j is "closed"
-      is=i1q(j)
-      dx(ie)=xq(is)-xq(ie)
-      dy(ie)=yq(is)-yq(ie)
-      dsq(ie)=dx(ie)**2+dy(ie)**2
-   endif
+  ie=i2q(j)
+  open(j)=(nextq(ie) == 0)
+  if (open(j)) then
+     !Contour j is "open", i.e. it starts and ends at an edge
+    avail(ie-2)=.false.
+    avail(ie-1)=.false.
+    avail(ie)  =.false.
+    edge(ie-1)=.true.
+    edge(ie)  =.true.
+  else
+     !Contour j is "closed"
+    is=i1q(j)
+    xx=xq(is)-xq(ie)
+    dx(ie)=xx-ellx*dble(int(xx*hlxi))
+    dy(ie)=yq(is)-yq(ie)
+    dsq(ie)=dx(ie)**2+dy(ie)**2
+  endif
 enddo
  !Note: avail(ib) is true when (i,nextq(i)), where i = nextq(ib), is 
  !a "proper" segment, i.e. one located fully within the domain, with
@@ -416,542 +417,533 @@ nptq=0
  !              Begin a major loop over layers
  !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 do iz=1,nz
-   if (jl2q(iz) .gt. 0) then
-      !There are contours in this layer.  Calculate beginning and 
-      !ending contours (jq1,jq2) for each distinct value of ind:
-      j1=jl1q(iz)
-      j2=jl2q(iz)
+  if (jl2q(iz) > 0) then
+     !There are contours in this layer.  Calculate beginning and 
+     !ending contours (jq1,jq2) for each distinct value of ind:
+    j1=jl1q(iz)
+    j2=jl2q(iz)
 
-      levp=indq(j1)
-      nlev=1
-      jq1(1)=j1
-      levq(1)=levp
-      do j=j1+1,j2
-         lev=indq(j)
-         if (lev .gt. levp) then
-            jq2(nlev)=j-1
-            nlev=nlev+1
-            jq1(nlev)=j
-            levq(nlev)=lev
-            levp=lev
-         endif
+    levp=indq(j1)
+    nlev=1
+    jq1(1)=j1
+    levq(1)=levp
+    do j=j1+1,j2
+      lev=indq(j)
+      if (lev > levp) then
+        jq2(nlev)=j-1
+        nlev=nlev+1
+        jq1(nlev)=j
+        levq(nlev)=lev
+        levp=lev
+      endif
+    enddo
+    jq2(nlev)=j2
+     !Note: levq(lev) gives the q level (indq) of contours.
+
+    do lev=1,nlev
+      iq1(lev)=i1q(jq1(lev))
+      iq2(lev)=i2q(jq2(lev))
+    enddo
+
+     !Reset initial layer counters for contours and nodes:
+    jl1q(iz)=nq+1
+    il1q(iz)=nptq+1
+
+     !-----------------------------------------------------------------
+     !              Begin a major loop over q levels
+     !-----------------------------------------------------------------
+    do lev=1,nlev
+      ibeg=iq1(lev)
+      iend=iq2(lev)
+
+       !Work out optimal box number, nbox, for fast surgery:
+      nptlev=iend-ibeg+1
+       !nptlev: number of nodes having this q level.
+      fnq=dble(nptlev)
+
+       !Balance boxing costs, (3+15*nseg/nbox)*nbox, with surgery 
+       !search costs, 24*nptlev*nseg/nbox, to work out optimal box number;
+       !here we estimate nseg, the total number of segments counted
+       !in all boxes, as (1+3*eps*nb)*nptlev, where nb=sqrt(nbox);
+       !this has been verified in realistically complex tests).
+       !This balance results in a quartic equation for a = nb/sqrt(nptlev)
+       !whose solution only depends on r = 3*eps*sqrt(nptlev), where
+       !eps=(average distance between adjacent nodes)/(domain area).
+       !Fortunately, a only varies from 1.129 to 1.265 over the entire
+       !range of r (from 0 to infinity).  Here, therefore, we simply
+       !take a = 1.2, i.e. nb = 1.2*sqrt(nptlev), as an approximation:
+      fnbx=1.2d0*sqrt(fnq*aspect)
+       !aspect = x:y domain aspect ratio.
+      fnby=fnbx/aspect
+      nbx=max(min(nint(fnbx),nx),1)
+       !nbx: number of boxes in the x direction; nbx <= nx.
+      nby=max(min(nint(fnby),ny),1)
+       !nby: number of boxes in the y direction; nby <= ny.
+      nbox=nbx*nby
+       !nbox: total number of boxes
+      bwxi=oms*dble(nbx)/ellx
+      bwyi=oms*dble(nby)/elly
+
+       !Box all segments [i,nextq(i)] to reduce search costs in surgery:
+      do mb=1,nbox
+        nspb(mb)=0
       enddo
-      jq2(nlev)=j2
-      !Note: levq(lev) gives the q level (indq) of contours.
+      nseg=0
 
-      do lev=1,nlev
-         iq1(lev)=i1q(jq1(lev))
-         iq2(lev)=i2q(jq2(lev))
+      dnbx=dble(nbx)
+      do ib=ibeg,iend
+        if (avail(ib)) then
+          i=nextq(ib)
+          ia=nextq(i)
+           !(i,ia) is a "proper" segment; find range of boxes spanned by it:
+          if (dx(i) > zero) then
+            mbx1=int(dnbx+bwxi*(xq(i)-xmin))
+            mbx2=int(dnbx+bwxi*(xq(i)+dx(i)-xmin))
+          else
+            mbx1=int(dnbx+bwxi*(xq(i)+dx(i)-xmin))
+            mbx2=int(dnbx+bwxi*(xq(i)-xmin))
+          endif
+          if (dy(i) > zero) then
+            mby1=int(bwyi*(yq(i) -ymin))
+            mby2=int(bwyi*(yq(ia)-ymin))
+          else
+            mby1=int(bwyi*(yq(ia)-ymin))
+            mby2=int(bwyi*(yq(i) -ymin))
+          endif
+           !mbx1+1,mbx2+1 is the x range of boxes spanned by the segment &
+           !mby1+1,mby2+1 is the y range.  
+
+          do mbx=mbx1,mbx2
+            mmbx=mod(mbx,nbx)
+            do mby=mby1,mby2
+              mb=nby*mmbx+mby+1
+              nspb(mb)=nspb(mb)+1
+               !nspb counts number of segments that cross through box mb.
+              nseg=nseg+1
+               !nseg counts the total number of segments crossing all boxes.
+              loc(nseg)=mb
+               !loc gives the box location of the segment
+              list(nseg)=ib
+               !list gives the node before the one at the segment origin (i).
+            enddo
+          enddo
+        endif
+      enddo
+       !nseg: the total number of segment crossings found for all boxes.
+       !**NB: nseg/nbox = average number of segments crossing a box.
+
+      kb1(1)=1
+      do mb=1,nbox-1
+        kb1(mb+1)=kb1(mb)+nspb(mb)
+      enddo
+      do mb=1,nbox
+        kb2(mb)=kb1(mb)-1
       enddo
 
-      !Reset initial layer counters for contours and nodes:
-      jl1q(iz)=nq+1
-      il1q(iz)=nptq+1
+      do k=1,nseg
+        mb=loc(k)
+        ks=kb2(mb)+1
+        node(ks)=list(k)
+        kb2(mb)=ks
+      enddo
 
-      !-----------------------------------------------------------------
-      !              Begin a major loop over q levels
-      !-----------------------------------------------------------------
-      do lev=1,nlev
-         ibeg=iq1(lev)
-         iend=iq2(lev)
+       !With the above, segments [node(kb1(mb)),nextq(node(kb1(mb))],
+       ![node(kb1(mb)+1),nextq(node(kb1(mb)+1)], ..., 
+       ![node(kb2(mb)),nextq(node(kb2(mb))] cross through box mb.
 
-         !Work out optimal box number, nbox, for fast surgery:
-         nptlev=iend-ibeg+1
-         !nptlev: number of nodes having this q level.
-         fnq=dble(nptlev)
+       !Note: roughly (3+15*nseg/nbox)*nbox operations are required
+       !      up to this point (in the loop over q levels) to do
+       !      all the segment boxing.
 
-         !Balance boxing costs, (3+15*nseg/nbox)*nbox, with surgery 
-         !search costs, 24*nptlev*nseg/nbox, to work out optimal box number;
-         !here we estimate nseg, the total number of segments counted
-         !in all boxes, as (1+3*eps*nb)*nptlev, where nb=sqrt(nbox);
-         !this has been verified in realistically complex tests).
-         !This balance results in a quartic equation for a = nb/sqrt(nptlev)
-         !whose solution only depends on r = 3*eps*sqrt(nptlev), where
-         !eps=(average distance between adjacent nodes)/(domain area).
-         !Fortunately, a only varies from 1.129 to 1.265 over the entire
-         !range of r (from 0 to infinity).  Here, therefore, we simply
-         !take a = 1.2, i.e. nb = 1.2*sqrt(nptlev), as an approximation:
-         fnbx=1.2d0*sqrt(fnq*aspect)
-         !aspect = x:y domain aspect ratio.
-         fnby=fnbx/aspect
-         nbx=max(min(nint(fnbx),nx),1)
-         !nbx: number of boxes in the x direction; nbx <= nx.
-         nby=max(min(nint(fnby),ny),1)
-         !nbx: number of boxes in the y direction; nby <= ny.
-         nbox=nbx*nby
-         !nbox: total number of boxes
-         bwxi=oms*dble(nbx)/ellx
-         bwyi=oms*dble(nby)/elly
+       !-------------------------------------------------------------
+       !Now search for surgery with segments crossing through the box 
+       !containing i:
+      do ib=ibeg,iend
+        if (.not. edge(ib)) then
+         !Node i = nextq(ib) is fully within the domain (not on an edge)
+        i=nextq(ib)
+        mb=nby*int(bwxi*(xq(i)-xmin))+int(bwyi*(yq(i)-ymin))+1
+         !mb: box containing the node i.
+        do k=kb1(mb),kb2(mb)
+          isb=node(k)
+          is=nextq(isb)
+           !Segment [is,nextq(is)] lies in box mb.  Exclude segments 
+           !ending in a edge or having node i at either endpoint:
+          if (edge(is) .or. (is-ib)*(is-i) == 0) goto 100
+           !nextq(is) could lie at an edge as a result of previous surgery.
+    
+           !Next see if the node i lies within a distance dm to the line 
+           !segment between is and nextq(is):
+          xx=xq(is)-xq(i)
+          delx=xx-ellx*dble(int(xx*hlxi))
+          dely=yq(is)-yq(i)
+          aa=delx*dx(is)+dely*dy(is)
 
-         !Box all segments [i,nextq(i)] to reduce search costs in surgery:
-         do mb=1,nbox
-            nspb(mb)=0
-         enddo
-         nseg=0
+           !Note: roughly 24*nptlev*(nseg/nbox) operations are required 
+           !up to the following statement (which is rarely satisfied); 
+           !this is assumed to be the dominant cost of surgery.  
+           !Even if each node i surgically reconnects on average 
+           !once, the above estimate holds.
 
-         do ib=ibeg,iend
-            if (avail(ib)) then
-               i=nextq(ib)
-               ia=nextq(i)
-               !(i,ia) is a "proper" segment;
-               !find range of boxes spanned by it:
-               if (dx(i) .gt. zero) then
-                  mbx1=int(bwxi*(xq(i) -xmin))
-                  mbx2=int(bwxi*(xq(ia)-xmin))
-               else
-                  mbx1=int(bwxi*(xq(ia)-xmin))
-                  mbx2=int(bwxi*(xq(i) -xmin))
-               endif
-               if (dy(i) .gt. zero) then
-                  mby1=int(bwyi*(yq(i) -ymin))
-                  mby2=int(bwyi*(yq(ia)-ymin))
-               else
-                  mby1=int(bwyi*(yq(ia)-ymin))
-                  mby2=int(bwyi*(yq(i) -ymin))
-               endif
-               !mbx1+1,mbx2+1 is the x range of boxes spanned while
-               !mby1+1,mby2+1 is the y range.
+          if (aa*(aa+dsq(is))+d4small < zero) then
+             !Passing this condition, a perpendicular can be dropped 
+             !onto the line segment from is to nextq(is).  
+             ![Tests show that this is satisfied only 6.4% of the time.]
+             !Check distance to line segment:
+            cc=(delx*dy(is)-dely*dx(is))**2
+             !NB: sqrt(cc/dsq(is)) is the distance to the segment and 
+             !    dm2=dm**2 below.  This distance must be strictly 
+             !    positive, yet less than dm, to permit surgery:
+            if (cc*(cc-dm2*dsq(is)) < zero) then
+               !Surgery is now possible between node i and the segment 
+               ![is,nextq(is)].
+               ![Tests show that this is satisfied only 0.45% of the time.]
+               !Move node i to a point midway between i and either is or 
+               !nextq(is), whichever is closer:
+              if (dsq(is)+two*aa < zero) then
+                 !node i is closest to node nextq(is):
+                dxa=f12*(delx+dx(is))
+                dya=f12*(dely+dy(is))
+                isb=is
+                is=nextq(is)
+              else
+                 !node i is closest to node is:
+                dxa=f12*delx
+                dya=f12*dely
+              endif
+               !Move node i & is to a common node; first deal with node i:
+              xx=xq(i)+dxa
+              xq(i)=oms*(xx-ellx*dble(int(xx*hlxi)))
+              yq(i)=yq(i)+dya
+              dx(i)=dx(i)-dxa
+              dy(i)=dy(i)-dya
+              dsq(i)=dx(i)**2+dy(i)**2
+               !isb becomes the node before i:
+              nextq(isb)=i
+              dx(isb)=dx(isb)-dxa
+              dy(isb)=dy(isb)-dya
+              dsq(isb)=dx(isb)**2+dy(isb)**2
 
-               do mbx=mbx1,mbx2
-                  do mby=mby1,mby2
-                     mb=nby*mbx+mby+1
-                     nspb(mb)=nspb(mb)+1
-                     !nspb counts number of segments that cross through box mb.
-                     nseg=nseg+1
-                     !nseg counts the total number of segments crossing
-                     !all boxes.
-                     loc(nseg)=mb
-                     !loc gives the box location of the segment
-                     list(nseg)=ib
-                     !list gives the node before the one at the
-                     !segment origin (i).
-                  enddo
-               enddo
+               !Now deal with node is:
+              xq(is)=xq(i)
+              yq(is)=yq(i)
+              dx(is)=dx(is)+dxa
+              dy(is)=dy(is)+dya
+              dsq(is)=dx(is)**2+dy(is)**2
+               !ib becomes the node before is:
+              nextq(ib)=is
+              dx(ib)=dx(ib)+dxa
+              dy(ib)=dy(ib)+dya
+              dsq(ib)=dx(ib)**2+dy(ib)**2
+
+               !Now update i and look for further possible surgery:
+              i=is
+              if (i == ib) goto 150
+               !i = ib when a contour consists of a single node
             endif
-         enddo
-         !nseg: the total number of segment crossings found for all boxes.
-         !**NB: nseg/nbox = average number of segments crossing a box.
+          endif
+          100 continue
+        enddo
+        150 continue
+        endif
+      enddo
 
-         kb1(1)=1
-         do mb=1,nbox-1
-            kb1(mb+1)=kb1(mb)+nspb(mb)
-         enddo
-         do mb=1,nbox
-            kb2(mb)=kb1(mb)-1
-         enddo
+       !----------------------------------------------------------------
+       !Push nodes within a distance dm to a boundary to that boundary
+       !and initialise logical array indicating that a node is available
+       !for re-building contours below:
+      do i=ibeg,iend
+        if (abs(ymax-yq(i)) < dm) then
+          yq(i)=ymax
+          edge(i)=.true.
+        else if (abs(yq(i)-ymin) < dm) then
+          yq(i)=ymin
+          edge(i)=.true.
+        else
+          edge(i)=.false.
+        endif
+        avail(i)=.true.
+      enddo
 
-         do k=1,nseg
-            mb=loc(k)
-            ks=kb2(mb)+1
-            node(ks)=list(k)
-            kb2(mb)=ks
-         enddo
-
-         !With the above, segments [node(kb1(mb)),nextq(node(kb1(mb))],
-         ![node(kb1(mb)+1),nextq(node(kb1(mb)+1)], ..., 
-         ![node(kb2(mb)),nextq(node(kb2(mb))] cross through box mb.
-
-         !Note: roughly (3+15*nseg/nbox)*nbox operations are required
-         !      up to this point (in the loop over q levels) to do
-         !      all the segment boxing.
-
-         !-------------------------------------------------------------------
-         !Now search for surgery with segments crossing through the box 
-         !containing i:
-         do ib=ibeg,iend
-            if (.not. edge(ib)) then
-               !Node i = nextq(ib) is fully within the domain (not on an edge)
-               i=nextq(ib)
-               mb=nby*int(bwxi*(xq(i)-xmin))+int(bwyi*(yq(i)-ymin))+1
-               !mb: box containing the node i.
-               do k=kb1(mb),kb2(mb)
-                  isb=node(k)
-                  is=nextq(isb)
-                  !Segment [is,nextq(is)] lies in box mb.  Exclude segments 
-                  !ending in a edge or having node i at either endpoint:
-                  if (edge(is) .or. (is-ib)*(is-i) .eq. 0) goto 100
-                  !nextq(is) could lie at an edge as a result of previous
-                  !surgery.
-
-                  !Next see if the node i lies within a distance dm to
-                  !the line segment between is and nextq(is):
-                  delx=xq(is)-xq(i)
-                  dely=yq(is)-yq(i)
-                  aa=delx*dx(is)+dely*dy(is)
-
-                  !Note: roughly 24*nptlev*(nseg/nbox) operations are required 
-                  !up to the following statement (which is rarely satisfied); 
-                  !this is assumed to be the dominant cost of surgery.  
-                  !Even if each node i surgically reconnects on average 
-                  !once, the above estimate holds.
-
-                  if (aa*(aa+dsq(is))+d4small .lt. zero) then
-                     !Passing this condition, a perpendicular can be dropped 
-                     !onto the line segment from is to nextq(is).  
-                     ![Tests show this is satisfied only 6.4% of the time.]
-                     !Check distance to line segment:
-                     cc=(delx*dy(is)-dely*dx(is))**2
-                     !NB: sqrt(cc/dsq(is)) is the distance to the segment and 
-                     !    dm2=dm**2 below.  This distance must be strictly 
-                     !    positive, yet less than dm, to permit surgery:
-                     if (cc*(cc-dm2*dsq(is)) .lt. zero) then
-                        !Surgery is now possible between node i and the
-                        !segment [is,nextq(is)].
-                        ![Tests show this is satisfied only 0.45% of the time.]
-                        !Move node i to a point midway between i and either
-                        !is or nextq(is), whichever is closer:
-                        if (dsq(is)+two*aa .lt. zero) then
-                           !node i is closest to node nextq(is):
-                           dxa=f12*(delx+dx(is))
-                           dya=f12*(dely+dy(is))
-                           isb=is
-                           is=nextq(is)
-                        else
-                           !node i is closest to node is:
-                           dxa=f12*delx
-                           dya=f12*dely
-                        endif
-                        !Move node i & is to a common node;
-                        !first deal with node i:
-                        xq(i)=xq(i)+dxa
-                        yq(i)=yq(i)+dya
-                        dx(i)=dx(i)-dxa
-                        dy(i)=dy(i)-dya
-                        dsq(i)=dx(i)**2+dy(i)**2
-                        !isb becomes the node before i:
-                        nextq(isb)=i
-                        dx(isb)=dx(isb)-dxa
-                        dy(isb)=dy(isb)-dya
-                        dsq(isb)=dx(isb)**2+dy(isb)**2
-
-                        !Now deal with node is:
-                        xq(is)=xq(i)
-                        yq(is)=yq(i)
-                        dx(is)=dx(is)+dxa
-                        dy(is)=dy(is)+dya
-                        dsq(is)=dx(is)**2+dy(is)**2
-                        !ib becomes the node before is:
-                        nextq(ib)=is
-                        dx(ib)=dx(ib)+dxa
-                        dy(ib)=dy(ib)+dya
-                        dsq(ib)=dx(ib)**2+dy(ib)**2
-
-                        !Now update i and look for further possible surgery:
-                        i=is
-                        if (i .eq. ib) goto 150
-                        !i = ib when a contour consists of a single node
-                     endif
-                  endif
-                  100 continue
-               enddo
-               150 continue
-            endif
-         enddo
-
-         !-------------------------------------------------------------------
-         !Push nodes within a distance dm to a boundary to that boundary
-         !and initialise logical array indicating that a node is available
-         !for re-building contours below:
-         do i=ibeg,iend
-            if (abs(xmax-xq(i)) .lt. dm) then
-               xq(i)=xmax
-               edge(i)=.true.
-            else if (abs(xq(i)-xmin) .lt. dm) then
-               xq(i)=xmin
-               edge(i)=.true.
-            else if (abs(ymax-yq(i)) .lt. dm) then
-               yq(i)=ymax
-               edge(i)=.true.
-            else if (abs(yq(i)-ymin) .lt. dm) then
-               yq(i)=ymin
-               edge(i)=.true.
+       !Form lists of nodes (ibss,ibse) which start and end open contours:
+      nse=0
+      nss=0
+      do ib=ibeg,iend
+        i=nextq(ib)
+        if (.not. edge(ib)) then
+           !ib cannot end an open contour, and i > 0
+          if (edge(i)) then
+             !this node, i, lies on an edge of the domain
+            ia=nextq(i)
+            if (ia > 0) then
+               !there is a node after i
+              if (edge(ia)) then
+                 !this node, ia, also lies on an edge; we thus stop the 
+                 !contour at i.  (ib,i) is a segment ending an open contour; 
+                 !record in a list:
+                nse=nse+1
+                ibse(nse)=ib
+                ave(nse)=.true.
+              endif
             else
-               edge(i)=.false.
+               !there is no node after i.  (ib,i) is a segment ending an 
+               !open contour; record in a list:
+              nse=nse+1
+              ibse(nse)=ib
+              ave(nse)=.true.
             endif
-            avail(i)=.true.
-         enddo
-
-         !Form lists of nodes (ibss,ibse) which start and end open contours:
-         nse=0
-         nss=0
-         do ib=ibeg,iend
-            i=nextq(ib)
-            if (.not. edge(ib)) then
-               !ib cannot end an open contour, and i > 0
-               if (edge(i)) then
-                  !this node, i, lies on an edge of the domain
-                  ia=nextq(i)
-                  if (ia .gt. 0) then
-                     !there is a node after i
-                     if (edge(ia)) then
-                        !this node, ia, also lies on an edge; we thus stop the 
-                        !contour at i.  (ib,i) is a segment ending an open
-                        !contour; record in a list:
-                        nse=nse+1
-                        ibse(nse)=ib
-                        ave(nse)=.true.
-                     endif
-                  else
-                     !there is no node after i.  (ib,i) is a segment ending an 
-                     !open contour; record in a list:
-                     nse=nse+1
-                     ibse(nse)=ib
-                     ave(nse)=.true.
-                  endif
-               endif
-            else
-               !ib lies on the edge of the domain; it might end a contour, but
-               !this possibility would be found above when the point before ib
-               !is considered.
-               if (i .gt. 0) then
-                  !there is a node after ib
-                  if (edge(i)) then
-                     !this node, i, also lies on an edge of the domain
-                     ia=nextq(i)
-                     !ensure ib is never used to start a contour:
-                     nextq(ib)=0
-                     avail(ib)=.false.
-                     if (ia .gt. 0) then
-                        !there is a node after i
-                        if (.not. edge(ia)) then
-                           !this node, ia, is in the interior;
-                           !therefore (i,ia) is a segment starting
-                           !an open contour; record in a list:
-                           nss=nss+1
-                           ibss(nss)=i
-                           avs(nss)=.true.
-                        endif
-                     endif
-                  endif
-               endif
-            endif
-         enddo
-
-         !Finally check original open contours for segments starting a contour
-         !not found above:
-         do j=jq1(lev),jq2(lev)
-            if (open(j)) then
-               !contour j is open, and i below is its starting node
-               !(at an edge):
-               i=i1q(j)
-               if (avail(i)) then
-                  !This node is still available to start a contour; 
-                  !there must be a node after (i.e. nextq(i));
-                  !therefore (i,nextq(i)) is a segment starting
-                  !an open contour; record in a list:
+          endif
+        else
+           !ib lies on the edge of the domain; it might end a contour, but
+           !this possibility would be found above when the point before ib
+           !is considered.
+          if (i > 0) then
+             !there is a node after ib
+            if (edge(i)) then
+               !this node, i, also lies on an edge of the domain
+              ia=nextq(i)
+               !ensure ib is never used to start a contour:
+              nextq(ib)=0
+              avail(ib)=.false.
+              if (ia > 0) then
+                 !there is a node after i
+                if (.not. edge(ia)) then
+                   !this node, ia, is in the interior; therefore (i,ia) is
+                   !a segment starting an open contour; record in a list:
                   nss=nss+1
                   ibss(nss)=i
                   avs(nss)=.true.
-               endif
-               !ensure its original endpoint (unchanged by surgery above) is 
-               !not available for starting a contour:
-               avail(i2q(j))=.false.
+                endif
+              endif
             endif
-         enddo
-         !Note: there must be the same number of starting and ending segments,
-         !      nss = nse.
-
-         !Perform surgery between segments attached to a boundary:
-         npe=0
-         if (nse .gt. 0) then
-            !There are open contours to process:
-            do ke=1,nse
-               if (ave(ke)) then
-                  ie=ibse(ke)
-                  iea=nextq(ie)
-                  !Do not allow the endpoint (iea) to ever start a contour:
-                  avail(iea)=.false.
-                  if (nextq(iea) .gt. 0) then
-                     !Make sure that any node following iea is not used to
-                     !start a *closed* contour (it could still start an
-                     !open one):
-                     avail(nextq(iea))=.false.
-                     nextq(iea)=0
-                  endif
-
-                  do ks=1,nss
-                     if (avs(ks)) then
-                        is=ibss(ks)
-                        isa=nextq(is)
-
-                        !See if a perpendicular can be dropped from node
-                        !is to the segment (ie,iea):
-                        delx=xq(ie)-xq(is)
-                        dely=yq(ie)-yq(is)
-                        aa=delx*dx(ie)+dely*dy(ie)
-                        if (aa*(aa+dsq(ie))+d4small .lt. zero) then
-                           !Passing this condition, a perpendicular can be
-                           !dropped onto the line segment (ie,iea).
-                           cc=(delx*dy(ie)-dely*dx(ie))**2
-                           !NB: sqrt(cc/dsq(ie)) is the distance to the
-                           !segment and dm2=dm**2 below.  This distance
-                           !must be strictly positive, yet less than dm,
-                           !to permit surgery:
-                           if (cc*(cc-dm2*dsq(ie)) .lt. zero) then
-                              !Surgery is now possible between node is and
-                              !the segment (ie,iea).  Move node is half-way
-                              !along perpendicular and eliminate node iea
-                              !(avail(iea) = .false. above already):
-                              pe=-aa/dsq(ie)
-                              xq(is)=f12*(xq(is)+xq(ie)+pe*dx(ie))
-                              yq(is)=f12*(yq(is)+yq(ie)+pe*dy(ie))
-                              nextq(ie)=is
-
-                              !Don't consider these segments again in surgery:
-                              ave(ke)=.false.
-                              avs(ks)=.false.
-                              goto 200
-                           endif
-                        endif
-
-                        !See if a perpendicular can be dropped from node iea
-                        !to the segment (is,isa):
-                        delx=xq(is)-xq(iea)
-                        dely=yq(is)-yq(iea)
-                        aa=delx*dx(is)+dely*dy(is)
-                        if (aa*(aa+dsq(is))+d4small .lt. zero) then
-                           !Passing this condition, a perpendicular can be
-                           !dropped onto the line segment (is,isa).
-                           cc=(delx*dy(is)-dely*dx(is))**2
-                           !NB: sqrt(cc/dsq(is)) is the distance to the
-                           !segment and dm2=dm**2 below.  This distance
-                           !must be strictly positive, yet less than dm,
-                           !to permit surgery:
-                           if (cc*(cc-dm2*dsq(is)) .lt. zero) then
-                              !Surgery is now possible between node iea
-                              !and the segment (is,isa).  Move node is
-                              !half-way along perpendicular and eliminate
-                              !node iea (avail(iea) = .false. above already):
-                              ps=-aa/dsq(is)
-                              xq(is)=f12*(xq(iea)+xq(is)+ps*dx(is))
-                              yq(is)=f12*(yq(iea)+yq(is)+ps*dy(is))
-                              nextq(ie)=is
-
-                              !Don't consider these segments again in surgery:
-                              ave(ke)=.false.
-                              avs(ks)=.false.
-                              goto 200
-                           endif
-                        endif
-
-                     endif
-                  enddo
-                  !ends loop over ks
-
-               endif
-               200 continue
-            enddo
-            !ends loop over ke.
-
-            !Next work out how many open contours remain by testing avs:
-            do ks=1,nss
-               if (avs(ks)) then
-                  npe=npe+1
-                  icre(npe)=ibss(ks)
-               endif
-            enddo
-         endif
-
-         !----------------------------------------------------------------
-         !It remains to rebuild the contours using the nextq() information
-
-         !Current contour level:
-         levt=levq(lev)
-
-         !First deal with any open contours attached to boundaries:
-         if (npe .gt. 0) then
-            do ie=1,npe
-               !A new contour (indexed nq) starts here:
-               nq=nq+1
-
-               !The starting node on the contour (coming out of a boundary):
-               i=icre(ie)
-               xd(1)=xq(i)
-               yd(1)=yq(i)
-               npd=1
-
-               avail(i)=.false.
-               is=nextq(i)
-               !Generate the contour using nextq() and finish when the
-               !other boundary is reached (is = 0):
-               do while (is .ne. 0) 
-                  npd=npd+1
-                  xd(npd)=xq(is)
-                  yd(npd)=yq(is)
-                  avail(is)=.false.
-                  is=nextq(is)
-               enddo
-
-               !Re-distribute nodes on this contour:
-               npq(nq)=npd
-               if (npd .gt. 3) &
-                    call renode_open(xd,yd,npd,xa(nptq+1),ya(nptq+1),npq(nq))
-               if (npq(nq) .gt. 3) then
-                  i1a(nq)=nptq+1
-                  nptq=nptq+npq(nq)
-                  i2a(nq)=nptq
-                  indq(nq)=levt
-                  layq(nq)=iz
-                  do is=i1a(nq),nptq-1
-                     nexta(is)=is+1
-                  enddo
-                  nexta(nptq)=0
-               else
-                  !Delete contour if deemed too small (see renode):
-                  nq=nq-1
-               endif
-
-            enddo
-         endif
-
-         !Next deal with remaining closed contours:
-         do i=ibeg,iend
-            if (avail(i)) then
-               !avail(i) is true if node i has not yet been associated with
-               !a contour.  Start a new contour:
-               nq=nq+1
-
-               !First point on the contour:
-               npd=1
-               xd(1)=xq(i)
-               yd(1)=yq(i)
-
-               avail(i)=.false.
-               is=nextq(i)
-               !Generate the contour using nextq() and finish when the
-               !original node (i) is reached:
-               do while (is .ne. i) 
-                  npd=npd+1
-                  xd(npd)=xq(is)
-                  yd(npd)=yq(is)
-                  avail(is)=.false.
-                  is=nextq(is)
-               enddo
-
-               !Re-distribute nodes on this contour:
-               npq(nq)=npd
-               if (npd .gt. 3) &
-                    call renode_closed(xd,yd,npd,xa(nptq+1),ya(nptq+1),npq(nq))
-               if (npq(nq) .gt. 3) then
-                  i1a(nq)=nptq+1
-                  nptq=nptq+npq(nq)
-                  i2a(nq)=nptq
-                  indq(nq)=levt
-                  layq(nq)=iz
-                  do is=i1a(nq),nptq-1
-                     nexta(is)=is+1
-                  enddo
-                  nexta(nptq)=i1a(nq)
-               else
-                  !Delete contour if deemed too small (see renode):
-                  nq=nq-1
-               endif
-
-            endif
-         enddo
-
-         !Now go back and consider the next q level:
+          endif
+        endif
       enddo
+
+       !Finally check original open contours for segments starting a contour
+       !not found above:
+      do j=jq1(lev),jq2(lev)
+        if (open(j)) then
+           !contour j is open, and i below is its starting node (at an edge):
+          i=i1q(j)
+          if (avail(i)) then
+             !This node is still available to start a contour; there must be
+             !a node after (i.e. nextq(i)); therefore (i,nextq(i)) is a 
+             !segment starting an open contour; record in a list:
+            nss=nss+1
+            ibss(nss)=i
+            avs(nss)=.true.
+          endif
+           !ensure its original endpoint (unchanged by surgery above) is 
+           !not available for starting a contour:
+          avail(i2q(j))=.false.
+        endif
+      enddo
+       !Note: there must be the same number of starting and ending segments,
+       !      nss = nse.
+    
+       !Perform surgery between segments attached to a boundary:
+      npe=0
+      if (nse > 0) then
+         !There are open contours to process:
+        do ke=1,nse
+          if (ave(ke)) then
+          ie=ibse(ke)
+          iea=nextq(ie)
+           !Do not allow the endpoint (iea) to ever start a contour:
+          avail(iea)=.false.
+          if (nextq(iea) > 0) then
+             !Make sure that any node following iea is not used to start
+             !a *closed* contour (it could still start an open one):
+            avail(nextq(iea))=.false.
+            nextq(iea)=0
+          endif
+
+          do ks=1,nss
+            if (avs(ks)) then
+            is=ibss(ks)
+            isa=nextq(is)
+    
+             !See if a perpendicular can be dropped from node is to the
+             !segment (ie,iea):
+            xx=xq(ie)-xq(is)
+            delx=xx-ellx*dble(int(xx*hlxi))
+            dely=yq(ie)-yq(is)
+            aa=delx*dx(ie)+dely*dy(ie)
+            if (aa*(aa+dsq(ie))+d4small < zero) then
+               !Passing this condition, a perpendicular can be dropped 
+               !onto the line segment (ie,iea).
+              cc=(delx*dy(ie)-dely*dx(ie))**2
+               !NB: sqrt(cc/dsq(ie)) is the distance to the segment and 
+               !    dm2=dm**2 below.  This distance must be strictly 
+               !    positive, yet less than dm, to permit surgery:
+              if (cc*(cc-dm2*dsq(ie)) < zero) then
+                 !Surgery is now possible between node is and the segment 
+                 !(ie,iea).  Move node is half-way along perpendicular and
+                 !eliminate node iea (avail(iea) = .false. above already):
+                pe=-aa/dsq(ie)
+                xx=xq(ie)+pe*dx(ie)-xq(is)
+                xx=xq(is)+f12*(xx-ellx*dble(int(xx*hlxi)))
+                xq(is)=oms*(xx-ellx*dble(int(xx*hlxi)))
+                yq(is)=f12*(yq(is)+yq(ie)+pe*dy(ie))
+                nextq(ie)=is
+    
+                 !Don't consider these segments again in surgery:
+                ave(ke)=.false.
+                avs(ks)=.false.
+                goto 200
+              endif
+            endif
+
+             !See if a perpendicular can be dropped from node iea to the
+             !segment (is,isa):
+            xx=xq(is)-xq(iea)
+            delx=xx-ellx*dble(int(xx*hlxi))
+            dely=yq(is)-yq(iea)
+            aa=delx*dx(is)+dely*dy(is)
+            if (aa*(aa+dsq(is))+d4small < zero) then
+               !Passing this condition, a perpendicular can be dropped 
+               !onto the line segment (is,isa).
+              cc=(delx*dy(is)-dely*dx(is))**2
+               !NB: sqrt(cc/dsq(is)) is the distance to the segment and 
+               !    dm2=dm**2 below.  This distance must be strictly 
+               !    positive, yet less than dm, to permit surgery:
+              if (cc*(cc-dm2*dsq(is)) < zero) then
+                 !Surgery is now possible between node iea and the segment 
+                 !(is,isa).  Move node is half-way along perpendicular and
+                 !eliminate node iea (avail(iea) = .false. above already):
+                ps=-aa/dsq(is)
+                xx=xq(is)+ps*dx(is)-xq(iea)
+                xx=xq(iea)+f12*(xx-ellx*dble(int(xx*hlxi)))
+                xq(is)=oms*(xx-ellx*dble(int(xx*hlxi)))
+                yq(is)=f12*(yq(iea)+yq(is)+ps*dy(is))
+                nextq(ie)=is
+
+                 !Don't consider these segments again in surgery:
+                ave(ke)=.false.
+                avs(ks)=.false.
+                goto 200
+              endif
+            endif
+
+            endif
+          enddo
+           !ends loop over ks
+
+          endif
+          200 continue
+        enddo
+         !ends loop over ke.
+
+         !Next work out how many open contours remain by testing avs:
+        do ks=1,nss
+          if (avs(ks)) then
+            npe=npe+1
+            icre(npe)=ibss(ks)
+          endif
+        enddo
+      endif
+
+       !----------------------------------------------------------------
+       !It remains to rebuild the contours using the nextq() information
+
+       !Current contour level:
+      levt=levq(lev)
+
+       !First deal with any open contours attached to boundaries:
+      if (npe > 0) then
+        do ie=1,npe
+           !A new contour (indexed nq) starts here:
+          nq=nq+1
+
+           !The starting node on the contour (coming out of a boundary):
+          i=icre(ie)
+          xd(1)=xq(i)
+          yd(1)=yq(i)
+          npd=1
+
+          avail(i)=.false.
+          is=nextq(i)
+           !Generate the contour using nextq() and finish when the
+           !other boundary is reached (is = 0):
+          do while (is /= 0) 
+            npd=npd+1
+            xd(npd)=xq(is)
+            yd(npd)=yq(is)
+            avail(is)=.false.
+            is=nextq(is)
+          enddo
+
+           !Re-distribute nodes on this contour:
+          npq(nq)=npd
+          if (npd > 3) &
+             & call renode_open(xd,yd,npd,xa(nptq+1),ya(nptq+1),npq(nq))
+          if (npq(nq) > 3) then
+            i1a(nq)=nptq+1
+            nptq=nptq+npq(nq)
+            i2a(nq)=nptq
+            inda(nq)=levt
+            layq(nq)=iz
+            do is=i1a(nq),nptq-1
+              nexta(is)=is+1
+            enddo
+            nexta(nptq)=0
+          else
+             !Delete contour if deemed too small (see renode):
+            nq=nq-1
+          endif
+
+        enddo
+      endif
+
+       !Next deal with remaining closed contours:
+      do i=ibeg,iend
+        if (avail(i)) then
+         !avail(i) is true if node i has not yet been associated with 
+         !a contour.  Start a new contour:
+          nq=nq+1
+
+         !First point on the contour:
+          npd=1
+          xd(1)=xq(i)
+          yd(1)=yq(i)
+
+          avail(i)=.false.
+          is=nextq(i)
+           !Generate the contour using nextq() and finish when the
+           !original node (i) is reached:
+          do while (is /= i) 
+            npd=npd+1
+            xd(npd)=xq(is)
+            yd(npd)=yq(is)
+            avail(is)=.false.
+            is=nextq(is)
+          enddo
+
+           !Re-distribute nodes on this contour:
+          npq(nq)=npd
+          if (npd > 3) &
+             & call renode_closed(xd,yd,npd,xa(nptq+1),ya(nptq+1),npq(nq))
+          if (npq(nq) > 3) then
+            i1a(nq)=nptq+1
+            nptq=nptq+npq(nq)
+            i2a(nq)=nptq
+            inda(nq)=levt
+            layq(nq)=iz
+            do is=i1a(nq),nptq-1
+              nexta(is)=is+1
+            enddo
+            nexta(nptq)=i1a(nq)
+          else
+             !Delete contour if deemed too small (see renode):
+            nq=nq-1
+          endif
+
+        endif
+      enddo
+
+       !Now go back and consider the next q level:
+    enddo
      !--------------------------------------------------------------------
      !This ends the loop over q levels; surgery is complete for this layer
      !--------------------------------------------------------------------
@@ -976,6 +968,7 @@ enddo
 do j=1,nq
   i1q(j)=i1a(j)
   i2q(j)=i2a(j)
+  indq(j)=inda(j)
 enddo
 
 return
@@ -994,9 +987,6 @@ subroutine renode_closed(xd,yd,npd,xr,yr,npr)
 ! -----------------------------------------------------------
 ! Intended for a rectangular domain with free-slip boundaries
 ! -----------------------------------------------------------
-
-! ==> Constants zero, one, f12, f13, f16, small, small3, xmin, xmax,
-! ==> ymin, ymax, elf, dmsq, dmi & densf are assumed defined
 
 implicit double precision(a-h,o-z)
 implicit integer(i-n)
@@ -1019,7 +1009,8 @@ next(npd)=1
  !Compute the contour increments:
 do i=1,npd
   ia=next(i)
-  dx(i)=xd(ia)-xd(i)
+  xx=xd(ia)-xd(i)
+  dx(i)=xx-ellx*dble(int(xx*hlxi))
   dy(i)=yd(ia)-yd(i)
 enddo
 
@@ -1038,7 +1029,7 @@ enddo
 
 ncorn=0
 do i=1,npd
-  corner(i)=dx(i)*a(i)+dy(i)*c(i) .gt. zero
+  corner(i)=dx(i)*a(i)+dy(i)*c(i) > zero
   if (corner(i)) then 
      !Keep track of corner locations for use in renoding below:
     ncorn=ncorn+1
@@ -1047,7 +1038,7 @@ do i=1,npd
     b(i)=zero
   else
     b(i)=(dx(i)*c(i)-a(i)*dy(i))/ &
-       sqrt((a(i)*v(i)-dx(i)*u(i))**2+(c(i)*v(i)-dy(i)*u(i))**2+small3)
+     & sqrt((a(i)*v(i)-dx(i)*u(i))**2+(c(i)*v(i)-dy(i)*u(i))**2+small3)
   endif
 enddo
 
@@ -1102,7 +1093,7 @@ do i=1,npd
 enddo
  !Number of points on renoded contour:
 npr=nint(sum)+1
-if (npr .lt. 3) then
+if (npr < 3) then
    !Contour too small - remove it:
   npr=0
   return
@@ -1110,7 +1101,7 @@ endif
 
 !-------------------------------------------------------------
  !Redistribute nodes making sure to preserve corner locations:
-if (ncorn .eq. 0) then
+if (ncorn == 0) then
    !No corners - simplest case
 
    !Make the sum of e(i) equal to npr:
@@ -1125,18 +1116,19 @@ if (ncorn .eq. 0) then
   acc=zero
   i=0
   do im=2,npr
-    do while (acc .lt. one)
+    do while (acc < one)
       i=i+1
       acc=acc+e(i)
     enddo
     acc=acc-one
     p=one-acc/e(i)
     eta=p*(a(i)+p*(b(i)+p*c(i)))
-    xr(im)=xd(i)+p*dx(i)-eta*dy(i)
+    xx=xd(i)+p*dx(i)-eta*dy(i)
+    xr(im)=oms*(xx-ellx*dble(int(xx*hlxi)))
     yr(im)=yd(i)+p*dy(i)+eta*dx(i)
   enddo
 
-else if (ncorn .eq. 1) then
+else if (ncorn == 1) then
    !A single corner - start new contour at the corner:
 
    !Make the sum of e(i) equal to npr:
@@ -1152,14 +1144,15 @@ else if (ncorn .eq. 1) then
   acc=zero
   i=i-1
   do im=2,npr
-    do while (acc .lt. one)
+    do while (acc < one)
       i=next(i)
       acc=acc+e(i)
     enddo
     acc=acc-one
     p=one-acc/e(i)
     eta=p*(a(i)+p*(b(i)+p*c(i)))
-    xr(im)=xd(i)+p*dx(i)-eta*dy(i)
+    xx=xd(i)+p*dx(i)-eta*dy(i)
+    xr(im)=oms*(xx-ellx*dble(int(xx*hlxi)))
     yr(im)=yd(i)+p*dy(i)+eta*dx(i)
   enddo
 
@@ -1174,12 +1167,12 @@ else
     iend=node(k+1)
     i=ibeg
     sum=zero
-    do while (i .ne. iend)
+    do while (i /= iend)
       sum=sum+e(i)
       i=next(i)
     enddo
 
-    if (sum .gt. small) then
+    if (sum > small) then
        !Adequate spacing exists between corners to renode this segment
 
        !Number of points on renoded contour segment:
@@ -1188,7 +1181,7 @@ else
        !Make the sum of e(i) equal to npseg
       fac=dble(npseg)/sum
       i=ibeg
-      do while (i .ne. iend)
+      do while (i /= iend)
         e(i)=fac*e(i)
         i=next(i)
       enddo
@@ -1197,19 +1190,20 @@ else
       xr(npr+1)=xd(ibeg)
       yr(npr+1)=yd(ibeg)
 
-      if (npseg .gt. 1) then
+      if (npseg > 1) then
          !Find the remaining points along this segment:
         acc=zero
         i=ibeg-1
         do im=npr+2,npr+npseg
-          do while (acc .lt. one)
+          do while (acc < one)
             i=next(i)
             acc=acc+e(i)
           enddo
           acc=acc-one
           p=one-acc/e(i)
           eta=p*(a(i)+p*(b(i)+p*c(i)))
-          xr(im)=xd(i)+p*dx(i)-eta*dy(i)
+          xx=xd(i)+p*dx(i)-eta*dy(i)
+          xr(im)=oms*(xx-ellx*dble(int(xx*hlxi)))
           yr(im)=yd(i)+p*dy(i)+eta*dx(i)
         enddo
       endif
@@ -1225,12 +1219,11 @@ endif
 
  !Force points to remain inside the domain:
 do i=1,npr
-  xr(i)=min(xmax,max(xmin,xr(i)))
   yr(i)=min(ymax,max(ymin,yr(i)))
 enddo
 
 return
-end subroutine renode_closed
+end subroutine
 
 !=======================================================================
 
@@ -1246,9 +1239,6 @@ subroutine renode_open(xd,yd,npd,xr,yr,npr)
 ! Intended for a rectangular domain with free-slip boundaries
 ! -----------------------------------------------------------
 
-! ==> Constants zero, one, f12, f13, f16, small, small3, xmin, xmax,
-! ==> ymin, ymax, elf, dmsq, dmi & densf are assumed defined
-
 implicit double precision(a-h,o-z)
 implicit integer(i-n)
 
@@ -1263,7 +1253,8 @@ logical:: corner(npd)
 !------------------------------------------------------------------
  !Compute the cubic interpolation coefficients:
 do i=1,npd-1
-  dx(i)=xd(i+1)-xd(i)
+  xx=xd(i+1)-xd(i)
+  dx(i)=xx-ellx*dble(int(xx*hlxi))
   a(i+1)=-dx(i)
   dy(i)=yd(i+1)-yd(i)
   c(i+1)=-dy(i)
@@ -1277,7 +1268,7 @@ b(1)=zero
 ncorn=1
 node(1)=1
 do i=2,npd-1
-  corner(i)=dx(i)*a(i)+dy(i)*c(i) .gt. zero
+  corner(i)=dx(i)*a(i)+dy(i)*c(i) > zero
   if (corner(i)) then 
      !Set curvature to zero at corners:
     b(i)=zero
@@ -1286,7 +1277,7 @@ do i=2,npd-1
     node(ncorn)=i
   else
     b(i)=(dx(i)*c(i)-a(i)*dy(i))/ &
-       sqrt((a(i)*v(i)-dx(i)*u(i))**2+(c(i)*v(i)-dy(i)*u(i))**2+small3)
+     & sqrt((a(i)*v(i)-dx(i)*u(i))**2+(c(i)*v(i)-dy(i)*u(i))**2+small3)
   endif
 enddo
 corner(npd)=.true.
@@ -1335,7 +1326,7 @@ enddo
 
  !Number of points on renoded contour:
 npr=nint(sum)+1
-if (npr .lt. 3) then
+if (npr < 3) then
    !Contour too small - remove it:
   npr=0
   return
@@ -1353,7 +1344,7 @@ do k=1,ncorn-1
     sum=sum+e(i)
   enddo
 
-  if (sum .gt. small) then
+  if (sum > small) then
      !Adequate spacing exists between corners to renode this segment
 
      !Number of points on renoded contour segment:
@@ -1369,19 +1360,20 @@ do k=1,ncorn-1
     xr(npr+1)=xd(ibeg)
     yr(npr+1)=yd(ibeg)
 
-    if (npseg .gt. 1) then
+    if (npseg > 1) then
        !Find the remaining points along this segment:
       acc=zero
       i=ibeg-1
       do im=npr+2,npr+npseg
-        do while (acc .lt. one)
+        do while (acc < one)
           i=i+1
           acc=acc+e(i)
         enddo
         acc=acc-one
         p=one-acc/e(i)
         eta=p*(a(i)+p*(b(i)+p*c(i)))
-        xr(im)=xd(i)+p*dx(i)-eta*dy(i)
+        xx=xd(i)+p*dx(i)-eta*dy(i)
+        xr(im)=oms*(xx-ellx*dble(int(xx*hlxi)))
         yr(im)=yd(i)+p*dy(i)+eta*dx(i)
       enddo
     endif
@@ -1401,35 +1393,35 @@ yr(npr)=yd(npd)
 
  !Force points to remain inside the domain:
 do i=1,npr
-  xr(i)=min(xmax,max(xmin,xr(i)))
   yr(i)=min(ymax,max(ymin,yr(i)))
 enddo
 
 return
-end subroutine renode_open
+end subroutine
 
 !======================================================================
 
 subroutine coarsen(qa,qc)
+ !Takes a fine-grid 2D field qa and averages it to the inversion grid as qq
 
 implicit none
 
  !Passed arrays:
-double precision:: qa(0:nyf+1,0:nxf),qc(0:ny,0:nx)
+double precision:: qa(0:nyfp1,0:nxfm1),qc(0:ny,0:nxm1)
 
  !Local variables:
-double precision:: qh(0:nyf/2,0:nxf/2)
-integer:: ix,mix,mixp1,mixm1,nxh
+double precision:: qh(0:nyf/2,0:nxf/2-1)
+integer:: ix,mix,mixp1,mixm1,nxh,nxhm1
 integer:: iy,miy,miyp1,miym1,nyh
 
  !***Warning: The coarsening assumes nxf = 4*nx, nyf = 4*ny
 nxh=nxf/2
 nyh=nyf/2
 
-do ix=0,nxh
+do ix=0,nxh-1
   mix=2*ix
-  mixp1=nxf-abs(nxf-abs(mix+1))
-  mixm1=nxf-abs(nxf-abs(mix-1))
+  mixp1=mix+1
+  mixm1=mod(nxfm1+mix,nxf)
   do iy=0,nyh
     miy=2*iy
     miyp1=nyf-abs(nyf-abs(miy+1))
@@ -1442,10 +1434,11 @@ do ix=0,nxh
   enddo
 enddo
 
-do ix=0,nx
+nxhm1=nxh-1
+do ix=0,nxm1
   mix=2*ix
-  mixp1=nxh-abs(nxh-abs(mix+1))
-  mixm1=nxh-abs(nxh-abs(mix-1))
+  mixp1=mix+1
+  mixm1=mod(nxhm1+mix,nxh)
   do iy=0,ny
     miy=2*iy
     miyp1=nyh-abs(nyh-abs(miy+1))

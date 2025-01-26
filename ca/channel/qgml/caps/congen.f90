@@ -1,9 +1,10 @@
 module congen
 
 !:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-! This module contains subroutines for rebuilding PV contours given
-! either the PV field and no contours, or the PV residual field together
-! with contours.  This creates new contours in either case.
+! This module contains subroutines for rebuilding PV contours in a
+! multi-layer periodic channel, given either the PV field and no
+! contours, or the PV residual field together with contours.
+! This creates new contours in either case.
 
 ! Revised by D G Dritschel on 31 July 2020 to use any number of layers.
 
@@ -17,7 +18,7 @@ use contours
 implicit none
 
  !Array for storing the PV field interpolated to the ultra-fine grid: 
-double precision:: qa(0:nyu+1,0:nxu)
+double precision:: qa(0:nyup1,0:nxum1)
 
  !Temporary arrays for contour storage:
 double precision:: xa(npm),ya(npm)
@@ -39,6 +40,7 @@ subroutine recontour(qq)
 ! qq           : a gridded field added to that due to contours
 ! xq(i),yq(i)  : location of node i in the domain
 ! nextq(i)     : index of the node following node i 
+!                *** this must be zero for an endpoint on the boundary ***
 ! layq(j)      : layer (integer) containing contour j
 ! indq(j)      : field level (integer) of contour j
 ! npq(j)       : number of nodes on contour j
@@ -56,7 +58,7 @@ subroutine recontour(qq)
 implicit none
 
  !Passed array:
-double precision:: qq(0:ny,0:nx,nz)
+double precision:: qq(0:ny,0:nxm1,nz)
 
  !Local variables:
 integer:: ix,ixf,ix0,ix1
@@ -81,7 +83,7 @@ do iz=1,nz
       call con2ugrid(iz)
 
       !Bi-linear interpolate the residual qq to the fine grid and add to qa:
-      do ix=0,nxu
+      do ix=0,nxum1
          ixf=ixfw(ix)
          ix0=ix0w(ix)
          ix1=ix1w(ix)
@@ -95,6 +97,7 @@ do iz=1,nz
                                +w10(iyf,ixf)*qq(iy1,ix0,iz) &
                                +w01(iyf,ixf)*qq(iy0,ix1,iz) &
                                +w11(iyf,ixf)*qq(iy1,ix1,iz)
+
          enddo
       enddo
 
@@ -111,7 +114,7 @@ do iz=1,nz
 
          !Interpolate qq (which here contains the full field)
          !to the fine grid as qa:
-         do ix=0,nxu
+         do ix=0,nxum1
             ixf=ixfw(ix)
             ix0=ix0w(ix)
             ix1=ix1w(ix)
@@ -129,7 +132,7 @@ do iz=1,nz
          enddo
 
       else
-         qjump(iz)=0.0
+         qjump(iz)=zero
       endif
    endif
 
@@ -153,24 +156,24 @@ enddo
 
  !Copy arrays back to those in the argument of the subroutine:
 do i=1,npta
-  xq(i)=xa(i)
-  yq(i)=ya(i)
-  nextq(i)=nexta(i)
+   xq(i)=xa(i)
+   yq(i)=ya(i)
+   nextq(i)=nexta(i)
 enddo
 
 do j=1,na
-  i1q(j)=i1a(j)
-  i2q(j)=i2a(j)
-  npq(j)=npa(j)
-  indq(j)=inda(j)
+   i1q(j)=i1a(j)
+   i2q(j)=i2a(j)
+   npq(j)=npa(j)
+   indq(j)=inda(j)
 enddo
 
 do iz=1,nz
-  if (jl2q(iz) > 0) then
-    do j=jl1q(iz),jl2q(iz)
-      layq(j)=iz
-    enddo
-  endif
+   if (jl2q(iz) > 0) then
+      do j=jl1q(iz),jl2q(iz)
+         layq(j)=iz
+      enddo
+   endif
 enddo
 
 nq=na
@@ -203,7 +206,7 @@ integer(kind=dbleint):: k,kob,kaa,kib(ncrm)
 double precision:: ycr(ncrm),xcr(ncrm)
 double precision:: qdx(0:nxu),qdy(0:nyu)
 double precision:: xd(nprm),yd(nprm)
-double precision:: qoff,dq,dqi,qtmp,xgt,ygt
+double precision:: qoff,dq,dqi,qtmp,xgt,ygt,xx
 integer:: isx(0:nxu),isy(0:nyu),icre(nm),icrtab(nxny,2)
 integer:: levbeg,levend,lev,levt,noc,icrn
 integer:: ncr,i,ix,iy,icr,inc,ibeg,iend,npd,npe,ie
@@ -249,72 +252,22 @@ if (levbeg <= levend) then
       noctab=0
 
       !-----------------------------------------------------------
-      !Find x grid line crossings first (edge values are special):
-      !Left edge:
-      ix=0
-      xgt=xgu(ix)
-      qdy=qa(0:nyu,ix)-qtmp
-      isy=sign(one,qdy)
-
-      do iy=0,nyu-1
-         if (isy(iy) /= isy(iy+1)) then
-            ncr=ncr+1
-            if (isy(iy) < 0) then
-               !A contour comes out of the boundary at this point:
-               kib(ncr)=iy*nxu+1
-               npe=npe+1
-               icre(npe)=ncr
-            else
-               !A contour goes into the boundary at this point:
-               kib(ncr)=0
-               kob=iy*nxu+1
-               noctab(kob)=noctab(kob)+1
-               icrtab(kob,noctab(kob))=ncr
-            endif
-            xcr(ncr)=xmin
-            ycr(ncr)=ygu(iy)-glyu*qdy(iy)/(qdy(iy+1)-qdy(iy))
-         endif
-      enddo
-
-      !Right edge:
-      ix=nxu
-      xgt=xgu(ix)
-      qdy=qa(0:nyu,ix)-qtmp
-      isy=sign(one,qdy)
-
-      do iy=0,nyu-1
-         if (isy(iy) /= isy(iy+1)) then
-            ncr=ncr+1
-            if (isy(iy) > 0) then
-               !A contour comes out of the boundary at this point:
-               kib(ncr)=(iy+1)*nxu
-               npe=npe+1
-               icre(npe)=ncr
-            else
-               !A contour goes into the boundary at this point:
-               kib(ncr)=0
-               kob=(iy+1)*nxu
-               noctab(kob)=noctab(kob)+1
-               icrtab(kob,noctab(kob))=ncr
-            endif
-            xcr(ncr)=xmax
-            ycr(ncr)=ygu(iy)-glyu*qdy(iy)/(qdy(iy+1)-qdy(iy))
-         endif
-      enddo
-
-      !Interior x grid lines:
-      do ix=1,nxu-1
+      !Find x grid line crossings first:
+      do ix=0,nxum1
          xgt=xgu(ix)
-         qdy=qa(0:nyu,ix)-qtmp
-         isy=sign(one,qdy)
+
+         do iy=0,nyu
+            qdy(iy)=qa(iy,ix)-qtmp
+            isy(iy)=sign(one,qdy(iy))
+         enddo
 
          do iy=0,nyu-1
             if (isy(iy) /= isy(iy+1)) then
                ncr=ncr+1
                inc=(1-isy(iy))/2
-               kaa=iy*nxu+ix
-               kib(ncr)=kaa+inc
-               kob=kaa+1-inc
+               kaa=iy*nxu
+               kib(ncr)=kaa+ibx(ix+inc)
+               kob=kaa+ibx(ix+1-inc)
                noctab(kob)=noctab(kob)+1
                icrtab(kob,noctab(kob))=ncr
                xcr(ncr)=xgt
@@ -329,10 +282,15 @@ if (levbeg <= levend) then
       !Bottom edge:
       iy=0
       ygt=ygu(iy)
-      qdx=qa(iy,0:nxu)-qtmp
-      isx=sign(one,qdx)
 
-      do ix=0,nxu-1
+      do ix=0,nxum1
+         qdx(ix)=qa(iy,ix)-qtmp
+         isx(ix)=sign(one,qdx(ix))
+      enddo
+      qdx(nxu)=qdx(0)
+      isx(nxu)=isx(0)
+
+      do ix=0,nxum1
          if (isx(ix) /= isx(ix+1)) then
             ncr=ncr+1
             if (isx(ix) > 0) then
@@ -348,17 +306,23 @@ if (levbeg <= levend) then
                icrtab(kob,noctab(kob))=ncr
             endif
             ycr(ncr)=ymin
-            xcr(ncr)=xgu(ix)-glxu*qdx(ix)/(qdx(ix+1)-qdx(ix))
+            xx=xgu(ix)-glxu*qdx(ix)/(qdx(ix+1)-qdx(ix))
+            xcr(ncr)=oms*(xx-ellx*dble(int(xx*hlxi)))
          endif
       enddo
 
       !Top edge:
       iy=nyu
       ygt=ygu(iy)
-      qdx=qa(iy,0:nxu)-qtmp
-      isx=sign(one,qdx)
 
-      do ix=0,nxu-1
+      do ix=0,nxum1
+         qdx(ix)=qa(iy,ix)-qtmp
+         isx(ix)=sign(one,qdx(ix))
+      enddo
+      qdx(nxu)=qdx(0)
+      isx(nxu)=isx(0)
+
+      do ix=0,nxum1
          if (isx(ix) /= isx(ix+1)) then
             ncr=ncr+1
             if (isx(ix) < 0) then
@@ -374,7 +338,8 @@ if (levbeg <= levend) then
                icrtab(kob,noctab(kob))=ncr
             endif
             ycr(ncr)=ymax
-            xcr(ncr)=xgu(ix)-glxu*qdx(ix)/(qdx(ix+1)-qdx(ix))
+            xx=xgu(ix)-glxu*qdx(ix)/(qdx(ix+1)-qdx(ix))
+            xcr(ncr)=oms*(xx-ellx*dble(int(xx*hlxi)))
          endif
       enddo
       !koff = nxu*(nyu-1) above
@@ -382,10 +347,15 @@ if (levbeg <= levend) then
       !Interior y = constant grid lines:
       do iy=1,nyu-1
          ygt=ygu(iy)
-         qdx=qa(iy,0:nxu)-qtmp
-         isx=sign(one,qdx)
 
-         do ix=0,nxu-1
+         do ix=0,nxum1
+            qdx(ix)=qa(iy,ix)-qtmp
+            isx(ix)=sign(one,qdx(ix))
+         enddo
+         qdx(nxu)=qdx(0)
+         isx(nxu)=isx(0)
+
+         do ix=0,nxum1
             if (isx(ix) /= isx(ix+1)) then
                ncr=ncr+1
                inc=(1-isx(ix))/2
@@ -395,7 +365,8 @@ if (levbeg <= levend) then
                noctab(kob)=noctab(kob)+1
                icrtab(kob,noctab(kob))=ncr
                ycr(ncr)=ygt
-               xcr(ncr)=xgu(ix)-glxu*qdx(ix)/(qdx(ix+1)-qdx(ix))
+               xx=xgu(ix)-glxu*qdx(ix)/(qdx(ix+1)-qdx(ix))
+               xcr(ncr)=oms*(xx-ellx*dble(int(xx*hlxi)))
             endif
          enddo
 
@@ -565,9 +536,9 @@ implicit none
 integer:: iz
 
  !Local parameters and arrays:
-double precision:: qjx(0:nxu+1),qbot(0:nxu)
+double precision:: qjx(0:nxum1),qbot(0:nxum1)
 double precision:: dx(nptq),dy(nptq)
-double precision:: dq,sdq,px0,py0,qavg0,qadd
+double precision:: dq,sdq,px0,py0,qavg0,qadd,xx
 integer:: ixc(nptq),nxc(nptq)
 integer:: i,ia,ix,ixdif,ixbeg,iy,jump,ncr
 logical:: crossx(nptq)
@@ -579,88 +550,97 @@ dq=qjump(iz)
 ! Initialise interior x grid line crossing information and fill the
 ! q jump array along lower boundary:
 do i=il1q(iz),il2q(iz)
-  ixc(i)=int(one+dxxui*(xq(i)-xbeg))
+   ixc(i)=1+int(glxui*(xq(i)-xmin))
 enddo
- !Here xbeg is very slightly larger than xmin so that a point on
- !the left edge has ixc = 0, but one with xq just greater than xbeg
- !has ixc = 1.  Similarly, a point on the right edge has ixc = nxu+1.
- !Note: dxxui = dble(nxu)/((xmax-xmin)*(1-small)) where small = 1.d-12
- !(see contours.f90 at top in definition of parameters).
 
-qjx=zero
+do ix=0,nxum1
+   qjx(ix)=zero
+enddo
+
+dq=qjump(iz)
+
 do i=il1q(iz),il2q(iz)
-  ia=nextq(i)
-  if (ia > 0) then
+   ia=nextq(i)
+   if (ia > 0) then
      !A node with ia = 0 terminates a contour at a boundary
-    dx(i)=xq(ia)-xq(i)
-    dy(i)=yq(ia)-yq(i)
-    nxc(i)=ixc(ia)-ixc(i)
-    crossx(i)=(nxc(i) /= 0)
-    if ((yq(ia)-ybeg)*(ybeg-yq(i)) > zero) then
-       !The contour segment (i,ia) crosses y = ybeg; find x location:
-      py0=(ybeg-yq(i))/dy(i)
-      ix=int(one+dxxui*(xq(i)+py0*dx(i)-xbeg))
-      qjx(ix)=qjx(ix)-dq*sign(one,dy(i))
-       !Note: qjx gives the jump going from ix-1 to ix
-    endif
-  else
-     !Here, there is no segment (i,nextq(i)) to consider:
-    crossx(i)=.false.
-  endif
+      xx=xq(ia)-xq(i)
+      dx(i)=xx-ellx*dble(int(xx*hlxi))
+      dy(i)=yq(ia)-yq(i)
+      ixdif=ixc(ia)-ixc(i)
+      nxc(i)=ixdif-nxu*((2*ixdif)/nxu)
+      crossx(i)=(nxc(i) /= 0)
+      if ((yq(ia)-ybeg)*(ybeg-yq(i)) > zero) then
+         !The contour segment (i,ia) crosses y = ybeg; find x location:
+         py0=(ybeg-yq(i))/dy(i)
+         xx=xq(i)+py0*dx(i)
+         xx=oms*(xx-ellx*dble(int(xx*hlxi)))
+         ix=int(glxui*(xx-xmin))
+         qjx(ix)=qjx(ix)-dq*sign(one,dy(i))
+         !Note: qjx gives the jump going from ix to ix+1
+      endif
+   else
+      !Here, there is no segment (i,next(i)) to consider:
+      crossx(i)=.false.
+   endif
 enddo
  !Above, ybeg is very slightly greater than ymin to detect boundary crossings
 
  !Sum q jumps to obtain the gridded q along lower boundary:
 qbot(0)=zero
  !Corner value cannot be determined a priori; qavg is used for this below
-do ix=1,nxu
-  qbot(ix)=qbot(ix-1)+qjx(ix)
+do ix=0,nxum2
+   qbot(ix+1)=qbot(ix)+qjx(ix)
 enddo
 
 !----------------------------------------------------------------
  !Initialise interior q jump array:
-qa=zero
+do ix=0,nxum1
+   do iy=0,nyup1
+      qa(iy,ix)=zero
+   enddo
+enddo
 
  !Determine x grid line crossings and accumulate q jumps:
 do i=il1q(iz),il2q(iz)
-  if (crossx(i)) then
-    jump=sign(1,nxc(i))
-    ixbeg=ixc(i)+(jump-1)/2
-    sdq=dq*sign(one,dx(i))
-    ncr=0
-    do while (ncr /= nxc(i)) 
-      ix=ixbeg+ncr
-      px0=(xxu(ix)-xq(i))/dx(i)
-       !The contour crossed the fine grid line ix at the point
-       !   x = xq(i) + px0*dx(i) and y = yq(i) + px0*dy(i):
-      iy=int(one+dyyui*(yq(i)+px0*dy(i)-ybeg))
-       !Increment q jump between the grid lines iy-1 & iy:
-      qa(iy,ix)=qa(iy,ix)+sdq
-       !Go on to consider next x grid line (if there is one):
-      ncr=ncr+jump
-    enddo
-  endif
+   if (crossx(i)) then
+      jump=sign(1,nxc(i))
+      ixbeg=ixc(i)+(jump-1)/2+nxu
+      sdq=dq*sign(one,dx(i))
+      ncr=0
+      do while (ncr /= nxc(i)) 
+         ix=mod(ixbeg+ncr,nxu)
+         xx=xgu(ix)-xq(i)
+         px0=(xx-ellx*dble(int(xx*hlxi)))/dx(i)
+         !The contour crossed the fine grid line ix at the point
+         !   x = xq(i) + px0*dx(i) and y = yq(i) + px0*dy(i):
+         iy=int(one+dyyui*(yq(i)+px0*dy(i)-ybeg))
+         !Increment q jump between the grid lines iy-1 & iy:
+         qa(iy,ix)=qa(iy,ix)+sdq
+         !Go on to consider next x grid line (if there is one):
+         ncr=ncr+jump
+      enddo
+   endif
 enddo
 
  !Get q values by sweeping through y:
-do ix=0,nxu
-  qa(0,ix)=qbot(ix)
-  do iy=1,nyu
-    qa(iy,ix)=qa(iy,ix)+qa(iy-1,ix)
-  enddo
+do ix=0,nxum1
+   qa(0,ix)=qbot(ix)
+   do iy=1,nyu
+      qa(iy,ix)=qa(iy,ix)+qa(iy-1,ix)
+   enddo
 enddo
 
  !Restore average (use qjx as temp array):
-do ix=0,nxu
-  qjx(ix)=f12*(qa(0,ix)+qa(nyu,ix))
-  do iy=1,nyu-1
-    qjx(ix)=qjx(ix)+qa(iy,ix)
-  enddo
+do ix=0,nxum1
+   qjx(ix)=f12*(qa(0,ix)+qa(nyu,ix))
+   do iy=1,nyu-1
+      qjx(ix)=qjx(ix)+qa(iy,ix)
+   enddo
 enddo
 
-qavg0=f12*(qjx(0)+qjx(nxu))
-do ix=1,nxu-1
-  qavg0=qavg0+qjx(ix)
+qavg0=zero
+do ix=0,nxum1
+   qavg0=qavg0+qjx(ix)
 enddo
 qavg0=qavg0/dble(nxu*nyu)
 

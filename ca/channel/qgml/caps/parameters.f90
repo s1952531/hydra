@@ -2,7 +2,7 @@ module parameters
 
 !:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ! This module contains all the modifiable parameters for the suite of
-! contour advection (CLAM) codes in a closed rectangular basin.
+! contour advection (CLAM) codes in a QG multi-layer periodic channel.
 !:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
  !Number of vertical layers:
@@ -14,11 +14,9 @@ integer,parameter:: nx=N_X
  !Number of grid intervals in y:
 integer,parameter:: ny=N_Y
 
- !Horizontal domain limits:
-double precision,parameter:: xmin=X_MIN
-double precision,parameter:: xmax=X_MAX
-double precision,parameter:: ymin=Y_MIN
-double precision,parameter:: ymax=Y_MAX
+ !Horizontal domain widths (the domain is centred at (0,0)):
+double precision,parameter:: ellx=L_X
+double precision,parameter:: elly=L_Y
 
  !Number of contours used for representing the total PV contrast:
 integer,parameter:: ncontq=N_CONTQ

@@ -8,7 +8,7 @@ use constants
 
 implicit none
 
-double precision:: bb(0:ny,0:nx)
+double precision:: bb(0:ny,0:nxm1)
 double precision:: amp,ael,bel,phi,cop,sip
 double precision:: xg,yg,xx,yy
 integer:: ix,iy
@@ -33,7 +33,7 @@ phi=phi*pi/180.d0
  !Generate and write the PV due to the bathymetry:
 cop=cos(phi)
 sip=sin(phi)
-do ix=0,nx
+do ix=0,nxm1
   xg=xmin+glx*dble(ix)
   do iy=0,ny
     yg=ymin+gly*dble(iy)

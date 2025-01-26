@@ -5,14 +5,14 @@ use constants
 ! Sets up initial conditions for a spin-down experiment.
 
 implicit none
-double precision:: qb(0:ny,0:nx)
-double precision:: qq(0:ny,0:nx,nz)
-double precision:: xg(0:nx),yg(0:ny)
+double precision:: qb(0:ny,0:nxm1)
+double precision:: qq(0:ny,0:nxm1,nz)
+double precision:: xg(0:nxm1),yg(0:ny)
 double precision:: amp_psi1,k_psi1,l_psi1,k2l2,pv_aux,d1,K1sq,d2,K2,F1,F2,td
 integer:: ix,iy,iz
 
 ! Define x & y grid points:
-do ix=0,nx
+do ix=0,nxm1
    xg(ix)=xmin+glx*dble(ix)
 enddo
 
@@ -34,7 +34,7 @@ read(10,*) d1,K1sq
 read(10,*) d2
 close(10)
 
-do ix=0,nx
+do ix=0,nxm1
    do iy=0,ny
       pv_aux=amp_psi1*sin(k_psi1*xg(ix))*cos(l_psi1*yg(iy))
       qq(iy,ix,1)=-(k_psi1**2+l_psi1**2+K1sq/d1)*pv_aux+beta*yg(iy)
@@ -43,7 +43,7 @@ do ix=0,nx
 enddo
 
 do iz=3,nz
-   do ix=0,nx
+   do ix=0,nxm1
       do iy=0,ny
          qq(iy,ix,iz)=beta*yg(iy)
       enddo
@@ -57,7 +57,7 @@ if (bath) then
    read(11,rec=1) td,qb
    close(11)
 
-    do ix=0,nx
+    do ix=0,nxm1
         do iy=0,ny
             qq(iy,ix,nz)=qq(iy,ix,nz)+qb(iy,ix)
         enddo

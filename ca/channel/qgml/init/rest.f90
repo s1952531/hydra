@@ -5,7 +5,7 @@ use constants
 ! Sets up initial conditions for a flow at rest.
 
 implicit none
-double precision:: qq(0:ny,0:nx,nz),qb(0:ny,0:nx)
+double precision:: qq(0:ny,0:nxm1,nz),qb(0:ny,0:nxm1)
 double precision:: bety(0:ny),td
 integer:: ix,iy,iz
 
@@ -16,7 +16,7 @@ enddo
 
 ! Define PV and make sure beta*y is included:
 do iz=1,nz
-   do ix=0,nx
+   do ix=0,nxm1
       qq(:,ix,iz)=bety
    enddo
 enddo
@@ -28,7 +28,7 @@ if (bath) then
    read(11,rec=1) td,qb
    close(11)
 
-    do ix=0,nx
+    do ix=0,nxm1
         do iy=0,ny
             qq(iy,ix,nz)=qq(iy,ix,nz)+qb(iy,ix)
         enddo
