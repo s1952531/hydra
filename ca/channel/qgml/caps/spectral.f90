@@ -492,10 +492,9 @@ enddo
 
  !Domain mean relative vorticity is the circulation / domain area:
 do iz=1,nz
-   rhs(iz)=rhs(iz)-glx*sum(uu(ny,:,iz)-uu(0,:,iz))
+   rhs(iz)=rhs(iz)-glx*sum(uu(ny,:,iz)-uu(0,:,iz))/domarea
 enddo
  !Note, only uu contributes as the domain is periodic in x.
-rhs=rhs/domarea
 
  !Invert tridiagonal system for layer mean streamfunction values:
 call solve_tridiag(am,etd,htd,ppha,rhs)
