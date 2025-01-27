@@ -351,13 +351,10 @@ qm=zero
  !Take away bathymetry contribution to bottom layer (iz = nz):
 if (bath) qq(:,:,nz)=qq(:,:,nz)-qb
 do m=1,nz
-   rhs(m)=sum(qq(:,:,m)*danorm)
    do iz=1,nz
       qm(:,:,m)=qm(:,:,m)+vl2m(iz,m)*qq(:,:,iz)
    enddo
 enddo
- !Restore PV in the bottom layer (iz = nz):
-if (bath) qq(:,:,nz)=qq(:,:,nz)+qb
 
  !Remove beta*y from the barotropic mode PV:
 qm(:,:,1)=qm(:,:,1)-bety
@@ -474,11 +471,16 @@ enddo
 call velocity(pp,uu,vv)
 
 !------------------------------------------------------------------
- !Subtract the boundary circulation from the right hand side:
+ !Commpute right-hand side of system A pavg = zavg - qbar:
+ !Domain mean relative vorticity is the circulation / domain area:
 do iz=1,nz
-   rhs(iz)=rhs(iz)-(glx*sum(uu(0,:,iz)-uu(ny,:,iz))- &
-                    gly*sum(vv(:,nx,iz)-vv(:,0,iz)))/domarea
+   rhs(iz)=(gly*sum(vv(:,nx,iz)-vv(:,0,iz)) &
+           -glx*sum(uu(ny,:,iz)-uu(0,:,iz)))/domarea &
+           -sum(qq(:,:,iz)*danorm)
 enddo
+
+ !Restore PV in the bottom layer (iz = nz):
+if (bath) qq(:,:,nz)=qq(:,:,nz)+qb
 
 call solve_tridiag(am,etd,htd,ppmean,rhs)
 

@@ -425,7 +425,7 @@ if (friction) then
    ! wkp is the vorticity in physical space
    ! while kkm(iz) = f^2/(H_iz b'_{iz-1}),
    ! see init_spectral in spectral.f90.
-   if (bath) qq(:,:,nz)=qq(:,:,nz)-qb
+   if (bath) wkp=wkp-qb
    ! Need to remove bathymetry if present.
    call ptospc_cc(nx,ny,wkp,wks,xfactors,yfactors,xtrig,ytrig)   
    ! Add -r_ekman * vorticity to lowest layer PV tendency:
@@ -488,10 +488,9 @@ zzmax=zero
 zzrms=zero
 do iz=1,nz
    zzmax=max(zzmax,maxval(abs(zz(:,:,iz))))
-   zzrms=zzrms+sum(zz(:,:,iz)**2*danorm)
+   zzrms=zzrms+hhat(iz)*sum(zz(:,:,iz)**2*danorm)
    ! Here, danorm = dx * dy / (L_x * L_y) essentially.
 enddo
-zzrms=sqrt(zzrms/dble(nz))
 
 ! Save data to monitor.asc:
 write(16,'(f12.5,2(1x,f15.7))') t,zzmax,zzrms
