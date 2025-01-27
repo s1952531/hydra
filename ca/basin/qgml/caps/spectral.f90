@@ -346,18 +346,22 @@ double precision:: sw00,sw01,sw10,sw11
 integer:: ix,iy,iz,kx,ky,m
 
 !------------------------------------------------------------------
- !Compute the mean layer PV for use at end of this routine and
- !project layer PV (in qq) onto vertical modes (as qm):
+ !Project layer PV (in qq) onto vertical modes (as qm):
 qm=zero
  !Take away bathymetry contribution to bottom layer (iz = nz):
 if (bath) qq(:,:,nz)=qq(:,:,nz)-qb
 do m=1,nz
-    !rhs = negative of the mean layer PV; mean vorticity is added below.
-   rhs(m)=-sum(qq(:,:,m)*danorm)
    do iz=1,nz
       qm(:,:,m)=qm(:,:,m)+vl2m(iz,m)*qq(:,:,iz)
    enddo
 enddo
+
+!Compute the mean layer PV for use at end of this routine:
+do iz=1,nz
+   rhs(iz)=-sum(qq(:,:,iz)*danorm)
+enddo
+ !rhs = negative of the mean layer PV; mean vorticity is added below.
+
  !Restore PV in the bottom layer (iz = nz):
 if (bath) qq(:,:,nz)=qq(:,:,nz)+qb
 
