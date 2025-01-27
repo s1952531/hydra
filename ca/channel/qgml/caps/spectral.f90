@@ -320,14 +320,6 @@ integer:: ix,iy,iz,kx,ky,m
  !Take away bathymetry contribution to bottom layer PV (iz = nz):
 if (bath) qq(:,:,nz)=qq(:,:,nz)-qb
 
- !Compute the horizontal-average PV in each layer for use in
- !correcting the horizontal-average streamfunction at the end
- !of this routine:
-do iz=1,nz
-   rhs(iz)=-sum(qq(:,:,iz)*danorm)
-enddo
- !rhs = negative of the mean layer PV; mean vorticity is added below.
-
  !Project layer PV (in qq) onto vertical modes (as qm):
 qm=zero
 do m=1,nz
@@ -335,9 +327,6 @@ do m=1,nz
       qm(:,:,m)=qm(:,:,m)+vl2m(iz,m)*qq(:,:,iz)
    enddo
 enddo
-
- !Restore original PV in the bottom layer (iz = nz):
-if (bath) qq(:,:,nz)=qq(:,:,nz)+qb
 
  !Remove beta*y from the barotropic mode PV:
 qm(:,:,1)=qm(:,:,1)-bety
@@ -492,9 +481,11 @@ enddo
 
  !Domain mean relative vorticity is the circulation / domain area:
 do iz=1,nz
-   rhs(iz)=rhs(iz)-glx*sum(uu(ny,:,iz)-uu(0,:,iz))/domarea
+   rhs(iz)=-glx*sum(uu(ny,:,iz)-uu(0,:,iz))/domarea &
+               -sum(qq(:,:,iz)*danorm)
 enddo
- !Note, only uu contributes as the domain is periodic in x.
+ !Note, only uu on the y boundaries contributes to circulation
+ !(computed in first line) as the domain is periodic in x.
 
  !Invert tridiagonal system for layer mean streamfunction values:
 call solve_tridiag(am,etd,htd,ppha,rhs)
@@ -504,6 +495,9 @@ do iz=1,nz
    ppha(iz)=ppha(iz)-sum(pp(:,:,iz)*danorm)
    pp(:,:,iz)=pp(:,:,iz)+ppha(iz)
 enddo
+
+ !Restore original PV in the bottom layer (iz = nz):
+if (bath) qq(:,:,nz)=qq(:,:,nz)+qb
 
 return
 end subroutine main_invert
