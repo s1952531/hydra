@@ -346,12 +346,14 @@ double precision:: sw00,sw01,sw10,sw11
 integer:: ix,iy,iz,kx,ky,m
 
 !------------------------------------------------------------------
- !Project layer PV (in qq) onto vertical modes (as qm):
+ !Compute the mean layer PV for use at end of this routine and
+ !project layer PV (in qq) onto vertical modes (as qm):
 qm=zero
  !Take away bathymetry contribution to bottom layer (iz = nz):
 if (bath) qq(:,:,nz)=qq(:,:,nz)-qb
 do m=1,nz
-   rhs(m)=sum(qq(:,:,m)*danorm)
+    !rhs = negative of the mean layer PV; mean vorticity is added below.
+   rhs(m)=-sum(qq(:,:,m)*danorm)
    do iz=1,nz
       qm(:,:,m)=qm(:,:,m)+vl2m(iz,m)*qq(:,:,iz)
    enddo
@@ -474,10 +476,10 @@ enddo
 call velocity(pp,uu,vv)
 
 !------------------------------------------------------------------
- !Subtract the boundary circulation from the right hand side:
+ !Domain mean relative vorticity is the circulation / domain area:
 do iz=1,nz
-   rhs(iz)=rhs(iz)-(glx*sum(uu(0,:,iz)-uu(ny,:,iz))- &
-                    gly*sum(vv(:,nx,iz)-vv(:,0,iz)))/domarea
+   rhs(iz)=rhs(iz)+(gly*sum(vv(:,nx,iz)-vv(:,0,iz)) &
+                   -glx*sum(uu(ny,:,iz)-uu(0,:,iz)))/domarea
 enddo
 
 call solve_tridiag(am,etd,htd,ppmean,rhs)
