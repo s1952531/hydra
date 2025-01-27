@@ -356,15 +356,6 @@ do m=1,nz
    enddo
 enddo
 
-!Compute the mean layer PV for use at end of this routine:
-do iz=1,nz
-   rhs(iz)=-sum(qq(:,:,iz)*danorm)
-enddo
- !rhs = negative of the mean layer PV; mean vorticity is added below.
-
- !Restore PV in the bottom layer (iz = nz):
-if (bath) qq(:,:,nz)=qq(:,:,nz)+qb
-
  !Remove beta*y from the barotropic mode PV:
 qm(:,:,1)=qm(:,:,1)-bety
  !Note, sum_{iz} vl2m(iz,1) = 1 (see init/vertical.f90)
@@ -480,11 +471,16 @@ enddo
 call velocity(pp,uu,vv)
 
 !------------------------------------------------------------------
+ !Commpute right-hand side of system A pavg = zavg - qbar:
  !Domain mean relative vorticity is the circulation / domain area:
 do iz=1,nz
-   rhs(iz)=rhs(iz)+(gly*sum(vv(:,nx,iz)-vv(:,0,iz)) &
-                   -glx*sum(uu(ny,:,iz)-uu(0,:,iz)))/domarea
+   rhs(iz)=(gly*sum(vv(:,nx,iz)-vv(:,0,iz)) &
+           -glx*sum(uu(ny,:,iz)-uu(0,:,iz)))/domarea &
+           -sum(qq(:,:,iz)*danorm)
 enddo
+
+ !Restore PV in the bottom layer (iz = nz):
+if (bath) qq(:,:,nz)=qq(:,:,nz)+qb
 
 call solve_tridiag(am,etd,htd,ppmean,rhs)
 
