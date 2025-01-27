@@ -162,7 +162,7 @@ bb=fac*bb
 ! Add uniform sloping part in y:
 do ix=0,nxm1
   do iy=0,ny
-    br(iy,ix)=bb(iy+1,ix+1)+slope*(ycen+gly*dble(iy))
+    br(iy,ix)=bb(iy+1,ix+1)+slope*(gly*dble(iy))
   enddo
 enddo
 
