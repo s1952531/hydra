@@ -28,7 +28,6 @@ double precision:: srwfm
 
  !Vertical structure:
 double precision:: hhat(nz),kdsq(nz),kkb(nz),kk0(nz),kkm(nz)
-double precision:: am(1:nz),etd(1:nz),htd(1:nz)
 double precision:: vl2m(nz,nz),vm2l(nz,nz)
 double precision:: umha(nz)
 
@@ -58,7 +57,7 @@ implicit none
  !Local variables:
 double precision:: wkp(0:ny,0:nxm1),sky(ny)
 double precision:: dafx(0:nxm1),dafy(0:ny)
-double precision:: ap(1:nz),a0(1:nz),eval(1:nz)
+double precision:: eval(1:nz)
 double precision:: uuha(1:nz)
 double precision:: rkxmax,rkymax
 double precision:: td,fac,div,argm,argp
@@ -143,22 +142,6 @@ fac=1.d0/sum(hhat)
 hhat=fac*hhat
 
 !-----------------------------------------------------------------
- !Set up tri-diagonal matrix A for repeated solves in main_invert:
-do iz=1,nz-1
-   am(iz+1)=-kdsq(iz)/hhat(iz+1)
-   ap(iz)  =-kdsq(iz)/hhat(iz)
-enddo
-a0(1)=-ap(1)
-do iz=2,nz-1
-   a0(iz)=-am(iz)-ap(iz)
-enddo
-a0(nz)=-am(nz)
-
- !Define tridiagonal matrix for inversion in main_invert:
-call init_tridiag(etd,htd,am,a0,ap)
- !This is used to compute the mean streamfunction in each layer.
-
-!-----------------------------------------------------------------
  !For computing relative vorticity and implementing Ekman drag:
 do iz=1,nz-1
    kk0(iz)=kkb(iz)/hhat(iz)
@@ -188,9 +171,8 @@ do iz=1,nz
 enddo
  !"ha" stands for "horizontal average" (i.e. over a layer).
 close(60)
-umha=zero
-do iz=1,nz
-   umha(m)=umha(m)+vl2m(iz,m)*uuha(iz)
+do m=1,nz
+   umha(m)=sum(vl2m(:,m)*uuha)
 enddo
  !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
  ! To help read this code, a field "ff" in layer space is represented
@@ -312,7 +294,7 @@ double precision:: pbot(0:nxm1),ptop(0:nxm1)
 double precision:: rpm(0:ny),rum(ny)
 double precision:: pmza(0:ny,nz),umza(0:ny,nz)
 double precision:: ppza(0:ny,nz),uuza(0:ny,nz)
-double precision:: rhs(nz),ppha(nz)
+double precision:: pmha(nz),ppha(nz)
 double precision:: uavg,pavg
 integer:: ix,iy,iz,kx,ky,m
 
@@ -479,16 +461,30 @@ enddo
  !Use domain average of the PV definition to find the mean
  !streamfunction values:
 
- !Domain mean relative vorticity is the circulation / domain area:
+ !Compute layer-mean zeta - q (the layer mean zeta is equal to
+ !the circulation / horizontal domain area) -> ppha temporarily:
 do iz=1,nz
-   rhs(iz)=-glx*sum(uu(ny,:,iz)-uu(0,:,iz))/domarea &
-               -sum(qq(:,:,iz)*danorm)
+   ppha(iz)=-glx*sum(uu(ny,:,iz)-uu(0,:,iz))/domarea &
+                -sum(qq(:,:,iz)*danorm)
 enddo
  !Note, only uu on the y boundaries contributes to circulation
  !(computed in first line) as the domain is periodic in x.
 
- !Invert tridiagonal system for layer mean streamfunction values:
-call solve_tridiag(am,etd,htd,ppha,rhs)
+ !Solve A Psi_avg = zeta_avg - q_avg after projection onto
+ !vertical modes; since A is singular (the barotropic mode
+ !has a zero Rossby deformation wavenumber), we can only do
+ !this for modes m > 1. Without loss of generality, we take
+ !the barotropic layer-mean streamfunction to be zero:
+pmha(1)=zero
+do m=2,nz
+   pmha(m)=sum(vl2m(:,m)*ppha)/kdsq(m)
+enddo
+
+ !Project pmha back to layers as ppha:
+ppha=zero
+do m=2,nz
+   ppha=ppha+vm2l(:,m)*pmha(m)
+enddo
 
  !Restore correct mean streamfunction values:
 do iz=1,nz
@@ -632,60 +628,6 @@ enddo
 
 return
 end subroutine gradient
-
-!=======================================================================
-
-subroutine init_tridiag(etd,htd,am,a0,ap)
-! Used to initialise, given am, a0, ap
-
-implicit none
-
-! Local index:
-integer:: j
-
-double precision:: etd(nz),htd(nz)
-double precision:: am(nz),a0(nz),ap(nz)
-
-htd(1)=1.d0/a0(1)
-etd(1)=-ap(1)*htd(1)
-
-do j=2,nz-1
-   htd(j)=1.d0/(a0(j)+am(j)*etd(j-1))
-   etd(j)=-ap(j)*htd(j)
-enddo
-
-htd(nz)=1.d0/(a0(nz)+am(nz)*etd(nz-1))
-
-return
-end subroutine init_tridiag
-
-!=========================================================
-
-subroutine solve_tridiag(am,etd,htd,x,r)
-! Used to solve for x, given r and vectors am, etd & htd
-! from init_tridiag.
-
-! Local index:
-integer:: j
-
-double precision:: am(nz),etd(nz),htd(nz)
-
-! Solution vector and given RHS:
-double precision:: x(nz),r(nz)
-
-x(1)=r(1)*htd(1)
-
-do j=2,nz
-   x(j)=(r(j)-am(j)*x(j-1))*htd(j)
-enddo
-
-do j=nz-1,1,-1
-   x(j)=etd(j)*x(j+1)+x(j)
-enddo
-
-return
-
-end subroutine solve_tridiag
 
 !=======================================================================
 
