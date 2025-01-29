@@ -26,7 +26,6 @@ double precision:: sfwind(0:nx,0:ny)
 double precision:: srwfm
 
 double precision:: hhat(nz),lambda(nz),kdsq(nz),kk0(nz),kkm(nz)
-double precision:: am(1:nz),etd(1:nz),htd(1:nz)
 double precision:: vl2m(nz,nz),vm2l(nz,nz)
 
 double precision:: rkx(0:nx),rky(0:ny)
@@ -54,7 +53,6 @@ implicit none
  !Local variables:
 double precision:: wkp(0:ny,0:nx),skx(nx),sky(ny)
 double precision:: dafx(0:nx),dafy(0:ny)
-double precision:: ap(1:nz),a0(1:nz)
 double precision:: scx,rkxmax,scy,rkymax
 double precision:: td,fac,div,argm,argp
 double precision:: rkmsi
@@ -327,7 +325,7 @@ double precision:: qm(0:ny,0:nx,nz),pm(0:ny,0:nx)
 double precision:: wks(0:nx,0:ny)
 double precision:: pbot(nx),ptop(nx),cppy(nym1,nx)
 double precision:: plft(ny),prgt(ny),cppx(nxm1,ny)
-double precision:: pmbar(nz),rhs(1:nz),ppmean(1:nz)
+double precision:: pmbar(nz),pmha(nz),ppha(nz)
 double precision:: sw00,sw01,sw10,sw11
 integer:: ix,iy,iz,kx,ky,m
 
@@ -460,21 +458,35 @@ call velocity(pp,uu,vv)
  !Commpute right-hand side of system A pavg = zavg - qbar:
  !Domain mean relative vorticity is the circulation / domain area:
 do iz=1,nz
-   rhs(iz)=(gly*sum(vv(:,nx,iz)-vv(:,0,iz)) &
-           -glx*sum(uu(ny,:,iz)-uu(0,:,iz)))/domarea &
-           -sum(qq(:,:,iz)*danorm)
+   ppha(iz)=(gly*sum(vv(:,nx,iz)-vv(:,0,iz)) &
+            -glx*sum(uu(ny,:,iz)-uu(0,:,iz)))/domarea &
+                -sum(qq(:,:,iz)*danorm)
+enddo
+
+ !Solve A Psi_avg = zeta_avg - q_avg after projection onto
+ !vertical modes; since A is singular (the barotropic mode
+ !has a zero Rossby deformation wavenumber), we can only do
+ !this for modes m > 1. Without loss of generality, we take
+ !the barotropic layer-mean streamfunction to be zero:
+pmha(1)=zero
+do m=2,nz
+   pmha(m)=sum(vl2m(:,m)*ppha)/lambda(m)
+enddo
+
+ !Project pmha back to layers as ppha:
+ppha=zero
+do m=2,nz
+   ppha=ppha+vm2l(:,m)*pmha(m)
+enddo
+
+ !Restore correct mean streamfunction values:
+do iz=1,nz
+   ppha(iz)=ppha(iz)-sum(pp(:,:,iz)*danorm)
+   pp(:,:,iz)=pp(:,:,iz)+ppha(iz)
 enddo
 
  !Restore PV in the bottom layer (iz = nz):
 if (bath) qq(:,:,nz)=qq(:,:,nz)+qb
-
-call solve_tridiag(am,etd,htd,ppmean,rhs)
-
- !Restore correct mean streamfunction values:
-do iz=1,nz
-   ppmean(iz)=ppmean(iz)-sum(pp(:,:,iz)*danorm)
-   pp(:,:,iz)=pp(:,:,iz)+ppmean(iz)
-enddo
 
 return
 end subroutine main_invert
@@ -618,60 +630,6 @@ enddo
 
 return
 end subroutine gradient
-
-!=======================================================================
-
-subroutine init_tridiag(etd,htd,am,a0,ap)
-! Used to initialise, given am, a0, ap
-
-implicit none
-
-! Local index:
-integer:: j
-
-double precision:: etd(1:nz),htd(1:nz)
-double precision:: am(1:nz),a0(1:nz),ap(1:nz)
-
-htd(1)=1.d0/a0(1)
-etd(1)=-ap(1)*htd(1)
-
-do j=2,nz-1
-   htd(j)=1.d0/(a0(j)+am(j)*etd(j-1))
-   etd(j)=-ap(j)*htd(j)
-enddo
-
-htd(nz)=1.d0/(a0(nz)+am(nz)*etd(nz-1))
-
-return
-end subroutine init_tridiag
-
-!=========================================================
-
-subroutine solve_tridiag(am,etd,htd,x,r)
-! Used to solve for x, given r and vectors am, etd & htd
-! from init_tridiag.
-
-! Local index:
-integer:: j
-
-double precision:: am(1:nz),etd(1:nz),htd(1:nz)
-
-! Solution vector and given RHS:
-double precision:: x(1:nz),r(1:nz)
-
-x(1)=r(1)*htd(1)
-
-do j=2,nz
-   x(j)=(r(j)-am(j)*x(j-1))*htd(j)
-enddo
-
-do j=nz-1,1,-1
-   x(j)=etd(j)*x(j+1)+x(j)
-enddo
-
-return
-
-end subroutine solve_tridiag
 
 !=======================================================================
 
