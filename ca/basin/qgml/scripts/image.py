@@ -21,25 +21,25 @@ rcParams.update({'figure.autolayout': True})
 warnings.simplefilter("ignore",DeprecationWarning)
 
 # Ensure latex fonts throughout:
-rc('font', **{'family': 'Times New Roman'})
-rc('text', usetex=True)
+rc('font',**{'family': 'Times New Roman'})
+rc('text',usetex=True)
 
 # set tick label size:
-label_size = 20
-mpl.rcParams['xtick.labelsize'] = label_size
-mpl.rcParams['ytick.labelsize'] = label_size
+label_size=20
+mpl.rcParams['xtick.labelsize']=label_size
+mpl.rcParams['ytick.labelsize']=label_size
 # set x tick width and size:
-mpl.rcParams['xtick.major.size'] = 5
-mpl.rcParams['xtick.major.width'] = 2
-mpl.rcParams['xtick.minor.size'] = 3
-mpl.rcParams['xtick.minor.width'] = 1
+mpl.rcParams['xtick.major.size']=5
+mpl.rcParams['xtick.major.width']=2
+mpl.rcParams['xtick.minor.size']=3
+mpl.rcParams['xtick.minor.width']=1
 # set y tick width and size:
-mpl.rcParams['ytick.major.size'] = 5
-mpl.rcParams['ytick.major.width'] = 2
-mpl.rcParams['ytick.minor.size'] = 3
-mpl.rcParams['ytick.minor.width'] = 1
+mpl.rcParams['ytick.major.size']=5
+mpl.rcParams['ytick.major.width']=2
+mpl.rcParams['ytick.minor.size']=3
+mpl.rcParams['ytick.minor.width']=1
 # set axes width:
-mpl.rcParams['axes.linewidth'] = 1
+mpl.rcParams['axes.linewidth']=1
 
 #====================== Function definitions =======================
 def contint(fmin,fmax):
@@ -53,27 +53,27 @@ def contint(fmin,fmax):
     #in cases where fmax-fmin is 10^m or 2x10^m
 
     emag=1.0
-    rmult=max(1.0E-12, fmax-fmin)
+    rmult=max(1.0E-12,fmax-fmin)
     while rmult < 10:
-       emag=emag/10
-       rmult=rmult*10
+        emag=emag/10
+        rmult=rmult*10
 
     while rmult >= 100:
-       emag=emag*10
-       rmult=rmult/10
+        emag=emag*10
+        rmult=rmult/10
 
     kmult=int(rmult/10)
 
     if kmult < 1:
-       ci=emag
+        ci=emag
     elif kmult < 2:
-       ci=2*emag
+        ci=2*emag
     elif kmult < 4:
-       ci=4*emag
+        ci=4*emag
     elif kmult < 8:
-       ci=10*emag
+        ci=10*emag
     else:
-       ci=20*emag
+        ci=20*emag
 
     return ci
 

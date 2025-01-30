@@ -21,25 +21,25 @@ rcParams.update({'figure.autolayout': True})
 warnings.simplefilter("ignore",DeprecationWarning)
 
 # Ensure latex fonts throughout:
-rc('font', **{'family': 'Times New Roman'})
-rc('text', usetex=True)
+rc('font',**{'family': 'Times New Roman'})
+rc('text',usetex=True)
 
 # set tick label size:
-label_size = 20
-mpl.rcParams['xtick.labelsize'] = label_size
-mpl.rcParams['ytick.labelsize'] = label_size
+label_size=20
+mpl.rcParams['xtick.labelsize']=label_size
+mpl.rcParams['ytick.labelsize']=label_size
 # set x tick width and size:
-mpl.rcParams['xtick.major.size'] = 5
-mpl.rcParams['xtick.major.width'] = 2
-mpl.rcParams['xtick.minor.size'] = 3
-mpl.rcParams['xtick.minor.width'] = 1
+mpl.rcParams['xtick.major.size']=5
+mpl.rcParams['xtick.major.width']=2
+mpl.rcParams['xtick.minor.size']=3
+mpl.rcParams['xtick.minor.width']=1
 # set y tick width and size:
-mpl.rcParams['ytick.major.size'] = 5
-mpl.rcParams['ytick.major.width'] = 2
-mpl.rcParams['ytick.minor.size'] = 3
-mpl.rcParams['ytick.minor.width'] = 1
+mpl.rcParams['ytick.major.size']=5
+mpl.rcParams['ytick.major.width']=2
+mpl.rcParams['ytick.minor.size']=3
+mpl.rcParams['ytick.minor.width']=1
 # set axes width:
-mpl.rcParams['axes.linewidth'] = 1
+mpl.rcParams['axes.linewidth']=1
 
 #====================== Function definitions =======================
 def contint(fmin,fmax):
@@ -53,27 +53,27 @@ def contint(fmin,fmax):
     #in cases where fmax-fmin is 10^m or 2x10^m
 
     emag=1.0
-    rmult=max(1.0E-12, fmax-fmin)
+    rmult=max(1.0E-12,fmax-fmin)
     while rmult < 10:
-       emag=emag/10
-       rmult=rmult*10
+        emag=emag/10
+        rmult=rmult*10
 
     while rmult >= 100:
-       emag=emag*10
-       rmult=rmult/10
+        emag=emag*10
+        rmult=rmult/10
 
     kmult=int(rmult/10)
 
     if kmult < 1:
-       ci=emag
+        ci=emag
     elif kmult < 2:
-       ci=2*emag
+        ci=2*emag
     elif kmult < 4:
-       ci=4*emag
+        ci=4*emag
     elif kmult < 8:
-       ci=10*emag
+        ci=10*emag
     else:
-       ci=20*emag
+        ci=20*emag
 
     return ci
 
@@ -109,8 +109,7 @@ line=pline.split("=")[1]
 nz=int(line.split(",")[0])
 in_file.close()
 
-# Increase nx & ny by 1 to include boundary points:
-nx=nx+1
+# Increase ny by 1 to include boundary points:
 ny=ny+1
 
 #-------------------------------------------------
@@ -118,41 +117,19 @@ ny=ny+1
 in_file=open('src/parameters.f90','r')
 fread=in_file.readlines()
 for line in fread:
-   if ':: xmin=' in line:
-      pline=line
+   if ':: ellx=' in line:
+      xmax=float(line.split("=")[1].split(",")[0])
 
-line=pline.split("=")[1]
-xmin=float(line.split(",")[0])
+xmin=-xmax
 in_file.close()
 
 in_file=open('src/parameters.f90','r')
 fread=in_file.readlines()
 for line in fread:
-   if ':: xmax=' in line:
-      pline=line
+   if ':: elly=' in line:
+      ymax=float(line.split("=")[1].split(",")[0])
 
-line=pline.split("=")[1]
-xmax=float(line.split(",")[0])
-in_file.close()
-
-in_file=open('src/parameters.f90','r')
-fread=in_file.readlines()
-for line in fread:
-   if ':: ymin=' in line:
-      pline=line
-
-line=pline.split("=")[1]
-ymin=float(line.split(",")[0])
-in_file.close()
-
-in_file=open('src/parameters.f90','r')
-fread=in_file.readlines()
-for line in fread:
-   if ':: ymax=' in line:
-      pline=line
-
-line=pline.split("=")[1]
-ymax=float(line.split(",")[0])
+ymin=-ymax
 in_file.close()
 
 #-----------------------------------------------------

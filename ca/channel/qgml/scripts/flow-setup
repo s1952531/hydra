@@ -1,19 +1,20 @@
 #!/bin/csh
 
 #=========================================================================#
-#   Job setup script for the basin/qgml class of hydra Fortran90 codes.
+#   Job setup script for the channel/qgml class of hydra Fortran90 codes.
 #=========================================================================#
 
 echo
 echo '------------------------------------------------------------------------'
 echo ' The multi-layer quasi-geostrophic Combined Lagrangian Advection Method'
-echo '   in a rectangular basin geometry (free-slip boundaries all around)'
+echo '   in a 2D channel geometry with free-slip boundaries at northern and'
+echo '   southern walls and periodic eastern and western flow conditions'
 echo '------------------------------------------------------------------------'
 
 # Specify code numerical method class:
 set meth="ca"
 # Specify code geometry:
-set geom="basin"
+set geom="channel"
 # Specify model equation type:
 set equa="qgml"
 # Specify algorithm name:
@@ -134,11 +135,11 @@ end
 # Choose horizontal domain dimensions:
 
 set lxdpi = "2"     # Default domain width in x (L_x), divided by pi
-set aspect = "1"    # Default domain aspect ratio (L_y/L_x)
+set aspect = "0.5"    # Default domain aspect ratio (L_y/L_x)
 
 echo
 echo ' We take the width of the domain (in x) to be L_x = '$lxdpi'*pi.'
-echo -n ' Domain aspect ratio, L_y/L_x (default 1)? '
+echo -n ' Domain aspect ratio, L_y/L_x (default 0.5)? '
 set var=$<
 if ($var != "") set aspect=$var
 
@@ -441,6 +442,21 @@ endif
 #==========================================================================
 # Choose main physical parameters:
 
+# Prescribe zonal mean velocities in each layer:
+echo
+touch meanflow.asc
+set lay=1
+set U0="1.0"
+while ($lay <= $nz)
+   echo -n ' Mean zonal velocity of layer' $lay '(default' $U0')? '
+   set var=$<
+   if ($var != "") set U0=$var
+   echo $U0 >> meanflow.asc
+   echo ' ' >> job_info
+   echo '  Mean zonal velocity of layer' $lay':      ' $U0 >> job_info
+   @ lay ++
+end
+
 # Planetary vorticity gradient:
 set beta="1.0"
 echo
@@ -539,7 +555,7 @@ echo
 echo " Compiling source files....."
 
 # Use C pre-processor to put chosen parameters $copts into parameters.f90
-set copts1="-DN_X=$nx -DN_Y=$ny -DN_Z=$nz -DX_MIN={$xmin} -DX_MAX={$xmax} -DY_MIN={$ymin} -DY_MAX={$ymax} -DN_CONTQ=$nq"
+set copts1="-DN_X=$nx -DN_Y=$ny -DN_Z=$nz -DL_X=$ellx -DL_Y=$elly -DN_CONTQ=$nq"
 set copts2="-DT_SIM={$tsim} -DT_GSAVE={$tgsave} -DT_CSAVE={$tcsave} -DPV_GRAD={$beta}"
 set copts3="-DC_DAMP={$cdamp} -DPOW_HYPER=$nnu -DR_EKMAN={$rekman} -DF_WIND={$fwind} -DBATH_FLAG=$bathflag -DI_SEED=$iseed"
 set copts=`echo $copts1 $copts2 $copts3`

@@ -571,7 +571,7 @@ tke=f12*tke
 ! Compute available potential energy per unit mass:
 ape=zero
 do iz=1,nz-1
-   ape=ape+kkb(iz)*sum((pp(:,:,iz)-pp(:,:,iz+1))**2*danorm)
+   ape=ape+kdsq(iz)*sum((pp(:,:,iz)-pp(:,:,iz+1))**2*danorm)
 enddo
 ape=f12*ape
 ! Above, danorm = dx * dy / (L_x * L_y) essentially.

@@ -112,21 +112,18 @@ with open('src/parameters.f90','r') as in_file:
         if ':: nz=' in line:
             nz=int(line.split("=")[1].split(",")[0])
 
-nx+=1
 ny+=1
 
 # Work out x & y limits by reading parameters.f90:
 with open('src/parameters.f90','r') as in_file:
     fread=in_file.readlines()
     for line in fread:
-        if ':: xmin=' in line:
-            xmin=float(line.split("=")[1].split(",")[0])
-        if ':: xmax=' in line:
+        if ':: ellx=' in line:
             xmax=float(line.split("=")[1].split(",")[0])
-        if ':: ymin=' in line:
-            ymin=float(line.split("=")[1].split(",")[0])
-        if ':: ymax=' in line:
+            xmin=-xmax
+        if ':: elly=' in line:
             ymax=float(line.split("=")[1].split(",")[0])
+            ymin=-ymax
 
 # Work out data save interval:
 with open('src/parameters.f90','r') as in_file:
