@@ -576,6 +576,7 @@ enddo
 ape=f12*ape
 ! Above, danorm = dx * dy / (L_x * L_y) essentially.
 
+! Total energy:
 tot=tke+ape
 
 ! Write energy components and total:

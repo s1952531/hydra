@@ -25,6 +25,7 @@ double precision:: bety(0:ny,0:nx),qb(0:ny,0:nx)
 double precision:: sfwind(0:nx,0:ny)
 double precision:: srwfm
 
+ !Vertical structure:
 double precision:: hhat(nz),lambda(nz),kdsq(nz),kk0(nz),kkm(nz)
 double precision:: vl2m(nz,nz),vm2l(nz,nz)
 
@@ -79,7 +80,7 @@ enddo
  !Define de-aliasing filter (2/3 rule):
 dafx(0)=one
 do kx=1,nx
-   if (rkx(kx) .lt. f23*rkxmax) then
+   if (rkx(kx) < f23*rkxmax) then
       dafx(kx)=one
    else
       dafx(kx)=zero
@@ -88,7 +89,7 @@ enddo
 
 dafy(0)=one
 do ky=1,ny
-   if (rky(ky) .lt. f23*rkymax) then
+   if (rky(ky) < f23*rkymax) then
       dafy(ky)=one
    else
       dafy(ky)=zero
@@ -133,16 +134,20 @@ close(60)
 fac=1.d0/sum(hhat)
 hhat=fac*hhat
 
- !For computing vorticity and implementing Ekman drag:
+!-----------------------------------------------------------------
+ !For computing relative vorticity and implementing Ekman drag:
 do iz=1,nz-1
    kk0(iz)=kdsq(iz)/hhat(iz)
    kkm(iz+1)=kdsq(iz)/hhat(iz+1)
 enddo
 
+!-----------------------------------------------------------------
+ !Read vertical eigenvalues and eigenmodes:
 open(60,file='modes.asc',status='old')
 do m=1,nz
    read(60,*) lambda(m)
 enddo
+ !Note, lambda(m) corresponds to lambda_m in the notes.
 do m=1,nz
    do iz=1,nz
       read(60,*) vl2m(iz,m),vm2l(iz,m)
@@ -330,10 +335,11 @@ double precision:: sw00,sw01,sw10,sw11
 integer:: ix,iy,iz,kx,ky,m
 
 !------------------------------------------------------------------
+ !Take away bathymetry contribution to bottom layer PV (iz = nz):
+if (bath) qq(:,:,nz)=qq(:,:,nz)-qb
+
  !Project layer PV (in qq) onto vertical modes (as qm):
 qm=zero
- !Take away bathymetry contribution to bottom layer (iz = nz):
-if (bath) qq(:,:,nz)=qq(:,:,nz)-qb
 do m=1,nz
    do iz=1,nz
       qm(:,:,m)=qm(:,:,m)+vl2m(iz,m)*qq(:,:,iz)
@@ -485,7 +491,7 @@ do iz=1,nz
    pp(:,:,iz)=pp(:,:,iz)+ppha(iz)
 enddo
 
- !Restore PV in the bottom layer (iz = nz):
+ !Restore original PV in the bottom layer (iz = nz):
 if (bath) qq(:,:,nz)=qq(:,:,nz)+qb
 
 return

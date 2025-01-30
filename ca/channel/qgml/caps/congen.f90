@@ -97,7 +97,6 @@ do iz=1,nz
                                +w10(iyf,ixf)*qq(iy1,ix0,iz) &
                                +w01(iyf,ixf)*qq(iy0,ix1,iz) &
                                +w11(iyf,ixf)*qq(iy1,ix1,iz)
-
          enddo
       enddo
 
@@ -607,7 +606,7 @@ do i=il1q(iz),il2q(iz)
       ixbeg=ixc(i)+(jump-1)/2+nxu
       sdq=dq*sign(one,dx(i))
       ncr=0
-      do while (ncr /= nxc(i)) 
+      do while (ncr /= nxc(i))
          ix=mod(ixbeg+ncr,nxu)
          xx=xgu(ix)-xq(i)
          px0=(xx-ellx*dble(int(xx*hlxi)))/dx(i)

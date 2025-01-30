@@ -129,7 +129,7 @@ do iz=1,nz
          enddo
 
       else
-         qjump(iz)=0.0
+         qjump(iz)=zero
       endif
    endif
 
@@ -153,24 +153,24 @@ enddo
 
  !Copy arrays back to those in the argument of the subroutine:
 do i=1,npta
-  xq(i)=xa(i)
-  yq(i)=ya(i)
-  nextq(i)=nexta(i)
+   xq(i)=xa(i)
+   yq(i)=ya(i)
+   nextq(i)=nexta(i)
 enddo
 
 do j=1,na
-  i1q(j)=i1a(j)
-  i2q(j)=i2a(j)
-  npq(j)=npa(j)
-  indq(j)=inda(j)
+   i1q(j)=i1a(j)
+   i2q(j)=i2a(j)
+   npq(j)=npa(j)
+   indq(j)=inda(j)
 enddo
 
 do iz=1,nz
-  if (jl2q(iz) > 0) then
-    do j=jl1q(iz),jl2q(iz)
-      layq(j)=iz
-    enddo
-  endif
+   if (jl2q(iz) > 0) then
+      do j=jl1q(iz),jl2q(iz)
+         layq(j)=iz
+      enddo
+   endif
 enddo
 
 nq=na
@@ -332,7 +332,7 @@ if (levbeg <= levend) then
       qdx=qa(iy,0:nxu)-qtmp
       isx=sign(one,qdx)
 
-      do ix=0,nxu-1
+      do ix=0,nxum1
          if (isx(ix) /= isx(ix+1)) then
             ncr=ncr+1
             if (isx(ix) > 0) then
@@ -358,7 +358,7 @@ if (levbeg <= levend) then
       qdx=qa(iy,0:nxu)-qtmp
       isx=sign(one,qdx)
 
-      do ix=0,nxu-1
+      do ix=0,nxum1
          if (isx(ix) /= isx(ix+1)) then
             ncr=ncr+1
             if (isx(ix) < 0) then
@@ -385,7 +385,7 @@ if (levbeg <= levend) then
          qdx=qa(iy,0:nxu)-qtmp
          isx=sign(one,qdx)
 
-         do ix=0,nxu-1
+         do ix=0,nxum1
             if (isx(ix) /= isx(ix+1)) then
                ncr=ncr+1
                inc=(1-isx(ix))/2
@@ -565,7 +565,7 @@ implicit none
 integer:: iz
 
  !Local parameters and arrays:
-double precision:: qjx(0:nxu+1),qbot(0:nxu)
+double precision:: qjx(0:nxup1),qbot(0:nxu)
 double precision:: dx(nptq),dy(nptq)
 double precision:: dq,sdq,px0,py0,qavg0,qadd
 integer:: ixc(nptq),nxc(nptq)
@@ -589,24 +589,24 @@ enddo
 
 qjx=zero
 do i=il1q(iz),il2q(iz)
-  ia=nextq(i)
-  if (ia > 0) then
-     !A node with ia = 0 terminates a contour at a boundary
-    dx(i)=xq(ia)-xq(i)
-    dy(i)=yq(ia)-yq(i)
-    nxc(i)=ixc(ia)-ixc(i)
-    crossx(i)=(nxc(i) /= 0)
-    if ((yq(ia)-ybeg)*(ybeg-yq(i)) > zero) then
-       !The contour segment (i,ia) crosses y = ybeg; find x location:
-      py0=(ybeg-yq(i))/dy(i)
-      ix=int(one+dxxui*(xq(i)+py0*dx(i)-xbeg))
-      qjx(ix)=qjx(ix)-dq*sign(one,dy(i))
-       !Note: qjx gives the jump going from ix-1 to ix
-    endif
-  else
-     !Here, there is no segment (i,nextq(i)) to consider:
-    crossx(i)=.false.
-  endif
+   ia=nextq(i)
+   if (ia > 0) then
+      !A node with ia = 0 terminates a contour at a boundary
+      dx(i)=xq(ia)-xq(i)
+      dy(i)=yq(ia)-yq(i)
+      nxc(i)=ixc(ia)-ixc(i)
+      crossx(i)=(nxc(i) /= 0)
+      if ((yq(ia)-ybeg)*(ybeg-yq(i)) > zero) then
+         !The contour segment (i,ia) crosses y = ybeg; find x location:
+         py0=(ybeg-yq(i))/dy(i)
+         ix=int(one+dxxui*(xq(i)+py0*dx(i)-xbeg))
+         qjx(ix)=qjx(ix)-dq*sign(one,dy(i))
+         !Note: qjx gives the jump going from ix-1 to ix
+      endif
+   else
+      !Here, there is no segment (i,nextq(i)) to consider:
+      crossx(i)=.false.
+   endif
 enddo
  !Above, ybeg is very slightly greater than ymin to detect boundary crossings
 
@@ -623,44 +623,44 @@ qa=zero
 
  !Determine x grid line crossings and accumulate q jumps:
 do i=il1q(iz),il2q(iz)
-  if (crossx(i)) then
-    jump=sign(1,nxc(i))
-    ixbeg=ixc(i)+(jump-1)/2
-    sdq=dq*sign(one,dx(i))
-    ncr=0
-    do while (ncr /= nxc(i)) 
-      ix=ixbeg+ncr
-      px0=(xxu(ix)-xq(i))/dx(i)
-       !The contour crossed the fine grid line ix at the point
-       !   x = xq(i) + px0*dx(i) and y = yq(i) + px0*dy(i):
-      iy=int(one+dyyui*(yq(i)+px0*dy(i)-ybeg))
-       !Increment q jump between the grid lines iy-1 & iy:
-      qa(iy,ix)=qa(iy,ix)+sdq
-       !Go on to consider next x grid line (if there is one):
-      ncr=ncr+jump
-    enddo
-  endif
+   if (crossx(i)) then
+      jump=sign(1,nxc(i))
+      ixbeg=ixc(i)+(jump-1)/2
+      sdq=dq*sign(one,dx(i))
+      ncr=0
+      do while (ncr /= nxc(i))
+         ix=ixbeg+ncr
+         px0=(xxu(ix)-xq(i))/dx(i)
+         !The contour crossed the fine grid line ix at the point
+         !   x = xq(i) + px0*dx(i) and y = yq(i) + px0*dy(i):
+         iy=int(one+dyyui*(yq(i)+px0*dy(i)-ybeg))
+         !Increment q jump between the grid lines iy-1 & iy:
+         qa(iy,ix)=qa(iy,ix)+sdq
+         !Go on to consider next x grid line (if there is one):
+         ncr=ncr+jump
+      enddo
+   endif
 enddo
 
  !Get q values by sweeping through y:
 do ix=0,nxu
-  qa(0,ix)=qbot(ix)
-  do iy=1,nyu
-    qa(iy,ix)=qa(iy,ix)+qa(iy-1,ix)
-  enddo
+   qa(0,ix)=qbot(ix)
+   do iy=1,nyu
+      qa(iy,ix)=qa(iy,ix)+qa(iy-1,ix)
+   enddo
 enddo
 
  !Restore average (use qjx as temp array):
 do ix=0,nxu
-  qjx(ix)=f12*(qa(0,ix)+qa(nyu,ix))
-  do iy=1,nyu-1
-    qjx(ix)=qjx(ix)+qa(iy,ix)
-  enddo
+   qjx(ix)=f12*(qa(0,ix)+qa(nyu,ix))
+   do iy=1,nyu-1
+      qjx(ix)=qjx(ix)+qa(iy,ix)
+   enddo
 enddo
 
 qavg0=f12*(qjx(0)+qjx(nxu))
 do ix=1,nxu-1
-  qavg0=qavg0+qjx(ix)
+   qavg0=qavg0+qjx(ix)
 enddo
 qavg0=qavg0/dble(nxu*nyu)
 
