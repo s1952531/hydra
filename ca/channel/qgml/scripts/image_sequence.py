@@ -100,37 +100,32 @@ def get_layer_min_max(field_data,nz,NH,N,option="l",vec=[]):
 
     return layer_min,layer_max,data_array
 
-#=================================================================
-# Work out grid resolution (nx,ny & nz) by reading parameters.f90:
+#-------------------------------------------------
+# Work out x & y limits, grid resolution (nx, ny & nz),
+# and data save interval by reading parameters.f90:
 with open('src/parameters.f90','r') as in_file:
     fread=in_file.readlines()
     for line in fread:
+        if ':: ellx=' in line:
+            ellx=float(line.split("=")[1].split(",")[0])
+        if ':: elly=' in line:
+            elly=float(line.split("=")[1].split(",")[0])
         if ':: nx=' in line:
             nx=int(line.split("=")[1].split(",")[0])
         if ':: ny=' in line:
             ny=int(line.split("=")[1].split(",")[0])
         if ':: nz=' in line:
             nz=int(line.split("=")[1].split(",")[0])
-
-ny+=1
-
-# Work out x & y limits by reading parameters.f90:
-with open('src/parameters.f90','r') as in_file:
-    fread=in_file.readlines()
-    for line in fread:
-        if ':: ellx=' in line:
-            xmax=float(line.split("=")[1].split(",")[0])
-            xmin=-xmax
-        if ':: elly=' in line:
-            ymax=float(line.split("=")[1].split(",")[0])
-            ymin=-ymax
-
-# Work out data save interval:
-with open('src/parameters.f90','r') as in_file:
-    fread=in_file.readlines()
-    for line in fread:
         if ':: tgsave=' in line:
             dtsave=float(line.split("=")[1].split(",")[0])
+
+xmax=0.5*ellx
+ymax=0.5*elly
+xmin=-xmax
+ymin=-ymax
+
+# Increase ny by 1 to include boundary points:
+ny=ny+1
 
 # Read energy data to get final time in data:
 with open('evolution/energy.asc','r') as in_file:

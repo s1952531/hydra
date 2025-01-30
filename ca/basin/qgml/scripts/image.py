@@ -77,95 +77,32 @@ def contint(fmin,fmax):
 
     return ci
 
-#=================================================================
-# Work out grid resolution (nx, ny & nz) by reading parameters.f90:
-in_file=open('src/parameters.f90','r')
-fread=in_file.readlines()
-for line in fread:
-   if ':: nx=' in line:
-      pline=line
-
-line=pline.split("=")[1]
-nx=int(line.split(",")[0])
-in_file.close()
-
-in_file=open('src/parameters.f90','r')
-fread=in_file.readlines()
-for line in fread:
-   if ':: ny=' in line:
-      pline=line
-
-line=pline.split("=")[1]
-ny=int(line.split(",")[0])
-in_file.close()
-
-in_file=open('src/parameters.f90','r')
-fread=in_file.readlines()
-for line in fread:
-   if ':: nz=' in line:
-      pline=line
-
-line=pline.split("=")[1]
-nz=int(line.split(",")[0])
-in_file.close()
+#-------------------------------------------------
+# Work out x & y limits, grid resolution (nx, ny & nz),
+# and data save interval by reading parameters.f90:
+with open('src/parameters.f90','r') as in_file:
+    fread=in_file.readlines()
+    for line in fread:
+        if ':: xmin=' in line:
+            xmin=float(line.split("=")[1].split(",")[0])
+        if ':: xmax=' in line:
+            xmax=float(line.split("=")[1].split(",")[0])
+        if ':: ymin=' in line:
+            ymin=float(line.split("=")[1].split(",")[0])
+        if ':: ymax=' in line:
+            ymax=float(line.split("=")[1].split(",")[0])
+        if ':: nx=' in line:
+            nx=int(line.split("=")[1].split(",")[0])
+        if ':: ny=' in line:
+            ny=int(line.split("=")[1].split(",")[0])
+        if ':: nz=' in line:
+            nz=int(line.split("=")[1].split(",")[0])
+        if ':: tgsave=' in line:
+            dtsave=float(line.split("=")[1].split(",")[0])
 
 # Increase nx & ny by 1 to include boundary points:
 nx=nx+1
 ny=ny+1
-
-#-------------------------------------------------
-# Work out x & y limits by reading parameters.f90:
-in_file=open('src/parameters.f90','r')
-fread=in_file.readlines()
-for line in fread:
-   if ':: xmin=' in line:
-      pline=line
-
-line=pline.split("=")[1]
-xmin=float(line.split(",")[0])
-in_file.close()
-
-in_file=open('src/parameters.f90','r')
-fread=in_file.readlines()
-for line in fread:
-   if ':: xmax=' in line:
-      pline=line
-
-line=pline.split("=")[1]
-xmax=float(line.split(",")[0])
-in_file.close()
-
-in_file=open('src/parameters.f90','r')
-fread=in_file.readlines()
-for line in fread:
-   if ':: ymin=' in line:
-      pline=line
-
-line=pline.split("=")[1]
-ymin=float(line.split(",")[0])
-in_file.close()
-
-in_file=open('src/parameters.f90','r')
-fread=in_file.readlines()
-for line in fread:
-   if ':: ymax=' in line:
-      pline=line
-
-line=pline.split("=")[1]
-ymax=float(line.split(",")[0])
-in_file.close()
-
-#-----------------------------------------------------
-# Work out data save interval:
-in_file=open('src/parameters.f90','r')
-fread=in_file.readlines()
-for line in fread:
-   if ':: tgsave=' in line:
-      pline=line
-
-line=pline.split("=")[1]
-dtsave=float(line.split(",")[0])
-in_file.close()
 
 #-----------------------------------------------------
 # Read energy data to get final time in data:

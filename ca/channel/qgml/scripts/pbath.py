@@ -9,33 +9,27 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
 
-#=================================================================
-# Work out grid resolution (nx,ny & nz) by reading parameters.f90:
+#-------------------------------------------------
+# Work out x & y limits and grid resolution (nx, ny) by reading parameters.f90:
 with open('src/parameters.f90','r') as in_file:
     fread=in_file.readlines()
     for line in fread:
+        if ':: ellx=' in line:
+            ellx=float(line.split("=")[1].split(",")[0])
+        if ':: elly=' in line:
+            elly=float(line.split("=")[1].split(",")[0])
         if ':: nx=' in line:
             nx=int(line.split("=")[1].split(",")[0])
         if ':: ny=' in line:
             ny=int(line.split("=")[1].split(",")[0])
-        if ':: nz=' in line:
-            nz=int(line.split("=")[1].split(",")[0])
 
-nx+=1
-ny+=1
+xmax=0.5*ellx
+ymax=0.5*elly
+xmin=-xmax
+ymin=-ymax
 
-# Work out x & y limits by reading parameters.f90:
-with open('src/parameters.f90','r') as in_file:
-    fread=in_file.readlines()
-    for line in fread:
-        if ':: xmin=' in line:
-            xmin=float(line.split("=")[1].split(",")[0])
-        if ':: xmax=' in line:
-            xmax=float(line.split("=")[1].split(",")[0])
-        if ':: ymin=' in line:
-            ymin=float(line.split("=")[1].split(",")[0])
-        if ':: ymax=' in line:
-            ymax=float(line.split("=")[1].split(",")[0])
+# Increase ny by 1 to include boundary points:
+ny=ny+1
 
 with open('bath.r8', 'rb') as in_file:
     # Assuming the first value is 'zero' and the rest is the bb array

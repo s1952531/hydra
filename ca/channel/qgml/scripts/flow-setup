@@ -407,7 +407,7 @@ else if ($dataopt == "3") then
    touch in_$datagen
    set lay=1
    echo
-   echo ' We consider the upper layer streamfunction psi1(x,y) = A sin(kx) sin(ly).'
+   echo ' We consider the upper layer streamfunction psi1(x,y) = A sin(kx) cos(ly).'
 
    set k_psi1 = "2"
    set l_psi1 = "0.5"
