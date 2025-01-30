@@ -635,8 +635,8 @@ do j=1,nq
 enddo
 
 open(81,file='cont/index'//pind,form='unformatted', &
-      access='direct',status='replace',recl=16*max(1,nq))
-write(81,rec=1) npq(1:nq),i1q(1:nq),indq(1:nq),iop(1:nq)
+      access='direct',status='replace',recl=20*max(1,nq))
+write(81,rec=1) npq(1:nq),i1q(1:nq),indq(1:nq),iop(1:nq),layq(1:nq)
 close(81)
 
 open(82,file='cont/nodes'//pind,form='unformatted', &
