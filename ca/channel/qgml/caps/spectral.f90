@@ -533,7 +533,7 @@ do iz=1,nz
    call xderiv_fs(nx,ny,hrkx,pps,ppx)
 
     !Transform ppx back to physical space as vvi:
-   call spctop_cs(nx,ny,ppx,vvi,xfactors,yfactors,xtrig,ytrig)
+   call spctop_fs(nx,ny,ppx,vvi,xfactors,yfactors,xtrig,ytrig)
 
     !Copy vvi into vv and add on zero edge values at iy = 0 & ny:
    vv(1:nym1,:,iz)=vvi(1:nym1,:)
