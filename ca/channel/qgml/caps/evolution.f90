@@ -508,7 +508,12 @@ dtacc=dtfac/max(zzmax,srwfm)
 ! ensures that the fastest Rossby wave frequency is resolved.
 
 ! Choose a new time step, limiting it to next gridded data save:
-dt=min(dtacc,tgsave*(dble(igrids)+small)-t)
+if (t > zero) then
+   dt=min(dtacc,tgsave*(dble(igrids)+small)-t)
+   ! small is added to ensure data are saved after this time step.
+else
+   dt=min(dtacc,tgsave*(one+small))
+endif
 ! small is added to ensure data are saved after this time step.
 
 ! Time step fractions for 4th-order Runge-Kutta method:
