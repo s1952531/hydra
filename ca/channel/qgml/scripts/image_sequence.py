@@ -76,7 +76,7 @@ def contint(fmin,fmax):
 
 #=================================================================
 # Function to calculate global min and max for a field across all frames
-def get_layer_min_max(field_data,nz,NH,N,option="l",vec=[]):
+def get_layer_min_max(field_data):
     nt=len(field_data) // N
     layer_min=np.full(nz, np.inf)
     layer_max=np.full(nz,-np.inf)
@@ -191,9 +191,9 @@ with open('evolution/qq.r4','rb') as in_file:
 with open('evolution/zz.r4','rb') as in_file:
     zz_array=np.fromfile(in_file,dtype=np.float32)
 
-min_vals[:,0],max_vals[:,0],pp_array=get_layer_min_max(pp_array,nz,NH,N,option,vec)
-min_vals[:,1],max_vals[:,1],qq_array=get_layer_min_max(qq_array,nz,NH,N,option,vec)
-min_vals[:,2],max_vals[:,2],zz_array=get_layer_min_max(zz_array,nz,NH,N,option,vec)
+min_vals[:,0],max_vals[:,0],pp_array=get_layer_min_max(pp_array)
+min_vals[:,1],max_vals[:,1],qq_array=get_layer_min_max(qq_array)
+min_vals[:,2],max_vals[:,2],zz_array=get_layer_min_max(zz_array)
 
 im=[] # To store the images
 cbar=[] # To store the colorbars
