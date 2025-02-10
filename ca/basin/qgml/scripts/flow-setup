@@ -138,7 +138,7 @@ set aspect = "1"    # Default domain aspect ratio (L_y/L_x)
 
 echo
 echo ' We take the width of the domain (in x) to be L_x = '$lxdpi'*pi.'
-echo -n ' Domain aspect ratio, L_y/L_x (default 1)? '
+echo -n ' Domain aspect ratio, L_y/L_x (default' $aspect')? '
 set var=$<
 if ($var != "") set aspect=$var
 

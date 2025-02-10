@@ -139,7 +139,7 @@ set aspect = "0.5"    # Default domain aspect ratio (L_y/L_x)
 
 echo
 echo ' We take the width of the domain (in x) to be L_x = '$lxdpi'*pi.'
-echo -n ' Domain aspect ratio, L_y/L_x (default 0.5)? '
+echo -n ' Domain aspect ratio, L_y/L_x (default' $aspect')? '
 set var=$<
 if ($var != "") set aspect=$var
 
@@ -444,6 +444,7 @@ endif
 
 # Prescribe zonal mean velocities in each layer:
 echo
+echo ' ' >> job_info
 touch meanflow.asc
 set lay=1
 set U0="1.0"
@@ -452,8 +453,7 @@ while ($lay <= $nz)
    set var=$<
    if ($var != "") set U0=$var
    echo $U0 >> meanflow.asc
-   echo ' ' >> job_info
-   echo '  Mean zonal velocity of layer' $lay':      ' $U0 >> job_info
+   echo ' Mean zonal velocity of layer' $lay':     ' $U0 >> job_info
    @ lay ++
 end
 
