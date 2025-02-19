@@ -10,6 +10,9 @@ use common
 
 implicit none
 
+! Horizontal average" (i.e. over a layer) zonal velocities:
+double precision:: uuha(1:nz)
+
 ! Streamfunction and velocity field:
 double precision:: pp(0:ny,0:nxm1,nz),uu(0:ny,0:nxm1,nz),vv(0:ny,0:nxm1,nz)
 
@@ -125,7 +128,7 @@ implicit none
 ! Local variables:
 double precision:: qc(0:ny,0:nxm1,nz)
 double precision:: wkp(0:ny,0:nxm1),wks(0:nxm1,0:ny)
-integer:: iz
+integer:: iz,m
 
 !-------------------------------------------------------------
 ! Logicals used for saving gridded fields and contours:
@@ -142,6 +145,18 @@ do iz=1,nz
    qd(:,:,iz)=bfhi*(qs(:,:,iz)-wks)
 enddo
 ! Here bfhi = 1-F is a high-pass spectral filter
+
+!--------------------------------------------------------------------
+ !Read layer-mean zonal flow and project onto vertical modes:
+open(60,file='meanflow.asc',status='old')
+do iz=1,nz
+   read(60,*) uuha(iz)
+enddo
+ !"ha" stands for "horizontal average" (i.e. over a layer).
+close(60)
+do m=1,nz
+   umha(m)=sum(vl2m(:,m)*uuha)
+enddo
 
 return
 end subroutine init
@@ -379,9 +394,11 @@ end subroutine advance
 subroutine source(sqs,sqd,lev)
 
 ! Gets the source terms (sqs,sqd) for the PV (qs,qd), including
-! wind-stress forcing in the uppermost layer (1) and Ekman drag
-! in the lowest layer (nz). Here, lev is the level of the Runge
-! Kutta integration, used for defining the integrating factors.
+! wind-stress forcing in the uppermost layer (1), Ekman drag in
+! the lowest layer (nz), and thermal damping in the two
+! uppermost layers (1 and 2). Here, lev is the level of the
+! Runge Kutta integration, used for defining the integrating
+! factors.
 
 ! --- All sources are in spectral space.
 
@@ -407,7 +424,7 @@ do iz=1,nz
 enddo
 
 !---------------------------------------------------------------
-! qd source --- include wind-stress forcing and Ekman damping:
+! qd source --- include wind-stress forcing and Ekman and thermal damping:
 call gradient(qd,qx,qy)
 qx=-uu*qx-vv*qy
 do iz=1,nz
@@ -434,13 +451,31 @@ if (friction) then
    ! kkm(iz) = f^2/(H_iz b'_{iz-1}), see init_spectral in spectral.f90.
    if (bath) wkp=wkp-qb
    ! Need to remove bathymetry if present.
-   call ptospc_fc(nx,ny,wkp,wks,xfactors,yfactors,xtrig,ytrig)   
+   call ptospc_fc(nx,ny,wkp,wks,xfactors,yfactors,xtrig,ytrig)
    ! Add -r_ekman * vorticity to lowest layer PV tendency:
    sqd(:,:,nz)=sqd(:,:,nz)-rekman*wks
    ! *** Note, the mean tendency in sqd(0,0,nz) may change as a
    !     result of Ekman friction.  This is accounted for when
    !     resetting qs & qd at the beginning of each time step:
    !     see the call to inversion(0).
+endif
+
+if (thermal) then
+   ! Add thermal damping to the upper layer (iz = 1):
+   wkp=qq(:,:,1)-bety+kk0(1)*uuha(1)
+   ! kk0(1) = f^2/(H_1 b'_1), see init_spectral in spectral.f90.
+   call ptospc_fc(nx,ny,wkp,wks,xfactors,yfactors,xtrig,ytrig)
+   ! Add -ctherm * (q_1 + K_1^2 H U_1 / H_1) to upper layer PV tendency:
+   sqd(:,:,1)=sqd(:,:,1)-ctherm*wks
+
+   ! Add thermal damping to the second layer from the top (iz = 2):
+   wkp=qq(:,:,2)-bety-kkm(2)*uuha(1)
+   ! kkm(2) = f^2/(H_2 b'_1), see init_spectral in spectral.f90.
+   if (nz==2 .and. bath) wkp=wkp-qb
+   ! Need to remove bathymetry if present and there are only two layers.
+   call ptospc_fc(nx,ny,wkp,wks,xfactors,yfactors,xtrig,ytrig)
+   ! Add -ctherm * (q_2 - K_1^2 H U_1 / H_2) to upper layer PV tendency:
+   sqd(:,:,2)=sqd(:,:,2)-ctherm*wks
 endif
 
 if (lev .eq. 0) then

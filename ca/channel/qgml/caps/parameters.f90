@@ -45,11 +45,13 @@ double precision,parameter:: pi=3.1415926535897932384626433832795028841971693993
 double precision,parameter:: beta=PV_GRAD
 double precision,parameter:: rekman=R_EKMAN
 double precision,parameter:: fwind=F_WIND
+double precision,parameter:: ctherm=C_THERM
 logical,parameter:: bath=BATH_FLAG
 ! beta   : planetary vorticity gradient
 ! rekman : Ekman damping rate (1/tau_E)
 ! fwind  : wind stress forcing applied to upper layer PV is
 !          fwind*sin(pi*(y-y_min)/(y_max-y_min))
+! ctherm : thermal damping rate forcing the two uppermost layers
 ! bath   : logical variable to indicate presence of bathymetry
 !          (the form of bathymetry is read in from a file)
 !----------------------------------------------------------------

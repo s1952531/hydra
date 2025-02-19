@@ -7,8 +7,9 @@
 !:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 !        This code solves Dq_l/Dt = F_l, for layers l = 1, ..., nz,
-!     where F_l may be wind-stress forcing (l = 1) or Ekman damping
-!     (l = nz). Note, l = 1 is the uppermost layer, and l = nz is the
+!     where F_l may be wind-stress forcing (l = 1), Ekman damping
+!     (l = nz), or, additionally, thermal damping (l=1 and l=2).
+!     Note, l = 1 is the uppermost layer, and l = nz is the
 !     lowest layer. Additionally, bathymetry (at z = -H + eta_b) is
 !     included by prescribing the scaled bathymetry f*eta_b/H_nz,
 !     referred to as qb in the code (H_l = the mean depth of layer l).
