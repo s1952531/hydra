@@ -518,7 +518,7 @@ if ($var != "") set thermal=$var
 if ($thermal == "y") then
    echo
    echo ' Thermal damping adds c*(q_1 + K_1^2 H U_1 y / H_1) to Dq_1/Dt'
-   echo ' and c*(q_2 - K_2^2 H U_1 / H_2) to Dq_2/Dt.'
+   echo ' and c*(q_2 - K_2^2 H U_1 y / H_2) to Dq_2/Dt.'
    set ctherm="0.1"
    echo -n ' Damping rate, c (default' $ctherm')? '
    set var=$<
@@ -526,7 +526,7 @@ if ($thermal == "y") then
 
    echo ' ' >> job_info
    echo ' Thermal damping adds c*(q_1 + K_1^2 H U_1 y / H_1) to Dq_1/Dt' >> job_info
-   echo ' and c*(q_2 - K_2^2 H U_1 / H_2) to Dq_2/Dt.' >> job_info
+   echo ' and c*(q_2 - K_2^2 H U_1 y / H_2) to Dq_2/Dt.' >> job_info
    echo ' Damping rate:               ' $ctherm >> job_info
 else
    set ctherm="0"

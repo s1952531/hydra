@@ -13,6 +13,9 @@ implicit none
 ! Horizontal average (i.e. over a layer) zonal velocities:
 double precision:: uuha(1:nz)
 
+! Needed for thermal damping:
+double precision:: u1hay(0:ny,0:nxm1)
+
 ! Streamfunction and velocity field:
 double precision:: pp(0:ny,0:nxm1,nz),uu(0:ny,0:nxm1,nz),vv(0:ny,0:nxm1,nz)
 
@@ -128,7 +131,7 @@ implicit none
 ! Local variables:
 double precision:: qc(0:ny,0:nxm1,nz)
 double precision:: wkp(0:ny,0:nxm1),wks(0:nxm1,0:ny)
-integer:: iz,m
+integer:: ix,iy,iz
 
 !-------------------------------------------------------------
 ! Logicals used for saving gridded fields and contours:
@@ -154,9 +157,14 @@ do iz=1,nz
 enddo
  !"ha" stands for "horizontal average" (i.e. over a layer).
 close(60)
-do m=1,nz
-   umha(m)=sum(vl2m(:,m)*uuha)
+
+ !Define uuha(1)*y as array for use in thermal damping:
+do iy=0,ny
+   do ix=0,nxm1
+      u1hay(iy,ix)=ymin+gly*dble(iy)
+   enddo
 enddo
+u1hay=uuha(1)*u1hay
 
 return
 end subroutine init
@@ -462,14 +470,14 @@ endif
 
 if (thermal) then
    ! Add thermal damping to the upper layer (iz = 1):
-   wkp=qq(:,:,1)-bety+kk0(1)*uuha(1)
+   wkp=qq(:,:,1)-bety+kk0(1)*u1hay
    ! kk0(1) = f^2/(H_1 b'_1), see init_spectral in spectral.f90.
    call ptospc_fc(nx,ny,wkp,wks,xfactors,yfactors,xtrig,ytrig)
    ! Add -ctherm * (q_1 + K_1^2 H U_1 / H_1) to upper layer PV tendency:
    sqd(:,:,1)=sqd(:,:,1)-ctherm*wks
 
    ! Add thermal damping to the second layer from the top (iz = 2):
-   wkp=qq(:,:,2)-bety-kkm(2)*uuha(1)
+   wkp=qq(:,:,2)-bety-kkm(2)*u1hay
    ! kkm(2) = f^2/(H_2 b'_1), see init_spectral in spectral.f90.
    if (nz==2 .and. bath) wkp=wkp-qb
    ! Need to remove bathymetry if present and there are only two layers.
