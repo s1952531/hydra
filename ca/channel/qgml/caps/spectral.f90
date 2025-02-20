@@ -22,7 +22,7 @@ double precision:: decy(nym1,nxm1,nz)
 double precision:: diss(0:nxm1,0:ny),filt(0:nxm1,0:ny)
 double precision:: bflo(0:nxm1,0:ny),bfhi(0:nxm1,0:ny)
 double precision:: danorm(0:ny,0:nxm1)
-double precision:: bety(0:ny,0:nxm1),qb(0:ny,0:nxm1)
+double precision:: bety(0:ny,0:nxm1),qb(0:ny,0:nxm1),u1hay(0:ny,0:nxm1)
 double precision:: sfwind(0:nxm1,0:ny),yg(0:ny)
 double precision:: srwfm
 
@@ -269,6 +269,13 @@ if (beta > 0) then
    srwfm=beta*max(rkx(1),rky(1))/(rkx(1)**2+rky(1)**2)
 else
    srwfm=small
+endif
+
+ !Define uuha(1)*y as array for use in thermal damping:
+if (thermal) then
+   do ix=0,nxm1
+      u1hay(:,ix)=uuha(1)*yg
+   enddo
 endif
 
 return
