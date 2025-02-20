@@ -353,7 +353,7 @@ do m=1,nz
 
        !Add prescribed mean barotropic zonal velocity to umza:
       umza(:,1)=umza(:,1)+umha(1)
-      !Add associated barotropic streamfunction to pmza:
+       !Add associated barotropic streamfunction to pmza:
       pmza(:,1)=pmza(:,1)-umha(1)*yg
 
    else

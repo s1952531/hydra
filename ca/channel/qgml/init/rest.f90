@@ -42,7 +42,7 @@ do iz=1,nz-1
    kkm(iz+1)=kdsq(iz)/hhat(iz+1)
 enddo
 
-! Define PV and make sure beta*y is included:
+! Define PV consistent with mean flow and make sure beta*y is included:
 do iy=0,ny
    do ix=0,nxm1
       qq(iy,ix,1)=(beta+kk0(1)*(uuha(1)-uuha(2)))*(ymin+gly*dble(iy))

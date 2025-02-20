@@ -51,7 +51,7 @@ logical,parameter:: bath=BATH_FLAG
 ! rekman : Ekman damping rate (1/tau_E)
 ! fwind  : wind stress forcing applied to upper layer PV is
 !          fwind*sin(pi*(y-y_min)/(y_max-y_min))
-! ctherm : thermal damping rate forcing the two uppermost layers
+! ctherm : thermal damping applied to the two uppermost layers
 ! bath   : logical variable to indicate presence of bathymetry
 !          (the form of bathymetry is read in from a file)
 !----------------------------------------------------------------

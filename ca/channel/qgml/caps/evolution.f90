@@ -10,7 +10,7 @@ use common
 
 implicit none
 
-! Horizontal average" (i.e. over a layer) zonal velocities:
+! Horizontal average (i.e. over a layer) zonal velocities:
 double precision:: uuha(1:nz)
 
 ! Streamfunction and velocity field:
