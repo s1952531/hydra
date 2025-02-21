@@ -43,7 +43,7 @@ call init2dfft(nx,nye,ellx,elly,xfactors,yfactors,xtrig,ytrig,hrkx,hrky)
  !Define x wavenumbers:
 rkx(1)=zero
 do kx=1,nwx-1
-  rkx(kx+1)    =hrkx(2*kx)
+  rkx(kx+1)   =hrkx(2*kx)
   rkx(nx+1-kx)=hrkx(2*kx)
 enddo
 rkx(nwx+1)=hrkx(nx)
