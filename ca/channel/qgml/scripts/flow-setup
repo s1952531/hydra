@@ -341,7 +341,7 @@ endif
 set dataopt="1"
 echo
 echo ' Choose one of the following PV initialisation methods:'
-echo    ' (1) a flow at rest, or'
+echo    ' (1) a (possibly perturbed) flow at rest, or'
 echo    ' (2) a circular eddy having a parabolic PV profile in each layer, or'
 echo    ' (3) a spin-down experiment with waves initially in the upper layer.'
 echo -n ' Option - (default' $dataopt')? '
@@ -358,6 +358,16 @@ if ($dataopt == "1") then
 
    # Create empty input file for routine:
    touch in_$datagen
+
+   echo
+   set noise_lvl = "0.0"
+
+   echo -n ' noise_lvl (default' $noise_lvl')? '
+   set var=$<
+   if ($var != "") set noise_lvl=$var
+
+   echo ' Noise level:                        ' $noise_lvl >> job_info
+   echo $noise_lvl >> in_$datagen
 
 else if ($dataopt == "2") then
    # A circular eddy in each layer
