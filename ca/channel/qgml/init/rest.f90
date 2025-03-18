@@ -7,8 +7,18 @@ use constants
 implicit none
 double precision:: uuha(1:nz),hhat(nz),kdsq(nz),kk0(nz),kkm(nz)
 double precision:: qq(0:ny,0:nxm1,nz),qb(0:ny,0:nxm1)
-double precision:: bety(0:ny),td,fac
-integer:: ix,iy,iz
+double precision:: bety(0:ny),td,fac,noise_lvl
+integer:: k,i,ix,iy,iz
+integer, dimension(:), allocatable :: seed
+
+!-----------------------------------------------------------------------
+! Initialise random number generator:
+call random_seed(size=k)
+allocate(seed(1:k))
+seed(:)=iseed
+do i=1,iseed
+  call random_seed(put=seed)
+enddo
 
 !--------------------------------------------------------------------
  !Read layer-mean zonal flow and project onto vertical modes:
@@ -68,7 +78,24 @@ if (bath) then
     enddo
 endif
 
- !Write PV distribution to a file:
+! Define PV and make sure beta*y is included:
+write(*,*) ' Enter the noise level imposed on initial PV'
+read(*,*) noise_lvl
+
+! Add random noise to qq
+if (abs(noise_lvl)>0.0) then
+   do iz=1,nz
+      do iy=0,ny
+         do ix=0,nxm1
+            call random_number(fac)
+            qq(iy,ix,iz)=qq(iy,ix,iz)+noise_lvl*(2.0*fac-1.0)
+         enddo
+      enddo
+   enddo
+   write(*,*) ' Noise level imposed on initial PV = ',noise_lvl
+endif
+
+! Write PV distribution to a file:
 open(20,file='qq_init.r8',form='unformatted', &
       access='direct',status='replace',recl=2*nbytes)
 write(20,rec=1) zero,qq
