@@ -27,7 +27,7 @@ integer:: kx,ky,k,i,ix,iy
 integer, dimension(:), allocatable :: seed
 
 !-----------------------------------------------------------------------
-! Initialise random number generator:
+ !Initialise random number generator:
 call random_seed(size=k)
 allocate(seed(1:k))
 seed(:)=iseed
@@ -36,27 +36,27 @@ do i=1,iseed
 enddo
 
 !----------------------------------------------------------------------
-! Initialise FFTs:
+ !Initialise FFTs:
 call init2dfft(nxe,nye,ellx,elly,xfactors,yfactors,xtrig,ytrig,hrkx,hrky)
 
-! Define x wavenumbers:
+ !Define x wavenumbers:
 rkx(1)=zero
 do kx=1,nwx-1
-  rkx(kx+1)    = hrkx(2*kx)
-  rkx(nxe+1-kx)= hrkx(2*kx)
+  rkx(kx+1)    =hrkx(2*kx)
+  rkx(nxe+1-kx)=hrkx(2*kx)
 enddo
-rkx(nwx+1) = hrkx(nx)
+rkx(nwx+1)=hrkx(nx)
 
-! Define y wavenumbers:
+ !Define y wavenumbers:
 rky(1)=zero
 do ky=1,nwy-1
-  rky(ky+1)    = hrky(2*ky)
-  rky(nye+1-ky)= hrky(2*ky)
+  rky(ky+1)    =hrky(2*ky)
+  rky(nye+1-ky)=hrky(2*ky)
 enddo
-rky(nwy+1) = hrky(nye)
+rky(nwy+1)=hrky(nye)
 
-!----------------------------------------------------------------------
-! Compute k^{-2} random field:
+!-----------------------------------------------------
+ !Compute k^{-2} random field:
 write(*,*) ' Generating a k^{-2} random field.'
 write(*,*) ' Enter the rms value of the field (determines scaling factor):'
 read(*,*) rms
@@ -64,19 +64,18 @@ write(*,*) ' This field is superposed on top of a linear sloping'
 write(*,*) ' bathymetry in y with zero mean height. Enter the slope:'
 read(*,*) slope
 
-! Generate spectrum:
+ !Generate spectrum:
 do ky=1,nwy+1
   do kx=1,nwx+1
-    k2 = rkx(kx)**2 + rky(ky)**2
-
-    if (k2 > 0.0) then
-      ! Set amplitude proportional to k^{-2} with random phase:
-      amp = rms / sqrt(k2)  ! k^{-1} in amplitude -> k^{-2} in power spectrum
+    k2=rkx(kx)**2+rky(ky)**2
+    if (k2>0.0) then
+       !Set amplitude proportional to k^{-2} with random phase:
+      amp=rms/sqrt(k2) ! k^{-1} in amplitude -> k^{-2} in power spectrum
       call random_number(s)
-      phase = twopi * s
-      ss(kx,ky) = amp * cos(phase) + (0.0, 1.0) * amp * sin(phase)  ! Complex spectrum
+      phase=twopi*s
+      ss(kx,ky)=amp*cos(phase)+(0.0,1.0)*amp*sin(phase) ! Complex spectrum
     else
-      ss(kx,ky) = (0.0,0.0)  ! Avoid division by zero at k=0
+      ss(kx,ky)=(0.0,0.0) ! Avoid division by zero at k=0
     endif
   enddo
 enddo

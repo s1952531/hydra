@@ -514,7 +514,7 @@ integer:: kx,ky
 do kx=1,nx
   der(kx,ny)=0.d0
 enddo
-do ky=1,ny
+do ky=1,ny-1
   do kx=1,nx
     der(kx,ky)=-rky(ky)*var(kx,ky)
   enddo
@@ -833,6 +833,10 @@ do ky=1,ny-1
   der(nx,ky)=0.d0
    !der = 0 when kx = nx since var = 0 when kx = nx.
 enddo
+ !Ensure ny array element is zero, like that of var:
+do kx=0,nx
+  der(kx,ny)=0.d0
+enddo
 
 return
 end subroutine
@@ -867,6 +871,10 @@ do ky=1,ny-1
     der(kx,ky)=rky(ky)*var(kx,ky)
   enddo
 enddo
+ !Ensure nx array element is zero, like that of var:
+do ky=0,ny
+  der(nx,ky)=0.d0
+enddo
 
 return
 end subroutine
@@ -894,6 +902,10 @@ do ky=1,ny-1
     der(kx,ky)=-rkx(kx)*var(kx,ky)
   enddo
   der(nx,ky)=0.d0
+enddo
+ !Ensure ny array element is zero, like that of var:
+do kx=1,nx
+  der(kx,ny)=0.d0
 enddo
 
 return
@@ -983,13 +995,17 @@ double precision:: rky(ny),var(nx,0:ny),der(nx,ny)
 integer:: kx,ky
 
  !Carry out differentiation by wavenumber multiplication:
-do kx=1,nx-1
-  der(kx,ny)=0.d0
-enddo
 do ky=1,ny-1
   do kx=1,nx-1
     der(kx,ky)=-rky(ky)*var(kx,ky)
   enddo
+enddo
+do kx=1,nx-1
+  der(kx,ny)=0.d0
+enddo
+ !Ensure nx array element is zero, like that of var:
+do ky=1,ny
+  der(nx,ky)=0.d0
 enddo
 
 return
@@ -1041,13 +1057,13 @@ double precision:: rky(ny),var(0:nx,0:ny),der(0:nx,ny)
 integer:: kx,ky
 
  !Carry out differentiation by wavenumber multiplication:
-do kx=0,nx
-  der(kx,ny)=0.d0
-enddo
 do ky=1,ny-1
   do kx=0,nx
     der(kx,ky)=-rky(ky)*var(kx,ky)
   enddo
+enddo
+do kx=0,nx
+  der(kx,ny)=0.d0
 enddo
 
 return

@@ -80,7 +80,7 @@ set pi=3.14159265358979323846
 #==========================================================================
 # Choose number of layers and set up vertical structure:
 
-set nz = "3"        # Default number of layers
+set nz = "2"        # Default number of layers
 echo
 echo -n ' Number of layers (default' $nz')? '
 set var=$<
@@ -103,7 +103,7 @@ echo
 set a=`echo "0.8 / ( $nz * (1.0 - $nz) )" | bc -l`
 set b=`echo "2.0 * ( 1.0 + 0.8 / ($nz - 1) ) / ( $nz * ($nz + 1) )" | bc -l`
 # Inverse lengths K_i = i*c, i = 1 ... nz
-set c=1.0
+set c=10.0
 
 echo ' ' >> job_info
 touch vertical.asc
@@ -139,7 +139,7 @@ set aspect = "0.5"    # Default domain aspect ratio (L_y/L_x)
 
 echo
 echo ' We take the width of the domain (in x) to be L_x = '$lxdpi'*pi.'
-echo -n ' Domain aspect ratio, L_y/L_x (default 0.5)? '
+echo -n ' Domain aspect ratio, L_y/L_x (default' $aspect')? '
 set var=$<
 if ($var != "") set aspect=$var
 
@@ -157,7 +157,7 @@ echo ' Width of the domain in y, L_y:      ' $elly >> job_info
 #==========================================================================
 # Choose horizontal resolution and number of PV levels:
 
-set nx = "512"      # Default inversion grid resolution in x (east - west)
+set nx = "256"      # Default inversion grid resolution in x (east - west)
 echo
 echo -n ' Grid resolution in x (default' $nx')? '
 set var=$<
@@ -266,7 +266,7 @@ if ($bathymetry == "y") then
       echo ' Periodic bathymetry, of the form A sin(k(x-x_min)) sin(k(y-y_min))' >> job_info
       set bathgen = "sine_bath"
       set amp = "0.2"
-      set k_bath = "5"
+      set k_bath = "5.0"
 
       echo -n ' A (default' $amp')? '
       set var=$<
@@ -341,7 +341,7 @@ endif
 set dataopt="1"
 echo
 echo ' Choose one of the following PV initialisation methods:'
-echo    ' (1) a flow at rest, or'
+echo    ' (1) a (possibly perturbed) flow at rest, or'
 echo    ' (2) a circular eddy having a parabolic PV profile in each layer, or'
 echo    ' (3) a spin-down experiment with waves initially in the upper layer.'
 echo -n ' Option - (default' $dataopt')? '
@@ -358,6 +358,16 @@ if ($dataopt == "1") then
 
    # Create empty input file for routine:
    touch in_$datagen
+
+   echo
+   set noise_lvl = "0.0"
+
+   echo -n ' noise_lvl (default' $noise_lvl')? '
+   set var=$<
+   if ($var != "") set noise_lvl=$var
+
+   echo ' Noise level:                        ' $noise_lvl >> job_info
+   echo $noise_lvl >> in_$datagen
 
 else if ($dataopt == "2") then
    # A circular eddy in each layer
@@ -409,7 +419,7 @@ else if ($dataopt == "3") then
    echo
    echo ' We consider the upper layer streamfunction psi1(x,y) = A sin(kx) cos(ly).'
 
-   set k_psi1 = "2"
+   set k_psi1 = "2.0"
    set l_psi1 = "0.5"
    set amp_psi1 = "1.0"
 
@@ -444,6 +454,7 @@ endif
 
 # Prescribe zonal mean velocities in each layer:
 echo
+echo ' ' >> job_info
 touch meanflow.asc
 set lay=1
 set U0="1.0"
@@ -452,8 +463,7 @@ while ($lay <= $nz)
    set var=$<
    if ($var != "") set U0=$var
    echo $U0 >> meanflow.asc
-   echo ' ' >> job_info
-   echo '  Mean zonal velocity of layer' $lay':      ' $U0 >> job_info
+   echo ' Mean zonal velocity of layer' $lay':     ' $U0 >> job_info
    @ lay ++
 end
 
@@ -487,7 +497,7 @@ else
 endif
 
 # Wind-stress forcing:
-set wind="y"
+set wind="n"
 echo
 echo -n ' Include wind-stress forcing (y/n) (default' $wind')? '
 set var=$<
@@ -496,7 +506,7 @@ if ($var != "") set wind=$var
 if ($wind == "y") then
    echo
    echo ' Wind stress adds a*sin(2*pi*(y-y_min)/L_y) to the upper-layer PV tendency.'
-   set fwind="0.04"
+   set fwind="-1.0"
    echo -n ' Amplitude, a (default' $fwind')? '
    set var=$<
    if ($var != "") set fwind=$var
@@ -506,6 +516,30 @@ if ($wind == "y") then
    echo ' Amplitude, a:                       ' $fwind >> job_info
 else
    set fwind="0"
+endif
+
+# Thermal damping:
+set thermal="y"
+echo
+echo -n ' Include thermal damping (y/n) (default' $thermal')? '
+set var=$<
+if ($var != "") set thermal=$var
+
+if ($thermal == "y") then
+   echo
+   echo ' Thermal damping adds c*(q_1 + K_1^2 H U_1 y / H_1) to Dq_1/Dt'
+   echo ' and c*(q_2 - K_2^2 H U_1 y / H_2) to Dq_2/Dt.'
+   set ctherm="0.1"
+   echo -n ' Damping rate, c (default' $ctherm')? '
+   set var=$<
+   if ($var != "") set ctherm=$var
+
+   echo ' ' >> job_info
+   echo ' Thermal damping adds c*(q_1 + K_1^2 H U_1 y / H_1) to Dq_1/Dt' >> job_info
+   echo ' and c*(q_2 - K_2^2 H U_1 y / H_2) to Dq_2/Dt.' >> job_info
+   echo ' Damping rate:               ' $ctherm >> job_info
+else
+   set ctherm="0"
 endif
 
 #==========================================================================
@@ -557,8 +591,9 @@ echo " Compiling source files....."
 # Use C pre-processor to put chosen parameters $copts into parameters.f90
 set copts1="-DN_X=$nx -DN_Y=$ny -DN_Z=$nz -DL_X=$ellx -DL_Y=$elly -DN_CONTQ=$nq"
 set copts2="-DT_SIM={$tsim} -DT_GSAVE={$tgsave} -DT_CSAVE={$tcsave} -DPV_GRAD={$beta}"
-set copts3="-DC_DAMP={$cdamp} -DPOW_HYPER=$nnu -DR_EKMAN={$rekman} -DF_WIND={$fwind} -DBATH_FLAG=$bathflag -DI_SEED=$iseed"
-set copts=`echo $copts1 $copts2 $copts3`
+set copts3="-DC_DAMP={$cdamp} -DPOW_HYPER=$nnu -DR_EKMAN={$rekman} -DF_WIND={$fwind}"
+set copts4="-DC_THERM={$ctherm} -DBATH_FLAG=$bathflag -DI_SEED=$iseed"
+set copts=`echo $copts1 $copts2 $copts3 $copts4`
 precomp $copts parameters.f90
 
 # Compile all codes and move sources to sub-directory:
@@ -604,7 +639,7 @@ if (!(-d $datagen)) mkdir $datagen
 cd $datagen
 
 # Set the job directory name (will be appended by 001, 002 etc...):
-set basejobdir=n{$nx}-{$ny}be{$beta}re{$rekman}fw{$fwind}
+set basejobdir=n{$nx}-{$ny}be{$beta}re{$rekman}fw{$fwind}td{$ctherm}
 echo
 echo -n ' Job directory name (default '{$basejobdir}')? '
 set var=$<
