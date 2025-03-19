@@ -379,9 +379,11 @@ end subroutine advance
 subroutine source(sqs,sqd,lev)
 
 ! Gets the source terms (sqs,sqd) for the PV (qs,qd), including
-! wind-stress forcing in the uppermost layer (1) and Ekman drag
-! in the lowest layer (nz). Here, lev is the level of the Runge
-! Kutta integration, used for defining the integrating factors.
+! wind-stress forcing in the uppermost layer (1), Ekman drag in
+! the lowest layer (nz), and thermal damping in the two
+! uppermost layers (1 and 2). Here, lev is the level of the
+! Runge Kutta integration, used for defining the integrating
+! factors.
 
 ! --- All sources are in spectral space.
 
@@ -407,7 +409,7 @@ do iz=1,nz
 enddo
 
 !---------------------------------------------------------------
-! qd source --- include wind-stress forcing and Ekman damping:
+! qd source --- include wind-stress forcing and Ekman and thermal damping:
 call gradient(qd,qx,qy)
 qx=-uu*qx-vv*qy
 do iz=1,nz
@@ -434,13 +436,31 @@ if (friction) then
    ! kkm(iz) = f^2/(H_iz b'_{iz-1}), see init_spectral in spectral.f90.
    if (bath) wkp=wkp-qb
    ! Need to remove bathymetry if present.
-   call ptospc_fc(nx,ny,wkp,wks,xfactors,yfactors,xtrig,ytrig)   
+   call ptospc_fc(nx,ny,wkp,wks,xfactors,yfactors,xtrig,ytrig)
    ! Add -r_ekman * vorticity to lowest layer PV tendency:
    sqd(:,:,nz)=sqd(:,:,nz)-rekman*wks
    ! *** Note, the mean tendency in sqd(0,0,nz) may change as a
    !     result of Ekman friction.  This is accounted for when
    !     resetting qs & qd at the beginning of each time step:
    !     see the call to inversion(0).
+endif
+
+if (thermal) then
+   ! Add thermal damping to the upper layer (iz = 1):
+   wkp=qq(:,:,1)-bety+kk0(1)*u1hay
+   ! kk0(1) = f^2/(H_1 b'_1), see init_spectral in spectral.f90.
+   call ptospc_fc(nx,ny,wkp,wks,xfactors,yfactors,xtrig,ytrig)
+   ! Add -ctherm * (q_1 + K_1^2 H U_1 y / H_1) to upper layer PV tendency:
+   sqd(:,:,1)=sqd(:,:,1)-ctherm*wks
+
+   ! Add thermal damping to the second layer from the top (iz = 2):
+   wkp=qq(:,:,2)-bety-kkm(2)*u1hay
+   ! kkm(2) = f^2/(H_2 b'_1), see init_spectral in spectral.f90.
+   if (nz==2 .and. bath) wkp=wkp-qb
+   ! Need to remove bathymetry if present and there are only two layers.
+   call ptospc_fc(nx,ny,wkp,wks,xfactors,yfactors,xtrig,ytrig)
+   ! Add -ctherm * (q_2 - K_1^2 H U_1 y / H_2) to upper layer PV tendency:
+   sqd(:,:,2)=sqd(:,:,2)-ctherm*wks
 endif
 
 if (lev .eq. 0) then

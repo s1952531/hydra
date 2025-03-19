@@ -80,7 +80,7 @@ set pi=3.14159265358979323846
 #==========================================================================
 # Choose number of layers and set up vertical structure:
 
-set nz = "3"        # Default number of layers
+set nz = "2"        # Default number of layers
 echo
 echo -n ' Number of layers (default' $nz')? '
 set var=$<
@@ -103,7 +103,7 @@ echo
 set a=`echo "0.8 / ( $nz * (1.0 - $nz) )" | bc -l`
 set b=`echo "2.0 * ( 1.0 + 0.8 / ($nz - 1) ) / ( $nz * ($nz + 1) )" | bc -l`
 # Inverse lengths K_i = i*c, i = 1 ... nz
-set c=1.0
+set c=10.0
 
 echo ' ' >> job_info
 touch vertical.asc
@@ -157,7 +157,7 @@ echo ' Width of the domain in y, L_y:      ' $elly >> job_info
 #==========================================================================
 # Choose horizontal resolution and number of PV levels:
 
-set nx = "512"      # Default inversion grid resolution in x (east - west)
+set nx = "256"      # Default inversion grid resolution in x (east - west)
 echo
 echo -n ' Grid resolution in x (default' $nx')? '
 set var=$<
@@ -454,6 +454,7 @@ endif
 
 # Prescribe zonal mean velocities in each layer:
 echo
+echo ' ' >> job_info
 touch meanflow.asc
 set lay=1
 set U0="1.0"
@@ -462,8 +463,7 @@ while ($lay <= $nz)
    set var=$<
    if ($var != "") set U0=$var
    echo $U0 >> meanflow.asc
-   echo ' ' >> job_info
-   echo '  Mean zonal velocity of layer' $lay':      ' $U0 >> job_info
+   echo ' Mean zonal velocity of layer' $lay':     ' $U0 >> job_info
    @ lay ++
 end
 
@@ -497,7 +497,7 @@ else
 endif
 
 # Wind-stress forcing:
-set wind="y"
+set wind="n"
 echo
 echo -n ' Include wind-stress forcing (y/n) (default' $wind')? '
 set var=$<
@@ -506,7 +506,7 @@ if ($var != "") set wind=$var
 if ($wind == "y") then
    echo
    echo ' Wind stress adds a*sin(2*pi*(y-y_min)/L_y) to the upper-layer PV tendency.'
-   set fwind="0.04"
+   set fwind="-1.0"
    echo -n ' Amplitude, a (default' $fwind')? '
    set var=$<
    if ($var != "") set fwind=$var
@@ -519,7 +519,7 @@ else
 endif
 
 # Thermal damping:
-set thermal="n"
+set thermal="y"
 echo
 echo -n ' Include thermal damping (y/n) (default' $thermal')? '
 set var=$<

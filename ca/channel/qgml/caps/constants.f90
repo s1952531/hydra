@@ -82,5 +82,6 @@ double precision,parameter:: hgly=gly/two
  !Logical control variables:
 logical,parameter:: friction=(rekman > zero)
 logical,parameter:: wind=(fwind /= zero)
+logical,parameter:: thermal=(ctherm /= zero)
 
 end module constants

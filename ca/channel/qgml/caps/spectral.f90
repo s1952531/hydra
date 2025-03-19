@@ -22,7 +22,7 @@ double precision:: decy(nym1,nxm1,nz)
 double precision:: diss(0:nxm1,0:ny),filt(0:nxm1,0:ny)
 double precision:: bflo(0:nxm1,0:ny),bfhi(0:nxm1,0:ny)
 double precision:: danorm(0:ny,0:nxm1)
-double precision:: bety(0:ny,0:nxm1),qb(0:ny,0:nxm1)
+double precision:: bety(0:ny,0:nxm1),qb(0:ny,0:nxm1),u1hay(0:ny,0:nxm1)
 double precision:: sfwind(0:nxm1,0:ny),yg(0:ny)
 double precision:: srwfm
 
@@ -271,6 +271,13 @@ else
    srwfm=small
 endif
 
+ !Define uuha(1)*y as array for use in thermal damping:
+if (thermal) then
+   do ix=0,nxm1
+      u1hay(:,ix)=uuha(1)*yg
+   enddo
+endif
+
 return
 end subroutine init_spectral
 
@@ -353,14 +360,14 @@ do m=1,nz
 
        !Add prescribed mean barotropic zonal velocity to umza:
       umza(:,1)=umza(:,1)+umha(1)
+       !Add associated barotropic streamfunction to pmza:
+      pmza(:,1)=pmza(:,1)-umha(1)*yg
 
    else
        !For all other vertical modes, store modal PV in 2D pm array
        !after adjusting zonal-mean part for the boundary conditions:
-      do iy=0,ny
-         pmza(iy,m)=-umha(m)*yg(iy)
-         umza(iy,m)= umha(m)
-      enddo
+      pmza(:,m)=-umha(m)*yg
+      umza(:,m)= umha(m)
        !umha(m) stands for \check{U}_m^0 in the notes
       do ix=0,nxm1
          pm(:,ix)=qm(:,ix,m)+lambda(m)*pmza(:,m)
@@ -388,12 +395,12 @@ do m=1,nz
        !Extract zonal part (spectral in y; cosine coefficients):
       rpm=wks(0,:)
        !Compute associated zonal velocity (\check{U}_m^* in the notes):
-      call yderiv_fc(1,ny,rky,rpm,rum)
+      call yderiv_fc(1,ny,rky(1:ny),rpm,rum)
       wks(0,:)=zero !removes kx = 0 component from streamfunction
       call dct(1,ny,rpm,ytrig,yfactors) !cosine transform
       pmza(:,m)=pmza(:,m)+rpm
       call dst(1,ny,rum,ytrig,yfactors) !sine transform
-      umza(1:nym1,m)=umza(1:nym1,m)+rum(1:nym1)
+      umza(1:nym1,m)=umza(1:nym1,m)-rum(1:nym1)
        !rum = 0 on y boundaries, iy = 0 & ny. rum is a sine series in y.
    endif
 
