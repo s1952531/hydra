@@ -1,9 +1,9 @@
 #!/bin/csh
 
-echo l | image_sequence.py
-ffmpeg -framerate 10 -i %04d.png -c:v libx264 -pix_fmt yuv420p layers.mp4
-echo m | image_sequence.py
-ffmpeg -framerate 10 -i %04d.png -c:v libx264 -pix_fmt yuv420p modes.mp4
+echo "a\nl" | image_sequence.py
+ffmpeg -framerate 9 -i %04d.png -c:v libx264 -pix_fmt yuv420p layers.mp4
+echo "a\nm" | image_sequence.py
+ffmpeg -framerate 9 -i %04d.png -c:v libx264 -pix_fmt yuv420p modes.mp4
 
 if (-e bath.r8) then
     pbath.py

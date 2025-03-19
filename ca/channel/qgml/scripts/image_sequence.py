@@ -76,7 +76,7 @@ def contint(fmin,fmax):
 
 #=================================================================
 # Function to calculate global min and max for a field across all frames
-def get_layer_min_max(field_data):
+def get_layer_min_max(field_data,is_pv=False):
     nt=len(field_data) // N
     layer_min=np.full(nz, np.inf)
     layer_max=np.full(nz,-np.inf)
@@ -89,11 +89,15 @@ def get_layer_min_max(field_data):
                 for jz in range(nz):
                     offset=frame*N+jz*NH+1
                     data_array[:,:,iz,frame]+=vec[jz,iz]*field_data[offset:offset+NH].reshape(nx,ny)
+                if is_pv and pv_vis=="a" and iz==0:
+                    data_array[:,:,0,frame]=data_array[:,:,0,frame]-bety
 
             else:
                 # Use existing layer data:
                 offset=frame*N+iz*NH+1
                 data_array[:,:,iz,frame]=field_data[offset:offset+NH].reshape(nx,ny)
+                if is_pv and pv_vis=="a":
+                    data_array[:,:,iz,frame]=data_array[:,:,iz,frame]-bety
 
             layer_min[iz]=min(layer_min[iz],np.min(data_array[:,:,iz,frame]))
             layer_max[iz]=max(layer_max[iz],np.max(data_array[:,:,iz,frame]))
@@ -126,6 +130,19 @@ ymin=-ymax
 
 # Increase ny by 1 to include boundary points:
 ny=ny+1
+
+#=================================================================
+# Select total PV or PV anomaly:
+print()
+op_in = input(' View PV anomaly or total PV (a/t) (default a)? ')
+pv_vis = str(op_in or "a")
+if pv_vis == "a":
+    with open('src/parameters.f90','r') as in_file:
+        fread=in_file.readlines()
+        for line in fread:
+            if ':: beta=' in line:
+                beta=float(line.split("=")[1].split(",")[0])
+                bety=np.tile(beta*np.linspace(ymin,ymax,ny),(nx,1))
 
 # Read energy data to get final time in data:
 with open('evolution/energy.asc','r') as in_file:
@@ -192,7 +209,7 @@ with open('evolution/zz.r4','rb') as in_file:
     zz_array=np.fromfile(in_file,dtype=np.float32)
 
 min_vals[:,0],max_vals[:,0],pp_array=get_layer_min_max(pp_array)
-min_vals[:,1],max_vals[:,1],qq_array=get_layer_min_max(qq_array)
+min_vals[:,1],max_vals[:,1],qq_array=get_layer_min_max(qq_array,True)
 min_vals[:,2],max_vals[:,2],zz_array=get_layer_min_max(zz_array)
 
 im=[] # To store the images
