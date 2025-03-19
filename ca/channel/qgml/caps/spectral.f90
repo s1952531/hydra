@@ -330,10 +330,11 @@ do m=1,nz
    if (m == 1) then
        !For the barotropic mode, we must find the zonal average by
        !integration over y:
-      do iy=0,ny
-          !Use pmza to store the zonal-average PV (below dnxi = 1/nx):
-         pmza(iy,1)=dnxi*sum(qm(iy,:,1))
+      pmza(:,1)=zero
+      do ix=0,nxm1
+         pmza(:,1)=pmza(:,1)+qm(:,ix,1)
       enddo
+      pmza(:,1)=pmza(:,1)*dnxi
        !Remove the zonal average from qm(:,:,1) for inversion below:
       do ix=0,nxm1
          pm(:,ix)=qm(:,ix,1)-pmza(:,1)
@@ -369,17 +370,36 @@ do m=1,nz
       pmza(:,m)=-umha(m)*yg
       umza(:,m)= umha(m)
        !umha(m) stands for \check{U}_m^0 in the notes
+      rpm=zero
       do ix=0,nxm1
          pm(:,ix)=qm(:,ix,m)+lambda(m)*pmza(:,m)
+         rpm=rpm+pm(:,ix)
       enddo
-       !Note, there may still be a zonal-mean part in pm, but
-       !it is not the linear part subtracted above to enforce
-       !the zonal velocity boundary conditions --- see below.
+      rpm=dnxi*rpm
+       !Note, rpm contains any zonal-mean part of pm which differs
+       !from the linear part subtracted above to enforce the zonal
+       !velocity boundary conditions (umha above).  Invert rpm
+       !spectrally to get the corresponding streamfunction, Psi^*_m
+       !in the notes:
+      call dct(1,ny,rpm,ytrig,yfactors) !cosine transform
+      do iy=0,ny
+         rpm(iy)=green(0,iy,m)*rpm(iy)  !green = -1/(lambda(m)+ky^2)
+      enddo
+       !Obtain the corresponding zonal velocity, U^*_m, by spectral
+       !multiplication:
+      rum(1:nym1)=rky(1:nym1)*rpm(1:nym1)
+      rum(ny)=zero
+       !Go back to physical space and add to zonal components above:
+      call dct(1,ny,rpm,ytrig,yfactors) !cosine transform
+      pmza(:,m)=pmza(:,m)+rpm
+      call dst(1,ny,rum,ytrig,yfactors) !sine transform
+      umza(1:nym1,m)=umza(1:nym1,m)+rum(1:nym1)
+       !rum = 0 on y boundaries, iy = 0 & ny. rum is a sine series in y.
    endif
 
     !-------------------------------------------------------------
-    !Next find the remaining part of the solution:
- 
+    !Next find the remaining *non-zonal* part of the solution:
+
     !FFT mode PV to wavenumber space (kx,ky) as wks temporarily:
    call ptospc_fc(nx,ny,pm,wks,xfactors,yfactors,xtrig,ytrig)
     !ptospc_fc allows the PV to vary generally along the boundaries.
@@ -388,24 +408,8 @@ do m=1,nz
     !the boundaries):
    wks=green(:,:,m)*wks
     !See init_spectral above for definition of green.
-   
-    !For m > 1, the zonal part for kx = 0 may be non-zero; add this
-    !(\check\Psi_m^* in the notes) to pmza above after a FFT:
-   if (m > 1) then
-       !Extract zonal part (spectral in y; cosine coefficients):
-      rpm=wks(0,:)
-       !Compute associated zonal velocity (\check{U}_m^* in the notes):
-      call yderiv_fc(1,ny,rky(1:ny),rpm,rum)
-      wks(0,:)=zero !removes kx = 0 component from streamfunction
-      call dct(1,ny,rpm,ytrig,yfactors) !cosine transform
-      pmza(:,m)=pmza(:,m)+rpm
-      call dst(1,ny,rum,ytrig,yfactors) !sine transform
-      umza(1:nym1,m)=umza(1:nym1,m)-rum(1:nym1)
-       !rum = 0 on y boundaries, iy = 0 & ny. rum is a sine series in y.
-   endif
-
-    !At this point wks has no zonal component, i.e. wks(0,:) = 0.
-    !We now deal with the non-zonal solution for streamfunction:
+    !Ensure zonal part is zero:
+   wks(0,:)=zero
    
     !Inverse transform the non-zonal (uncorrected) streamfunction:
    call spctop_fc(nx,ny,wks,pm,xfactors,yfactors,xtrig,ytrig)
