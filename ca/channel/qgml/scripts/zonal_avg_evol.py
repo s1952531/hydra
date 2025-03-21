@@ -171,7 +171,7 @@ if option == "m":
 # Set up figure:
 # Layout is nz rows and 3 columns:
 nrow=nz
-ncol=3
+ncol=4
 nim=nrow*ncol
 
 # The following figure might need to be adjusted depending on the problem
@@ -179,7 +179,7 @@ fig,ax=plt.subplots(figsize=[18+1*(nz>2),1+3*nrow],nrows=nrow,ncols=ncol)
 ax=ax.flatten()
 
 # Set up an array to store all images to be plotted:
-d=np.empty((nim,nx,ny))
+d=np.empty((nim,ny))
 
 # Number of horizontal grid points:
 NH=nx*ny
@@ -189,7 +189,7 @@ N=nz*NH+1
 # The "+1" includes the time element
 
 # Field titles over each column:
-field=['$\\psi$','$q$','$\\zeta$']
+field=['$\\psi$','$q$','$\\zeta$','$u$']
 
 min_vals=np.full((nz,ncol), np.inf)
 max_vals=np.full((nz,ncol),-np.inf)
@@ -213,15 +213,25 @@ min_vals[:,0],max_vals[:,0],pp_array=get_layer_min_max(pp_array)
 min_vals[:,1],max_vals[:,1],qq_array=get_layer_min_max(qq_array,True)
 min_vals[:,2],max_vals[:,2],zz_array=get_layer_min_max(zz_array)
 
+dy=elly/ny
+
+# Compute zonal velocities
+uu_array=np.zeros((nx,ny,nz,nt))
+for frame in range(nt):
+    for iz in range(nz):
+        uu_array[:,1:ny-1,iz,frame]=(pp_array[:,0:ny-2,iz,frame]-pp_array[:,2:ny,iz,frame])/(2.0*dy)
+        uu_array[:,0,iz,frame]=(pp_array[:,0,iz,frame]-pp_array[:,1,iz,frame])/dy
+        uu_array[:,-1,iz,frame]=(pp_array[:,-2,iz,frame]-pp_array[:,-1,iz,frame])/dy
+        min_vals[iz,3]=min(min_vals[iz,3],np.min(uu_array[:,:,iz,frame]))
+        max_vals[iz,3]=max(max_vals[iz,3],np.max(uu_array[:,:,iz,frame]))
+
 im=[] # To store the images
-cbar=[] # To store the colorbars
 cax=[0]*nim
 zmin_arr=[0]*nim
 zmax_arr=[0]*nim
 clevels_arr=[[] for _ in range(nim)]
 
 for j in range(nim):
-    ax[j].set_aspect('equal')
     row=int(j/ncol)
     col=j-ncol*row
 
@@ -238,35 +248,25 @@ for j in range(nim):
     z=dz*float(jj)
     clevels_arr[j]=np.linspace(-z,z,max(3,jj+1))
 
-    ax[j].set_xlim([xmin,xmax])
-    ax[j].set_ylim([ymin,ymax])
+    ax[j].set_xlim([ymin,ymax])
+    ax[j].set_ylim([min_vals[row,col],max_vals[row,col]])
 
     # Label x axis only for images in the bottom row:
     if row < nz - 1:
         plt.setp(ax[j].get_xticklabels(),visible=False)
     else:
-        ax[j].set_xlabel('$x$',fontsize=20)
+        ax[j].set_xlabel('$y$',fontsize=20)
 
-    # Label y axis only for images in the leftmost column:
-    if col > 0:
-        plt.setp(ax[j].get_yticklabels(),visible=False)
-    else:
-        ax[j].set_ylabel('$y$',fontsize=20)
+    ax[j].set_ylabel('',fontsize=20)
 
     if row == 0:
         ax[j].set_title(field[col],fontsize=36)
 
     # Initialize imshow with placeholder data
-    img=ax[j].imshow( np.zeros((nx,ny)).T,cmap=cm.seismic,vmin=zmin_arr[j],vmax=zmax_arr[j],
-                      extent=(xmin,xmax,ymin,ymax),origin='lower',interpolation='bilinear' )
-
-    # Create colorbar for each subplot (only once)
-    divider=make_axes_locatable(ax[j])
-    cax[j]=divider.append_axes("right",size="4%",pad=0.1)
-    cbar_j=fig.colorbar(img,cax=cax[j],ticks=clevels_arr[j])
+    img=ax[j].plot(np.linspace(ymin, ymax, ny), np.zeros(ny), color='blue')
+    ax[j].grid(True)
 
     im.append(img)
-    cbar.append(cbar_j)
 
 #=========================================================================
 # Adjust figure size to make it divisible by 2
@@ -289,14 +289,14 @@ while t<=tsim:
     fig.suptitle(f"Time: {t:05.1f}", fontsize=24)
 
     for iz in range(nz):
-        k=ncol*iz
-        d[k  ,:,:]=pp_array[:,:,iz,frame]
-        d[k+1,:,:]=qq_array[:,:,iz,frame]
-        d[k+2,:,:]=zz_array[:,:,iz,frame]
+        i=ncol*iz
+        d[i  ,:]=np.mean(pp_array[:,:,iz,frame],axis=0,keepdims=True)
+        d[i+1,:]=np.mean(qq_array[:,:,iz,frame],axis=0,keepdims=True)
+        d[i+2,:]=np.mean(zz_array[:,:,iz,frame],axis=0,keepdims=True)
+        d[i+3,:]=np.mean(uu_array[:,:,iz,frame],axis=0,keepdims=True)
 
     for j in range(nim):
-        im[j].set_data(d[j].T)
-        # im[j].set_clim(vmin=zmin_arr[j],vmax=zmax_arr[j]) # such could be used if colorbars are adjusted
+        im[j][0].set_ydata(d[j])
 
     fig.subplots_adjust(wspace=0.0,hspace=0.0)
     fig.savefig(f"{frame:04d}.png",dpi=150)
