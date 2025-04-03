@@ -6,6 +6,7 @@
 #  @@@@   Run from the current job directory   @@@@
 
 #========== Perform the generic imports =========
+import sys
 import warnings
 import numpy as np
 import matplotlib.pyplot as plt
@@ -103,6 +104,24 @@ def get_layer_min_max(field_data,is_pv=False):
 
     return layer_min,layer_max,data_array
 
+# Ensure the script is called with the correct number of arguments
+if len(sys.argv) != 3:
+    print("Usage: python image_sequence.py <PV option: a/t> <View option: l/m>")
+    sys.exit(1)
+
+# Read the arguments
+pv_vis = sys.argv[1].lower()  # First argument: PV option ('a' or 't')
+option = sys.argv[2].lower()  # Second argument: View option ('l' or 'm')
+
+# Validate the arguments
+if pv_vis not in ['a', 't']:
+    print("Error: PV option must be 'a' (anomaly) or 't' (total).")
+    sys.exit(1)
+
+if option not in ['l', 'm']:
+    print("Error: View option must be 'l' (layers) or 'm' (modes).")
+    sys.exit(1)
+
 #-------------------------------------------------
 # Work out x & y limits, grid resolution (nx, ny & nz),
 # and data save interval by reading parameters.f90:
@@ -130,11 +149,6 @@ with open('src/parameters.f90','r') as in_file:
 nx=nx+1
 ny=ny+1
 
-#=================================================================
-# Select total PV or PV anomaly:
-print()
-op_in = input(' View PV anomaly or total PV (a/t) (default a)? ')
-pv_vis = str(op_in or "a")
 if pv_vis == "a":
     with open('src/parameters.f90','r') as in_file:
         fread=in_file.readlines()
@@ -147,12 +161,6 @@ if pv_vis == "a":
 with open('evolution/energy.asc','r') as in_file:
     time,ekin,epot,etot=np.loadtxt(in_file,dtype=float,unpack=True)
 tsim=time[-1]
-
-#=================================================================
-# Select layer or modes view:
-print()
-op_in = input(' View layers or modes (l/m) (default l)? ')
-option = str(op_in or "l")
 
 # Read in vertical mode matrix if required:
 vec=np.empty((nz,nz))

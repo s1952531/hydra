@@ -1,8 +1,8 @@
 #!/bin/csh
 
-echo l | image_sequence.py
+image_sequence.py a l
 ffmpeg -framerate 10 -i %04d.png -c:v libx264 -pix_fmt yuv420p layers.mp4
-echo m | image_sequence.py
+image_sequence.py a m
 ffmpeg -framerate 10 -i %04d.png -c:v libx264 -pix_fmt yuv420p modes.mp4
 
 if (-e bath.r8) then
