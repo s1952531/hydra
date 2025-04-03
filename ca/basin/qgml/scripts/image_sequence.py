@@ -76,8 +76,7 @@ def contint(fmin,fmax):
 
 #=================================================================
 # Function to calculate global min and max for a field across all frames
-def get_layer_min_max(field_data):
-    nt=len(field_data) // N
+def get_layer_min_max(field_data,is_pv=False):
     layer_min=np.full(nz, np.inf)
     layer_max=np.full(nz,-np.inf)
     data_array=np.zeros((nx,ny,nz,nt))
@@ -89,11 +88,15 @@ def get_layer_min_max(field_data):
                 for jz in range(nz):
                     offset=frame*N+jz*NH+1
                     data_array[:,:,iz,frame]+=vec[jz,iz]*field_data[offset:offset+NH].reshape(nx,ny)
+                if is_pv and pv_vis=="a" and iz==0:
+                    data_array[:,:,0,frame]=data_array[:,:,0,frame]-bety
 
             else:
                 # Use existing layer data:
                 offset=frame*N+iz*NH+1
                 data_array[:,:,iz,frame]=field_data[offset:offset+NH].reshape(nx,ny)
+                if is_pv and pv_vis=="a":
+                    data_array[:,:,iz,frame]=data_array[:,:,iz,frame]-bety
 
             layer_min[iz]=min(layer_min[iz],np.min(data_array[:,:,iz,frame]))
             layer_max[iz]=max(layer_max[iz],np.max(data_array[:,:,iz,frame]))
@@ -126,6 +129,19 @@ with open('src/parameters.f90','r') as in_file:
 # Increase nx & ny by 1 to include boundary points:
 nx=nx+1
 ny=ny+1
+
+#=================================================================
+# Select total PV or PV anomaly:
+print()
+op_in = input(' View PV anomaly or total PV (a/t) (default a)? ')
+pv_vis = str(op_in or "a")
+if pv_vis == "a":
+    with open('src/parameters.f90','r') as in_file:
+        fread=in_file.readlines()
+        for line in fread:
+            if ':: beta=' in line:
+                beta=float(line.split("=")[1].split(",")[0])
+                bety=np.tile(beta*np.linspace(ymin,ymax,ny),(nx,1))
 
 # Read energy data to get final time in data:
 with open('evolution/energy.asc','r') as in_file:
@@ -175,8 +191,8 @@ N=nz*NH+1
 # Field titles over each column:
 field=['$\\psi$','$q$','$\\zeta$']
 
-min_vals=np.full((nz,3),0.0)
-max_vals=np.full((nz,3),0.0)
+min_vals=np.full((nz,ncol), np.inf)
+max_vals=np.full((nz,ncol),-np.inf)
 
 #=================================================================
 # Read streamfunction data into array for plotting:
@@ -187,12 +203,14 @@ with open('evolution/pp.r4','rb') as in_file:
 with open('evolution/qq.r4','rb') as in_file:
     qq_array=np.fromfile(in_file,dtype=np.float32)
 
-# Read vertical vorticity data into array for plotting:
+# Read relative vorticity data into array for plotting:
 with open('evolution/zz.r4','rb') as in_file:
     zz_array=np.fromfile(in_file,dtype=np.float32)
 
+nt=len(pp_array) // N
+
 min_vals[:,0],max_vals[:,0],pp_array=get_layer_min_max(pp_array)
-min_vals[:,1],max_vals[:,1],qq_array=get_layer_min_max(qq_array)
+min_vals[:,1],max_vals[:,1],qq_array=get_layer_min_max(qq_array,True)
 min_vals[:,2],max_vals[:,2],zz_array=get_layer_min_max(zz_array)
 
 im=[] # To store the images
@@ -204,8 +222,8 @@ clevels_arr=[[] for _ in range(nim)]
 
 for j in range(nim):
     ax[j].set_aspect('equal')
-    row=int(j/3)
-    col=j-3*row
+    row=int(j/ncol)
+    col=j-ncol*row
 
     # Work out the overall min/max values:
     zmin=min_vals[row,col]
@@ -268,12 +286,13 @@ if new_width != width or new_height != height:
 t=0.0
 while t<=tsim:
     frame=int(t/dtsave+0.5)
+    fig.suptitle(f"Time: {t:05.1f}", fontsize=24)
 
     for iz in range(nz):
-        k=3*iz
-        d[k  ,:,:]=pp_array[:,:,iz,frame]
-        d[k+1,:,:]=qq_array[:,:,iz,frame]
-        d[k+2,:,:]=zz_array[:,:,iz,frame]
+        i=ncol*iz
+        d[i  ,:,:]=pp_array[:,:,iz,frame]
+        d[i+1,:,:]=qq_array[:,:,iz,frame]
+        d[i+2,:,:]=zz_array[:,:,iz,frame]
 
     for j in range(nim):
         im[j].set_data(d[j].T)
