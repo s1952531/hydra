@@ -198,8 +198,8 @@ if ($bathymetry == "y") then
    set bathopt="2"
    echo ' (1) Random, with variance spectrum c k^{2p+1} exp[-p(k/k_0)^2],'
    echo ' (2) Random, with k^{-2} spectrum,'
-   echo ' (3) Periodic, of the form A sin(k(x-x_min)) sin(k(y-y_min)), or'
-   echo ' (4) Rotated elliptical-Gaussian shape in the domain centre.'
+   echo ' (3) Periodic, of the form A sin(k(x-x_min)) sin(k(y-y_min)),'
+   echo ' (4) Rotated elliptical-Gaussian shape in the domain centre, or'
    echo ' (5) Perturbed south-north mountain ridge centered around x=0.'
    echo -n ' Option - (default' $bathopt')? '
    set var=$<
