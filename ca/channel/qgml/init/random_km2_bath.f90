@@ -1,6 +1,6 @@
 program random_bath
 ! |-----------------------------------------------------------|
-! |      This routine sets up random bathymetry.              |
+! |      This routine sets up bathymetry with k^{-2}-spectrum.|
 ! |      Optionally, one can include a linear slope in y.     |
 ! |-----------------------------------------------------------|
 

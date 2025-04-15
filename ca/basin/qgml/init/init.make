@@ -35,6 +35,9 @@ random_bath: $(fft_lib) $(objects) $(sourcedir)/init/random_bath.f90
 random_km2_bath: $(fft_lib) $(objects) $(sourcedir)/init/random_km2_bath.f90
 	$(f90) $(fft_lib) parameters.o constants.o $(sourcedir)/init/random_km2_bath.f90 -o random_km2_bath $(flags)
 
+perturbed_ridge_bath: $(fft_lib) $(objects) $(sourcedir)/init/perturbed_ridge_bath.f90
+	$(f90) $(fft_lib) parameters.o constants.o $(sourcedir)/init/perturbed_ridge_bath.f90 -o perturbed_ridge_bath $(flags)
+
  # Suppress output apart from errors and warnings:
 .SILENT:
 

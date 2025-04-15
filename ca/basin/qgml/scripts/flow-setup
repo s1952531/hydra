@@ -200,6 +200,7 @@ if ($bathymetry == "y") then
    echo ' (2) Random, with k^{-2} spectrum,'
    echo ' (3) Periodic, of the form A sin(k(x-x_min)) sin(k(y-y_min)), or'
    echo ' (4) Rotated elliptical-Gaussian shape in the domain centre.'
+   echo ' (5) Perturbed south-north mountain ridge centered around x=0.'
    echo -n ' Option - (default' $bathopt')? '
    set var=$<
    if ($var != "") set bathopt=$var
@@ -320,6 +321,41 @@ if ($bathymetry == "y") then
       echo ' a:                                  ' $ael >> job_info
       echo ' b:                                  ' $bel >> job_info
       echo ' Angle rotated through (degrees):    ' $phi >> job_info
+
+   else if ($bathopt == "5") then
+      echo ' ' >> job_info
+      echo ' Pertubed ridge-type topography' >> job_info
+      set bathgen = "perturbed_ridge_bath"
+      set rms = "1.0"
+      set slope = "0.0"
+      set width = "0.2"
+      set height = "10.0"
+
+      echo -n ' rms background noise amplitude (default' $rms')? '
+      set var=$<
+      if ($var != "") set rms=$var
+
+      echo -n ' Mean slope in y (default' $slope')? '
+      set var=$<
+      if ($var != "") set slope=$var
+
+      echo -n ' Width of the ridge (default' $width')?'
+      set var=$<
+      if ($var != "") set width=$var
+
+      echo -n ' Height of the ridge (default' $height')?'
+      set var=$<
+      if ($var != "") set height=$var
+
+      echo $rms >> in_$bathgen
+      echo $slope >> in_$bathgen
+      echo $width >> in_$bathgen
+      echo $height >> in_$bathgen
+
+      echo ' rms field amplitude:                ' $rms >> job_info
+      echo ' Mean slope in y:                    ' $slope >> job_info
+      echo ' Width parameter of Gaussian ridge:  ' $width >> job_info
+      echo ' Height parameter of Gaussian ridge: ' $height >> job_info
 
    else
       echo ' Not a valid choice - exiting...'
@@ -577,6 +613,7 @@ $datagen < in_$datagen > out_$datagen
 /bin/cp $bindir/fox.slurm .
 /bin/cp $bindir/image.py .
 /bin/cp $bindir/image_sequence.py .
+/bin/cp $bindir/p_temporal_avg.py .
 /bin/cp $bindir/pbath.py .
 /bin/cp $bindir/penergy.py .
 /bin/cp $bindir/pzetanorms.py .
