@@ -1,6 +1,7 @@
 program random_bath
 ! |-----------------------------------------------------------|
-! |      This routine sets up bathymetry with k^{-2}-spectrum.|
+! |      This routine sets up a single SN-ridge bathymetry    |
+! |      perturbed by random data with k^{-2}-spectrum.       |
 ! |      Optionally, one can include a linear slope in y.     |
 ! |-----------------------------------------------------------|
 
@@ -20,7 +21,7 @@ double precision:: ss(nxe,nye)
 double precision:: br(0:ny,0:nx)
 double precision:: hrkx(nxe),hrky(nye),rkx(nxe),rky(nye)
 double precision:: xtrig(2*nxe),ytrig(2*nye)
-double precision:: fac,s,rms,amp,k2,phase,slope
+double precision:: fac,s,rms,amp,k2,phase,slope,width,height
 
 integer:: xfactors(5),yfactors(5)
 integer:: kx,ky,k,i,ix,iy
@@ -57,12 +58,16 @@ rky(nwy+1)=hrky(nye)
 
 !-----------------------------------------------------
  !Compute k^{-2} random field:
-write(*,*) ' Generating a k^{-2} random field.'
-write(*,*) ' Enter the rms value of the field (determines scaling factor):'
+write(*,*) ' Generating a pertubed ridge-type topography.'
+write(*,*) ' Enter the rms value of the perturbation (determines scaling factor):'
 read(*,*) rms
 write(*,*) ' This field is superposed on top of a linear sloping'
-write(*,*) ' bathymetry in y with zero mean height. Enter the slope:'
+write(*,*) ' bathymetry in y with zero mean height and a south-north ridge. Enter the slope:'
 read(*,*) slope
+write(*,*) ' Enter the width of the ridge:'
+read(*,*) width
+write(*,*) ' Enter the height of the ridge:'
+read(*,*) height
 
  !Generate spectrum:
 do ky=1,nwy+1
@@ -94,10 +99,11 @@ fac=sqrt(sum(bb**2)/dble(nxe*nye))
 fac=rms/fac
 bb=fac*bb
 
-! Add uniform sloping part in y:
+! Add uniform sloping part in y and Gaussian ridge centered around x=0:
 do ix=0,nx
   do iy=0,ny
-    br(iy,ix)=bb(iy+1,ix+1)+slope*(ycen+gly*dble(iy))
+    br(iy,ix)=bb(iy+1,ix+1)+slope*(ycen+gly*dble(iy)) &
+                           +height*exp(-((glx*dble(0.5*nx-ix)-xcen)/width)**2.0)
   enddo
 enddo
 
