@@ -65,7 +65,7 @@ with open('evolution/qq.r4','rb') as in_file:
 
 # Open output file:
 diag_file = open('evolution/far.asc','w+')
-    
+
 # Loop over all times in the data:
 for frame in range(nt):
     print(time[frame], file=diag_file)
@@ -75,8 +75,8 @@ for frame in range(nt):
     offset=frame*N
     for iz in range(nz):
         # Extract PV field in each layer:
-        q[:]=qq_array[offset+iz*NH+1:offset+(iz+1)*NH+1]
-    
+        q=qq_array[offset+iz*NH+1:offset+(iz+1)*NH+1]
+
         # Compute min/max values of PV:
         qmin=np.min(q)
         qmax=np.max(q)
@@ -96,7 +96,7 @@ for frame in range(nt):
             farea[k]+=da # da = 1/NH
 
         # Form cumulative PDF:
-        for k in range(1:nq+1):
+        for k in range(nq+1):
             farea[k]+=farea[k-1]
 
         # Write data for this iz:
