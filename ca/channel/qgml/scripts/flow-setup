@@ -134,7 +134,7 @@ end
 #==========================================================================
 # Choose horizontal domain dimensions:
 
-set lxdpi = "2"     # Default domain width in x (L_x), divided by pi
+set lxdpi = "2.0"     # Default domain width in x (L_x), divided by pi
 set aspect = "0.5"    # Default domain aspect ratio (L_y/L_x)
 
 echo
@@ -265,7 +265,7 @@ if ($bathymetry == "y") then
       echo ' ' >> job_info
       echo ' Periodic bathymetry, of the form A sin(k(x-x_min)) sin(k(y-y_min))' >> job_info
       set bathgen = "sine_bath"
-      set amp = "0.2"
+      set amp = "2.0"
       set k_bath = "5.0"
 
       echo -n ' A (default' $amp')? '
@@ -360,7 +360,7 @@ if ($dataopt == "1") then
    touch in_$datagen
 
    echo
-   set noise_lvl = "0.0"
+   set noise_lvl = "0.01"
 
    echo -n ' noise_lvl (default' $noise_lvl')? '
    set var=$<
@@ -468,7 +468,7 @@ while ($lay <= $nz)
 end
 
 # Planetary vorticity gradient:
-set beta="1.0"
+set beta="10.0"
 echo
 echo -n ' Planetary vorticity gradient, beta (default' $beta')? '
 set var=$<
@@ -529,7 +529,7 @@ if ($thermal == "y") then
    echo
    echo ' Thermal damping adds c*(q_1 + K_1^2 H U_1 y / H_1) to Dq_1/Dt'
    echo ' and c*(q_2 - K_2^2 H U_1 y / H_2) to Dq_2/Dt.'
-   set ctherm="0.1"
+   set ctherm="0.0001"
    echo -n ' Damping rate, c (default' $ctherm')? '
    set var=$<
    if ($var != "") set ctherm=$var
@@ -546,20 +546,20 @@ endif
 # Choose data save frequencies and simulation duration:
 
 echo
-set tgsave="10.0"
+set tgsave="0.8"
 echo -n ' Time interval between gridded data saves (default' $tgsave')? '
 set var=$<
 if ($var != "") set tgsave=$var
 echo ' ' >> job_info
 echo ' Time interval between data saves:   ' $tgsave >> job_info
 
-set tcsave="100.0"   # Contour data save time increment
+set tcsave="1000.0"   # Contour data save time increment
 echo -n ' Time interval between contour data saves (default' $tcsave')? '
 set var=$<
 if ($var != "") set tcsave=$var
 echo ' Time interval between contour saves:' $tcsave >> job_info
 
-set tsim="2000.0"
+set tsim="400.0"
 echo -n ' Total simulation time (default' $tsim')? '
 set var=$<
 if ($var != "") set tsim=$var
@@ -631,6 +631,7 @@ $datagen < in_$datagen > out_$datagen
 /bin/cp $bindir/pbath.py .
 /bin/cp $bindir/penergy.py .
 /bin/cp $bindir/pzetanorms.py .
+/bin/cp $bindir/zonal_avg_evol.py .
 
 #==========================================================================
 # Create a directory named after the data generation script:

@@ -28,7 +28,7 @@ read(*,*) k_bath
 do ix=0,nxm1
    do iy=0,ny
       bb(iy,ix)=amp*sin(k_bath*(xmin+glx*dble(ix)))* &
-                    sin(k_bath*(ymin+gly*dble(iy)))
+                    sin(2.0*k_bath*(ymin+gly*dble(iy)))
    enddo
 enddo
 

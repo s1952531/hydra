@@ -40,7 +40,7 @@ bb_array = bb_array[0:nx*ny]
 bb_array = bb_array.reshape((ny, nx))
 
 fig, ax = plt.subplots(figsize=(8, 6))
-bbi = ax.imshow( bb_array.T, cmap=cm.seismic, vmin=bb_array.min(), vmax=bb_array.max(),
+bbi = ax.imshow( bb_array.T, cmap=cm.jet, vmin=bb_array.min(), vmax=bb_array.max(),
                  extent=(xmin, xmax, ymin, ymax), origin='lower', interpolation='bilinear' )
 cbar = fig.colorbar(bbi, ax=ax)
 ax.set_xlabel('$x$', fontsize=20)

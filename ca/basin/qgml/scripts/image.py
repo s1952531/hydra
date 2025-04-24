@@ -289,7 +289,7 @@ for j in range(nim):
     clevels=np.linspace(dz*float(jmin),dz*float(jmax),jmax-jmin+1)
 
     # Plot the image in an array with an optional colourbar:
-    im1=ax1.imshow(Z.T,cmap=cm.seismic,vmin=zmin,vmax=zmax,extent=(xmin,xmax,ymin,ymax),origin='lower',interpolation='bilinear')
+    im1=ax1.imshow(Z.T,cmap=cm.jet,vmin=zmin,vmax=zmax,extent=(xmin,xmax,ymin,ymax),origin='lower',interpolation='bilinear')
     divider = make_axes_locatable(ax1)
     cax = divider.append_axes("right", size="4%", pad=0.1)
     cbar=fig.colorbar(im1, cax=cax, ticks=clevels)

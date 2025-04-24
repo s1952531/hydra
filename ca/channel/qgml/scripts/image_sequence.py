@@ -6,6 +6,7 @@
 #  @@@@   Run from the current job directory   @@@@
 
 #========== Perform the generic imports =========
+import sys
 import warnings
 import numpy as np
 import matplotlib.pyplot as plt
@@ -103,6 +104,24 @@ def get_layer_min_max(field_data,is_pv=False):
 
     return layer_min,layer_max,data_array
 
+# Ensure the script is called with the correct number of arguments
+if len(sys.argv) != 3:
+    print("Usage: python image_sequence.py <PV option: a/t> <View option: l/m>")
+    sys.exit(1)
+
+# Read the arguments
+pv_vis = sys.argv[1].lower()  # First argument: PV option ('a' or 't')
+option = sys.argv[2].lower()  # Second argument: View option ('l' or 'm')
+
+# Validate the arguments
+if pv_vis not in ['a', 't']:
+    print("Error: PV option must be 'a' (anomaly) or 't' (total).")
+    sys.exit(1)
+
+if option not in ['l', 'm']:
+    print("Error: View option must be 'l' (layers) or 'm' (modes).")
+    sys.exit(1)
+
 #-------------------------------------------------
 # Work out x & y limits, grid resolution (nx, ny & nz),
 # and data save interval by reading parameters.f90:
@@ -130,11 +149,6 @@ ymin=-ymax
 # Increase ny by 1 to include boundary points:
 ny=ny+1
 
-#=================================================================
-# Select total PV or PV anomaly:
-print()
-op_in = input(' View PV anomaly or total PV (a/t) (default a)? ')
-pv_vis = str(op_in or "a")
 if pv_vis == "a":
     with open('src/parameters.f90','r') as in_file:
         fread=in_file.readlines()
@@ -147,12 +161,6 @@ if pv_vis == "a":
 with open('evolution/energy.asc','r') as in_file:
     time,ekin,epot,etot=np.loadtxt(in_file,dtype=float,unpack=True)
 tsim=time[-1]
-
-#=================================================================
-# Select layer or modes view:
-print()
-op_in = input(' View layers or modes (l/m) (default l)? ')
-option = str(op_in or "l")
 
 # Read in vertical mode matrix if required:
 vec=np.empty((nz,nz))
@@ -257,7 +265,7 @@ for j in range(nim):
         ax[j].set_title(field[col],fontsize=36)
 
     # Initialize imshow with placeholder data
-    img=ax[j].imshow( np.zeros((nx,ny)).T,cmap=cm.seismic,vmin=zmin_arr[j],vmax=zmax_arr[j],
+    img=ax[j].imshow( np.zeros((nx,ny)).T,cmap=cm.jet,vmin=zmin_arr[j],vmax=zmax_arr[j],
                       extent=(xmin,xmax,ymin,ymax),origin='lower',interpolation='bilinear' )
 
     # Create colorbar for each subplot (only once)
@@ -289,10 +297,10 @@ while t<=tsim:
     fig.suptitle(f"Time: {t:05.1f}", fontsize=24)
 
     for iz in range(nz):
-        k=ncol*iz
-        d[k  ,:,:]=pp_array[:,:,iz,frame]
-        d[k+1,:,:]=qq_array[:,:,iz,frame]
-        d[k+2,:,:]=zz_array[:,:,iz,frame]
+        i=ncol*iz
+        d[i  ,:,:]=pp_array[:,:,iz,frame]
+        d[i+1,:,:]=qq_array[:,:,iz,frame]
+        d[i+2,:,:]=zz_array[:,:,iz,frame]
 
     for j in range(nim):
         im[j].set_data(d[j].T)

@@ -271,7 +271,7 @@ for j in range(nim):
         ax[j].set_title(field[col],fontsize=36)
 
     # Initialize imshow with placeholder data
-    img=ax[j].imshow( d[j,:,:].T,cmap=cm.seismic,vmin=zmin_arr[j],vmax=zmax_arr[j],
+    img=ax[j].imshow( d[j,:,:].T,cmap=cm.jet,vmin=zmin_arr[j],vmax=zmax_arr[j],
                       extent=(xmin,xmax,ymin,ymax),origin='lower',interpolation='bilinear' )
 
     # Create colorbar for each subplot (only once)

@@ -32,18 +32,17 @@ ymin=-ymax
 ny=ny+1
 
 with open('bath.r8', 'rb') as in_file:
-    # Assuming the first value is 'zero' and the rest is the bb array
-    zero = np.fromfile(in_file, dtype=np.float64, count=1)
-    bb_array = np.fromfile(in_file, dtype=np.float64)
+    zero=np.fromfile(in_file,dtype=np.float64,count=1)[0]
+    bb_array=np.fromfile(in_file,dtype=np.float64)
 
-bb_array = bb_array[0:nx*ny]
-bb_array = bb_array.reshape((ny, nx))
+# bb_array now contains ny*nx values, matching Fortran's (ny+1) x nx grid
+bb_array=bb_array.reshape((ny, nx), order='F')  # Fortran order
 
-fig, ax = plt.subplots(figsize=(8, 6))
-bbi = ax.imshow( bb_array.T, cmap=cm.seismic, vmin=bb_array.min(), vmax=bb_array.max(),
-                 extent=(xmin, xmax, ymin, ymax), origin='lower', interpolation='bilinear' )
-cbar = fig.colorbar(bbi, ax=ax)
-ax.set_xlabel('$x$', fontsize=20)
-ax.set_ylabel('$y$', fontsize=20)
-ax.set_title("Bathymetry", fontsize=36)
-plt.savefig("bath.png", dpi=150)
+fig,ax=plt.subplots(figsize=(8,6))
+bbi=ax.imshow(bb_array.T,cmap=cm.jet,vmin=bb_array.min(),vmax=bb_array.max(),
+              extent=(xmin,xmax,ymin,ymax),origin='lower',interpolation='bilinear')
+cbar=fig.colorbar(bbi,ax=ax)
+ax.set_xlabel('$x$',fontsize=20)
+ax.set_ylabel('$y$',fontsize=20)
+ax.set_title("Bathymetry",fontsize=36)
+plt.savefig("bath.png",dpi=150)
