@@ -23,6 +23,7 @@
 import sys
 import warnings
 import numpy as np
+import matplotlib.pyplot as plt
 
 #-------------------------------------------------------
 # Extract nx, ny, nz and ncontq from src/parameters.f90:
@@ -63,6 +64,43 @@ nt=len(time)
 with open('evolution/qq.r4','rb') as in_file:
     qq_array=np.fromfile(in_file,dtype=np.float32)
 
+print(' Determining min/max values for each layer.')
+
+global_farea_min = float('inf')
+global_farea_max = float('-inf')
+
+global_qmin = [float('inf')] * nz
+global_qmax = [float('-inf')] * nz
+
+for frame in range(nt):
+    offset=frame*N
+    for iz in range(nz):
+        q = qq_array[offset + iz * NH + 1:offset + (iz + 1) * NH + 1]
+        qmin = np.min(q)
+        qmax = np.max(q)
+        global_qmin[iz] = min(global_qmin[iz], qmin)
+        global_qmax[iz] = max(global_qmax[iz], qmax)
+
+        dq = (qmax - qmin) / float(nq)
+        dqi = 1.0 / dq
+
+        qmin = qmin - dq / 2.0
+        qmax = qmax + dq / 2.0
+
+        farea = np.zeros([nq + 1])
+        for i in range(NH):
+            k = int(dqi * (q[i] - qmin))
+            farea[k] += da
+
+        for k in range(1, nq + 1):
+            farea[k] += farea[k - 1]
+
+        global_farea_min = min(global_farea_min, np.min(farea))
+        global_farea_max = max(global_farea_max, np.max(farea))
+
+qmax_values = [[] for _ in range(nz)]
+qmin_values = [[] for _ in range(nz)]
+
 # Open output file:
 diag_file = open('evolution/far.asc','w+')
 
@@ -70,6 +108,9 @@ diag_file = open('evolution/far.asc','w+')
 for frame in range(nt):
     print(time[frame], file=diag_file)
     print(' Processing t =',time[frame])
+
+    # Create a new figure for this time frame:
+    plt.figure(figsize=(10,5*nz))
 
     # Process each layer in turn:
     offset=frame*N
@@ -80,6 +121,9 @@ for frame in range(nt):
         # Compute min/max values of PV:
         qmin=np.min(q)
         qmax=np.max(q)
+
+        qmin_values[iz].append(qmin)
+        qmax_values[iz].append(qmax)
 
         dq=(qmax-qmin)/float(nq)
         dqi=1.0/dq
@@ -101,6 +145,31 @@ for frame in range(nt):
 
         # Write data for this iz:
         print(farea, file=diag_file)
+
+        # Plot farea for this layer and time frame:
+        plt.subplot(nz,2,iz*2+1)
+        plt.plot(range(nq + 1), farea)
+        plt.xlabel('Threshold Index')
+        plt.ylabel('Fractional Area')
+        plt.title(f'farea at t={time[frame]:.2f}, Layer {iz + 1}')
+        plt.xlim(0, nq)
+        plt.ylim(global_farea_min, global_farea_max)
+        plt.grid()
+
+        # Plot qmax and qmin evolution for all layers:
+        plt.subplot(nz,2,iz*2+2)
+        plt.plot(time[:frame + 1], qmax_values[iz])
+        plt.plot(time[:frame + 1], qmin_values[iz])
+        plt.xlabel('Time')
+        plt.ylabel('qmax / qmin')
+        plt.title('Evolution of qmax and qmin')
+        plt.xlim(time[0], time[-1])
+        plt.ylim(global_qmin[iz], global_qmax[iz])
+
+    # Save the plot for this time frame:
+    plt.tight_layout()
+    plt.savefig(f'{frame:04d}.png')
+    plt.close()
 
 diag_file.close()
 

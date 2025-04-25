@@ -613,6 +613,7 @@ $datagen < in_$datagen > out_$datagen
 /bin/cp $bindir/fox.slurm .
 /bin/cp $bindir/image.py .
 /bin/cp $bindir/image_sequence.py .
+/bin/cp $bindir/measure.py .
 /bin/cp $bindir/p_temporal_avg.py .
 /bin/cp $bindir/pbath.py .
 /bin/cp $bindir/penergy.py .
