@@ -11,12 +11,14 @@ import warnings
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-import matplotlib.cm as cm
 import matplotlib as mpl
 from matplotlib import rcParams
 from matplotlib import rc
 rcParams.update({'figure.autolayout': True})
 warnings.simplefilter("ignore",DeprecationWarning)
+import os
+sys.path.append(os.path.expandvars('${HOME}/hydra/lib/'))
+from wbgyr import cmap_wbgyr
 
 # Ensure latex fonts throughout:
 rc('font',**{'family': 'Times New Roman'})
@@ -265,7 +267,7 @@ for j in range(nim):
         ax[j].set_title(field[col],fontsize=36)
 
     # Initialize imshow with placeholder data
-    img=ax[j].imshow( np.zeros((nx,ny)).T,cmap=cm.jet,vmin=zmin_arr[j],vmax=zmax_arr[j],
+    img=ax[j].imshow( np.zeros((nx,ny)).T,cmap=cmap_wbgyr(),vmin=zmin_arr[j],vmax=zmax_arr[j],
                       extent=(xmin,xmax,ymin,ymax),origin='lower',interpolation='bilinear' )
 
     # Create colorbar for each subplot (only once)

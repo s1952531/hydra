@@ -13,12 +13,14 @@ import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.artist import setp
-import matplotlib.cm as cm
 import matplotlib as mpl
 from matplotlib import rcParams
 from matplotlib import rc
 rcParams.update({'figure.autolayout': True})
 warnings.simplefilter("ignore",DeprecationWarning)
+import os
+sys.path.append(os.path.expandvars('${HOME}/hydra/lib/'))
+from wbgyr import cmap_wbgyr
 
 # Ensure latex fonts throughout:
 rc('font',**{'family': 'Times New Roman'})
@@ -289,7 +291,7 @@ for j in range(nim):
     clevels=np.linspace(dz*float(jmin),dz*float(jmax),jmax-jmin+1)
 
     # Plot the image in an array with an optional colourbar:
-    im1=ax1.imshow(Z.T,cmap=cm.jet,vmin=zmin,vmax=zmax,extent=(xmin,xmax,ymin,ymax),origin='lower',interpolation='bilinear')
+    im1=ax1.imshow(Z.T,cmap=cmap_wbgyr(),vmin=zmin,vmax=zmax,extent=(xmin,xmax,ymin,ymax),origin='lower',interpolation='bilinear')
     divider = make_axes_locatable(ax1)
     cax = divider.append_axes("right", size="4%", pad=0.1)
     cbar=fig.colorbar(im1, cax=cax, ticks=clevels)

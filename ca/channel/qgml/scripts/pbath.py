@@ -7,7 +7,9 @@
 #========== Perform the generic imports =========
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib import cm
+import os
+sys.path.append(os.path.expandvars('${HOME}/hydra/lib/'))
+from wbgyr import cmap_wbgyr
 
 #-------------------------------------------------
 # Work out x & y limits and grid resolution (nx, ny) by reading parameters.f90:
@@ -36,10 +38,10 @@ with open('bath.r8', 'rb') as in_file:
     bb_array=np.fromfile(in_file,dtype=np.float64)
 
 # bb_array now contains ny*nx values, matching Fortran's (ny+1) x nx grid
-bb_array=bb_array.reshape((ny, nx), order='F')  # Fortran order
+bb_array=bb_array.reshape((ny,nx),order='F') # Fortran order
 
 fig,ax=plt.subplots(figsize=(8,6))
-bbi=ax.imshow(bb_array.T,cmap=cm.jet,vmin=bb_array.min(),vmax=bb_array.max(),
+bbi=ax.imshow(bb_array.T,cmap=cmap_wbgyr(),vmin=bb_array.min(),vmax=bb_array.max(),
               extent=(xmin,xmax,ymin,ymax),origin='lower',interpolation='bilinear')
 cbar=fig.colorbar(bbi,ax=ax)
 ax.set_xlabel('$x$',fontsize=20)
