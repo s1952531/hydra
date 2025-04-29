@@ -79,7 +79,7 @@ set pi=3.14159265358979323846
 #==========================================================================
 # Choose number of layers and set up vertical structure:
 
-set nz = "3"        # Default number of layers
+set nz = "2"        # Default number of layers
 echo
 echo -n ' Number of layers (default' $nz')? '
 set var=$<
@@ -102,7 +102,7 @@ echo
 set a=`echo "0.8 / ( $nz * (1.0 - $nz) )" | bc -l`
 set b=`echo "2.0 * ( 1.0 + 0.8 / ($nz - 1) ) / ( $nz * ($nz + 1) )" | bc -l`
 # Inverse lengths K_i = i*c, i = 1 ... nz
-set c=1.0
+set c=10.0
 
 echo ' ' >> job_info
 touch vertical.asc
@@ -133,8 +133,8 @@ end
 #==========================================================================
 # Choose horizontal domain dimensions:
 
-set lxdpi = "2"     # Default domain width in x (L_x), divided by pi
-set aspect = "1"    # Default domain aspect ratio (L_y/L_x)
+set lxdpi = "2.0"     # Default domain width in x (L_x), divided by pi
+set aspect = "1.0"    # Default domain aspect ratio (L_y/L_x)
 
 echo
 echo ' We take the width of the domain (in x) to be L_x = '$lxdpi'*pi.'
@@ -156,7 +156,7 @@ echo ' Width of the domain in y, L_y:      ' $elly >> job_info
 #==========================================================================
 # Choose horizontal resolution and number of PV levels:
 
-set nx = "512"      # Default inversion grid resolution in x (east - west)
+set nx = "256"      # Default inversion grid resolution in x (east - west)
 echo
 echo -n ' Grid resolution in x (default' $nx')? '
 set var=$<
@@ -265,8 +265,8 @@ if ($bathymetry == "y") then
       echo ' ' >> job_info
       echo ' Periodic bathymetry, of the form A sin(k(x-x_min)) sin(k(y-y_min))' >> job_info
       set bathgen = "sine_bath"
-      set amp = "0.2"
-      set k_bath = "5"
+      set amp = "2.0"
+      set k_bath = "5.0"
 
       echo -n ' A (default' $amp')? '
       set var=$<
@@ -326,10 +326,10 @@ if ($bathymetry == "y") then
       echo ' ' >> job_info
       echo ' Pertubed ridge-type topography' >> job_info
       set bathgen = "perturbed_ridge_bath"
-      set rms = "1.0"
+      set rms = "100.0"
       set slope = "0.0"
       set width = "0.2"
-      set height = "10.0"
+      set height = "1000.0"
 
       echo -n ' rms background noise amplitude (default' $rms')? '
       set var=$<
@@ -339,11 +339,11 @@ if ($bathymetry == "y") then
       set var=$<
       if ($var != "") set slope=$var
 
-      echo -n ' Width of the ridge (default' $width')?'
+      echo -n ' Width of the ridge (default' $width')? '
       set var=$<
       if ($var != "") set width=$var
 
-      echo -n ' Height of the ridge (default' $height')?'
+      echo -n ' Height of the ridge (default' $height')? '
       set var=$<
       if ($var != "") set height=$var
 
@@ -444,7 +444,7 @@ else if ($dataopt == "3") then
    echo
    echo ' We consider the upper layer streamfunction psi1(x,y) = A sin(kx) cos(ly).'
 
-   set k_psi1 = "2"
+   set k_psi1 = "2.0"
    set l_psi1 = "0.5"
    set amp_psi1 = "1.0"
 
@@ -478,7 +478,7 @@ endif
 # Choose main physical parameters:
 
 # Planetary vorticity gradient:
-set beta="1.0"
+set beta="10.0"
 echo
 echo -n ' Planetary vorticity gradient, beta (default' $beta')? '
 set var=$<
@@ -495,7 +495,7 @@ set var=$<
 if ($var != "") set friction=$var
 
 if ($friction == "y") then
-   set rekman="0.02"
+   set rekman="0.1"
    echo -n ' Damping rate (default' $rekman')? '
    set var=$<
    if ($var != "") set rekman=$var
@@ -516,7 +516,7 @@ if ($var != "") set wind=$var
 if ($wind == "y") then
    echo
    echo ' Wind stress adds a*sin(2*pi*(y-y_min)/L_y) to the upper-layer PV tendency.'
-   set fwind="0.04"
+   set fwind="-1.0"
    echo -n ' Amplitude, a (default' $fwind')? '
    set var=$<
    if ($var != "") set fwind=$var
@@ -532,20 +532,20 @@ endif
 # Choose data save frequencies and simulation duration:
 
 echo
-set tgsave="10.0"
+set tgsave="0.5"
 echo -n ' Time interval between gridded data saves (default' $tgsave')? '
 set var=$<
 if ($var != "") set tgsave=$var
 echo ' ' >> job_info
 echo ' Time interval between data saves:   ' $tgsave >> job_info
 
-set tcsave="100.0"   # Contour data save time increment
+set tcsave="1000.0"   # Contour data save time increment
 echo -n ' Time interval between contour data saves (default' $tcsave')? '
 set var=$<
 if ($var != "") set tcsave=$var
 echo ' Time interval between contour saves:' $tcsave >> job_info
 
-set tsim="2000.0"
+set tsim="250.0"
 echo -n ' Total simulation time (default' $tsim')? '
 set var=$<
 if ($var != "") set tsim=$var
