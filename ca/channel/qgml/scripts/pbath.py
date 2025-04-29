@@ -5,9 +5,9 @@
 #  @@@@   Run from the current job directory   @@@@
 
 #========== Perform the generic imports =========
+import sys,os,warnings
 import numpy as np
 import matplotlib.pyplot as plt
-import os
 sys.path.append(os.path.expandvars('${HOME}/hydra/lib/'))
 from wbgyr import cmap_wbgyr
 

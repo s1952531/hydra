@@ -6,8 +6,7 @@
 #  @@@@   Run from the current job directory   @@@@
 
 #========== Perform the generic imports =========
-import sys
-import warnings
+import sys,os,warnings
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -16,7 +15,6 @@ from matplotlib import rcParams
 from matplotlib import rc
 rcParams.update({'figure.autolayout': True})
 warnings.simplefilter("ignore",DeprecationWarning)
-import os
 sys.path.append(os.path.expandvars('${HOME}/hydra/lib/'))
 from wbgyr import cmap_wbgyr
 
