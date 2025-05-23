@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python3
 
 # Code to read two text files formatted in columns 
 # with an unknown number of columns of float data.
