@@ -179,7 +179,7 @@ else if ($domopt == "2") then
    # Run a python script (calling MATLAB) to generate conformal map:
    # (make sure we use python3):
    set path=(/opt/python/miniconda/bin /opt/python/miniconda $path)
-   python $bindir/{$domgen}_matlab.py
+   python3 $bindir/{$domgen}_matlab.py
 
    # Extract grid resolution (resolution.asc):
    set dum = `head -1 resolution.asc`

@@ -124,7 +124,7 @@ write(*,*) ' The results are ready in davg.asc, havg.asc & uavg.asc.'
 write(*,*)
 write(*,*) ' Plot average displacement dphi, h and u by typing'
 write(*,*)
-write(*,*) ' python analyse.py'
+write(*,*) ' python3 analyse.py'
 write(*,*)
 
 end program profile
