@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots the PV field at selected times (specified below
 # in the datasets) from images created using genfg.

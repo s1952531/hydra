@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots the kinetic, potential and total energy from data
 # in ecomp.asc in the SW, GN and 3D directories specified below.

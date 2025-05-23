@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots xz cross sections at y = 0 of b, zeta and v
 # from data in 3d/bb.r4, bz.r4 and bv.r4.

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots the results in davg.asc and uavg.asc, created by
 # profile.f90 (which reads data created by pam.f90).

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #=====perform various generic imports=====
 import sys,os,shutil,warnings

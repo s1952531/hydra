@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #=====================================================================
 #   Animates data in any .r4 file over a selected time range

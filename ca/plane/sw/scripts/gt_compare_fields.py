@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots the fields for a selected field, and either the
 # full field, the balanced field, or the imbalanced field.  Compares

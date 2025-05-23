@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots the PV field at a selected time or frame
 # from fine-grid data created using genfg.

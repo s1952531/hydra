@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #==========================================================================
 #   Imaging routine superposing field lines (contours of the potential A)

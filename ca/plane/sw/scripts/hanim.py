@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #=====================================================================
 #   Animates h(x,0,t) for x > 0

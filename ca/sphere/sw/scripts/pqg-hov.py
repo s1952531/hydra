@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots data in hovg.r8, containing dq_bar/dphi(t,phi).
 

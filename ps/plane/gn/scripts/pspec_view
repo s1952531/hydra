@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots spectra for zeta, delta and P_n from data
 # in pn-spectra.asc.

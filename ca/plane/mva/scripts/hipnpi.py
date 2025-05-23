@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script compared h_i, p_n and P_i at a chosen time.
 

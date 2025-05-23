@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots xz cross sections at y = 0 of b, zeta, static
 # stability and u from data in 3d/qgb.r4, qgz.r4, qgg.r4 and qgu.r4.

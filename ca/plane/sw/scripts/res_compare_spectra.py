@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots spectra for height, vorticity, divergence and 
 # acceleration divergence from data in spectra.asc and alt-spectra.asc 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots a chosen field for data at three times in
 # several separate directories --- specified below.

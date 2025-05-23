@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 #--------------------------------------------------------------------
 # This script calculates the PV measure in each layer, defined to be

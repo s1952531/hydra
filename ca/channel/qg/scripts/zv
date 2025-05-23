@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This code is for plotting up the results of the post-processing
 # routine zonal.f90. It opens the parameters.f90 file it expects to be located

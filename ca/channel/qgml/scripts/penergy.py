@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 #=====================================================================
 # Plots the kinetic, potential and total energy as a function of time.

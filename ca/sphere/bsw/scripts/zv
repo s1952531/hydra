@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots zonal averages for a chosen quantity.
 # *** zonal must be run first to generate the data ***

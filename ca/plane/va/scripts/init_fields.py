@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots the initial PV, delta and gamma fields in the
 # current directory.

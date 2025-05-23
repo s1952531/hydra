@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots the rms differences between SW and 3D, and between
 # GN and 3D, for the fields of delta, zeta, gamma and h.

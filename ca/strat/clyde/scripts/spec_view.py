@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import subprocess as sbpc
 import sys
 sys.path.append('/user/stuart/hydra/scripts/modules')

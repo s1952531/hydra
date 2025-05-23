@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots the surface horizontal vorticity field
 # from data in 3d/ox.r4 and oy.r4.

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #Program to call a matlab function from python and save the data 23 May 2019:
 
 #WARNING! Uses Python3.0 or above. 

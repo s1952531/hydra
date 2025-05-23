@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots data in qq.r4, qa.r4, qe.r4 or qo.r4,
 # the latter three obtained after running pvsep.f90.

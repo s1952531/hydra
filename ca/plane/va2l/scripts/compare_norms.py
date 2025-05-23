@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots the full, balanced or imbalanced rms field values 
 # for h, zeta, delta and gamma from data in ?norms.asc in 4 separate 

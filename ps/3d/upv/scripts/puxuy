@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots the surface velocity field from data in
 # 3d/ux.r4 & uy.r4.

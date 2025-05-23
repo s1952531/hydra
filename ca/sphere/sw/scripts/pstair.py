@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots qbar & q_e vs phi as well as ubar vs phi side by side
 

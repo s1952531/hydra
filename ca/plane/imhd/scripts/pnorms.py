@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots <q^2> and <j^2> from data in evolution/norms.asc
 

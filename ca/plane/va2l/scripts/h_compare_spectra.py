@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots spectra for the height anomaly from data in 
 # 4 separate directories specified below.

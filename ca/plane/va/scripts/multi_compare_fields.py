@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots a chosen field (either full, balanced or imbalanced)
 # for data at three times in 2 separate directories, as indicated below.

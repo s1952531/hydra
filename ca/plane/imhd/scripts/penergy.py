@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots the energy components E_u, E_b and their sum
 # from data in evolution/ecomp.asc

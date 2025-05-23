@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots spectra for f*zeta, c^2*Lap(h_tilde) and gamma from data
 # in spectra.asc.

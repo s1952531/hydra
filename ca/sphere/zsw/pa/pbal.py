@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots the balanced profiles of d, h, u & zeta for all data
 # in a chosen directory (see default parameters below)

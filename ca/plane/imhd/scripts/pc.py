@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This plots the contours in pvcont.dat, e.g. those previously generated
 # by "tracer" (see post/tracer.f90).

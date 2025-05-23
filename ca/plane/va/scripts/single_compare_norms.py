@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots rms field norms for a chosen field from data
 # in the directories specified below.

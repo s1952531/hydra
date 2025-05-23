@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots the relative rms difference norms for h, zeta and delta
 # versus time, considering the differences SW - 3D and GN - 3D.

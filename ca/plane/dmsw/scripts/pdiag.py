@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots the Rossby and Froude numbers, and the min/max values
 # of h, comparing data in different directories as specified below.

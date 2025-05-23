@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # This script plots the PV, streamfunction and vorticity in
 # evolution/qq.r4, pp.r4 and zz.r4, for all layers.
@@ -106,7 +106,7 @@ def get_layer_min_max(field_data,is_pv=False):
 
 # Ensure the script is called with the correct number of arguments
 if len(sys.argv) != 3:
-    print("Usage: python p_temporal_avg.py <PV option: a/t> <View option: l/m>")
+    print("Usage: ./p_temporal_avg.py <PV option: a/t> <View option: l/m>")
     sys.exit(1)
 
 # Read the arguments

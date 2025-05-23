@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots spectra for zeta, delta and gamma_tilde from data
 # in gt-spectra.asc.

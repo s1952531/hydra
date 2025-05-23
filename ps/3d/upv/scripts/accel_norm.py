@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots the rms non-hydrostatic acceleration divided by the
 # rms acceleration for two resolutions and for both the 3D and GN results.

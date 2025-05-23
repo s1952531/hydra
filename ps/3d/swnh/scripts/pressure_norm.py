@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots the rms non-hydrostatic pressure divided by the
 # rms total pressure (using g(h-H) as the hydrostatic part) for two

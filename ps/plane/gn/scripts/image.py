@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #======================================================================
 #   Imaging routine for data produced by gn caps codes

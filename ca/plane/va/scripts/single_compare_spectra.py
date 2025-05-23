@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots spectra for either height, vorticity, divergence
 # or acceleration divergence from data in directories specified below.

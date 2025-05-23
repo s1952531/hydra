@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots the divergence field for a selected resolution, 
 # from simulations initially balanced or imbalanced.

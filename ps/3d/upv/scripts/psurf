@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots the scaled surface buoyancy and vorticity
 # from data in 3d/ba.r4, ox.r4, oy.r4 and oz.r4.

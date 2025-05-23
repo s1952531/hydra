@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots the full, balanced and imbalanced field values 
 # for h, zeta, delta or gamma from data in ?norm.asc in 4 separate 

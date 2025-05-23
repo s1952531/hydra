@@ -127,7 +127,7 @@ call writecon
 write(*,*) 
 write(*,*) ' To image these data, type'
 write(*,*) 
-write(*,*) ' python pc3d.py'
+write(*,*) ' python3 pc3d.py'
 write(*,*) 
 
 contains

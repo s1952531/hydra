@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots the variances <b^2> and <zeta^2> comparing 
 # selected directories specified below.

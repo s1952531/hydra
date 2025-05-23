@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots a selected field at a selected time from the 3D
 # data, from either the SW or GN data, and the difference.

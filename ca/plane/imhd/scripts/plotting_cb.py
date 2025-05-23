@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from matplotlib.colors import LinearSegmentedColormap
 from numpy import *
 import numpy as np

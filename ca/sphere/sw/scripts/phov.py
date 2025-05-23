@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots data in hovu.r8, containing u_bar(t,phi).
 

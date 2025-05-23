@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots zeta, delta and h_tilde at the final time
 # from multiple directories in orthographic perspective.

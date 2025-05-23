@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots |B|_max/U_0 and zeta_max/f, using data in
 # evolution/norms.asc and in evolution/ro-fr-hm.asc in different

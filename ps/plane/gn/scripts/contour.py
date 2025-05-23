@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #======================================================================
 #   Contouring routine for data produced by gn caps codes

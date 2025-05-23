@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots the kinetic, potential, magnetic and total energy
 # versus time, with the possibility of comparing data in different

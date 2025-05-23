@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots up the spectra created by zspec.f90 (zonal KE and PE).
 # Some help on further options can be obtained by running:

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots the velocity field from the SW, GN and 3D directories,
 # at three times specified below and for a selected resolution.  

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots the kinetic energy and the total energy minus its
 # initial value, comparing selected directories specified below.

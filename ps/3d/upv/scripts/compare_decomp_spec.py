@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots spectra for either r, (u,v), zeta or delta,
 # and compares the 3D decomposed spectra with the 2D SW and GN spectra.

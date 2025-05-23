@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots the powerspectra obtained from running powerspec.f90. 
 # The input file is assumed to be spectra.asc.

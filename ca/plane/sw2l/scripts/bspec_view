@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots spectra for balanced vorticity, divergence and 
 # acceleration divergence from data in bspectra.asc.

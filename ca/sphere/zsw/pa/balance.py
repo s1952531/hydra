@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #=================================================================
 #   Searches for a balanced zonal spherical shallow water flow

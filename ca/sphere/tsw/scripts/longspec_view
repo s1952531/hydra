@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots up the longitudinal spectra output from the main caps 
 # run. This is usually found in a file such as long-spec.asc. 

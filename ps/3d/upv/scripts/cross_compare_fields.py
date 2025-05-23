@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots the difference of a selected field from the 3D data
 # for the SW, GN and VA models.

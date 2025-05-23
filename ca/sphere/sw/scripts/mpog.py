@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots a chosen field (either full, balanced or imbalanced)
 # at multiple times in orthographic perspective.

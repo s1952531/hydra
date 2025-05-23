@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#!/ usr/bin/python3
 import subprocess as sbpc
 import sys
 sys.path.append('/user/stuart/scripts/modules')

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 #=====================================================================
 #   Plots data in bminmax.asc in several selected directories

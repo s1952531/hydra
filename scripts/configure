@@ -29,7 +29,7 @@ endif
 
 echo "#\!/bin/csh" > ${HOME}/hydra/scripts/workdir
 echo "" >> ${HOME}/hydra/scripts/workdir
-echo "echo " $datadir >> ${HOME}/hydra/scripts/workdir
+echo "echo" $datadir >> ${HOME}/hydra/scripts/workdir
 
 chmod +x ${HOME}/hydra/scripts/workdir
 

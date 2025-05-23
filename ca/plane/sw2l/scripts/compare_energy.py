@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots the kinetic, potential and total energy from data
 # in e.asc in 4 separate directories specified below.

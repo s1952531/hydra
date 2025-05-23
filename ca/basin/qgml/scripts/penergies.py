@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # This script uses the streamfunction in evolution/qq.r4
 # to obtain and plot the energies for all layers/interfaces.
