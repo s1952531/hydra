@@ -18,6 +18,12 @@ eddy: $(objects) $(sourcedir)/init/eddy.f90
 ellipse: $(objects) $(sourcedir)/init/ellipse.f90
 	$(f90) parameters.o constants.o $(sourcedir)/init/ellipse.f90 -o ellipse $(flags)
 
+ranpv: $(objects) $(fft_lib) $(sourcedir)/init/ranpv.f90
+	$(f90) $(fft_lib) $(objects) $(sourcedir)/init/ranpv.f90 -o ranpv $(flags)
+
+init_tracer: $(objects) $(sourcedir)/init/init_tracer.f90
+	$(f90) parameters.o constants.o $(sourcedir)/init/init_tracer.f90 -o init_tracer $(flags)
+
  # Phony definitions:
 .PHONY: init_all
  # Rule for 'make all' in the main make file:

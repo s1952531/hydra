@@ -13,8 +13,8 @@ objects = parameters.o constants.o variables.o spectral.o \
 fft_lib = ~/hydra/lib/stafft/stafft.f90 ~/hydra/lib/stafft/sta2dfft.f90 
 
  # Set flag options: 
-norm_flags = -O3 -mcmodel=medium #Compiler flags
-test_flags = -O3 -mcmodel=medium -fbounds-check -fbacktrace  #Compiler flags
+norm_flags = -O3 -mcmodel=large #Compiler flags
+test_flags = -O3 -mcmodel=large -fbounds-check -fbacktrace  #Compiler flags
 
  # Set compiler and flag used:
 f90=gfortran

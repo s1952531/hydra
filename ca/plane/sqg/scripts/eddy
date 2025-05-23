@@ -1,4 +1,4 @@
-#!/bin/csh
+#!/usr/bin/env csh
 
 #============================================================================#
 # Job setup script for an elliptical vortex with

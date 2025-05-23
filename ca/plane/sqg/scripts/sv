@@ -27,18 +27,22 @@ print('   ---------------------------------------------')
 print()
 print(' Choose one of the following:')
 print()
-print('   (1)  Scaled buoyancy, b_0/N, or')
-print('   (2)  relative vorticity, zeta')
+print('   (1)  Scaled buoyancy, b_0/N,')
+print('   (2)  relative vorticity, zeta, or')
+print('   (3)  the tracer anomaly field, c.')
 print()
 opt_in = input(' Option (default 1)? ')
 option = int(opt_in or 1)
 
 if option==1:
    file1='bspec.asc'
-   labely='$\log_{10}\,|\hat{b}/N|^2$'
+   labely='$\\log_{10}|\\hat{b}/N|^2$'
 elif option==2:
    file1='zspec.asc'
-   labely='$\log_{10}\,|\hat{\\zeta}|^2$'
+   labely='$\\log_{10}|\\hat{\\zeta}|^2$'
+elif option==3:
+   file1='cspec.asc'
+   labely='$\\log_{10}|\\hat{c}|^2$'
 
 # Open input file(s):
 in_file1=open('spectra/'+file1,'r')
@@ -107,7 +111,7 @@ im1 = ax.plot(k[ic],s1[ic],'k-',lw=2)
 
 # Set plot title, legend and limits of the plot:
 ax.set_title('$t =$'+str('%.2f'%time[ic]), fontsize=30)
-ax.set_xlabel('$\log_{10}\,k$', fontsize=30)
+ax.set_xlabel('$\\log_{10}k$', fontsize=30)
 ax.set_ylabel(labely, fontsize=30)
 ax.tick_params(length=10, width=3)
 ax.set_xlim(xmin,xmax)
@@ -132,7 +136,7 @@ def on_press(event):
 
     # Set the title, legend and plot limits:
     axes.set_title('$t =$'+str('%.2f'%time[ic]), fontsize=30)
-    axes.set_xlabel('$\log_{10}\,k$', fontsize=30)
+    axes.set_xlabel('$\\log_{10}k$', fontsize=30)
     axes.set_ylabel(labely, fontsize=30)
     axes.tick_params(length=10, width=3)
     axes.set_xlim(xlim)  
@@ -153,7 +157,7 @@ def on_press(event):
 
     # Set the title, legend and plot limits:
     axes.set_title('$t =$'+str('%.2f'%time[ic]), fontsize=30)
-    axes.set_xlabel('$\log_{10}\,k$', fontsize=30)
+    axes.set_xlabel('$\\log_{10}k$', fontsize=30)
     axes.set_ylabel(labely, fontsize=30)
     axes.tick_params(length=10, width=3)
     axes.set_xlim(xlim)  

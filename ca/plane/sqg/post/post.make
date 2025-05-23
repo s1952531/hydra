@@ -18,8 +18,11 @@ genfg: $(objects) $(sourcedir)/congen.f90 $(sourcedir)/post/genfg.f90
 froude: $(objects) $(fft_lib) $(sourcedir)/post/froude.f90
 	$(f90) $(fft_lib) $(objects) $(sourcedir)/post/froude.f90 -o froude $(flags)
 
-crossxz: $(objects) $(fft_lib) $(sourcedir)/post/crossxz.f90
-	$(f90) $(fft_lib) $(objects) $(sourcedir)/post/crossxz.f90 -o crossxz $(flags)
+cross: $(objects) $(fft_lib) $(sourcedir)/post/cross.f90
+	$(f90) $(fft_lib) $(objects) $(sourcedir)/post/cross.f90 -o cross $(flags)
+
+new_cross: $(objects) $(fft_lib) $(sourcedir)/post/new_cross.f90
+	$(f90) $(fft_lib) $(objects) $(sourcedir)/post/new_cross.f90 -o new_cross $(flags)
 
 zvel: $(objects) $(fft_lib) $(sourcedir)/post/zvel.f90
 	$(f90) $(fft_lib) $(objects) $(sourcedir)/post/zvel.f90 -o zvel $(flags)

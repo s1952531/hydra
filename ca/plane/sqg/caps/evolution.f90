@@ -12,8 +12,9 @@ double precision:: uu(ny,nx),vv(ny,nx)
 
  !Spectral fields (note array order):
 double precision:: pp(nx,ny),qq(nx,ny),qc(nx,ny),qd(nx,ny)
-double precision:: qspre(nx,ny)
 double precision:: emq(nx,ny),epq(nx,ny)
+ !Tracer auxiliary arrays (if present):
+double precision,allocatable,dimension(:,:):: emc,epc
 
  !Energy & enstrophy for time interpolation:
 double precision:: enepre,enspre
@@ -122,9 +123,15 @@ call ptospc(nx,ny,qa,qc,xfactors,yfactors,xtrig,ytrig)
  !field (qs) for use in time interpolation:
 qd=fhi*(qs-qc)
 qs=filt*qs 
-qspre=qs 
+qspre=qs
  !Here fhi = 1-F is a high-pass spectral filter and filt is a 
  !de-aliasing filter (defined in spectral.f90)
+
+if (tracer) then
+   !Allocate memory for tracer (anomaly) evolution:
+  allocate(emc(nx,ny),epc(nx,ny))
+  cspre=cs
+endif
 
 return
 end subroutine init
@@ -156,6 +163,11 @@ qd=qs-qc
  !Convert qd to physical space as qr (used in recontouring):
 call spctop(nx,ny,qd,qr,xfactors,yfactors,xtrig,ytrig)
 
+if (tracer) then
+   !De-allocate memory for tracer (anomaly) evolution:
+  deallocate(emc,epc)
+endif
+
 return
 end subroutine prepare
 
@@ -176,6 +188,7 @@ implicit none
  !Spectral fields needed in Runge-Kutta time stepping (note array order):
 double precision:: qsi(nx,ny),qsf(nx,ny),sqs(nx,ny)
 double precision:: qdi(nx,ny),qdf(nx,ny),sqd(nx,ny)
+double precision,allocatable,dimension(:,:):: csi,csf,scs
  !Contour positions needed in Runge-Kutta time stepping:
 double precision:: xqi(nptq),yqi(nptq),xqf(nptq),yqf(nptq)
  !Contour velocities:
@@ -231,6 +244,17 @@ qdi=qd
 qd=emq*(qdi+dt2*sqd)
 qdf=qdi+dt6*sqd
 
+if (tracer) then
+   !Allocate memory for tracer (anomaly) evolution:
+  allocate(csi(nx,ny),csf(nx,ny),scs(nx,ny))
+   !Compute tracer source:
+  call tracer_source(scs,0)
+   !Evolve tracer:
+  csi=cs
+  cs=emc*(csi+dt2*scs)
+  csf=csi+dt6*scs
+endif
+
 !------------------------------------------------------------------
  !RK4 corrector step at time t0 + dt/2:
 t=t+dt2
@@ -259,6 +283,14 @@ qs=qsi+dt2*sqs
 qsf=qsf+dt3*sqs
 qd=emq*(qdi+dt2*sqd)
 qdf=qdf+dt3*sqd
+
+if (tracer) then
+   !Compute tracer source:
+  call tracer_source(scs,1)
+   !Evolve tracer:
+  cs=emc*(csi+dt2*scs)
+  csf=csf+dt3*scs
+endif
 
 !------------------------------------------------------------------
  !RK4 predictor step at time t0 + dt:
@@ -289,6 +321,14 @@ emq=emq**2
 qd=emq*(qdi+dt*sqd)
 qdf=qdf+dt3*sqd
 
+if (tracer) then
+   !Compute tracer source:
+  call tracer_source(scs,1)
+   !Evolve tracer:
+  cs=emc*(csi+dt*scs)
+  csf=csf+dt3*scs
+endif
+
 !------------------------------------------------------------------
  !RK4 corrector step at time t0 + dt:
 t=t+dt2
@@ -311,6 +351,15 @@ endif
 
 qs=qsf+dt6*sqs
 qd=emq*(qdf+dt6*sqd)
+
+if (tracer) then
+   !Compute tracer source:
+  call tracer_source(scs,2)
+   !Evolve tracer:
+  cs=emc*(csf+dt6*scs)
+   !De-allocate memory:
+  deallocate(csi,csf,scs)
+endif
 
 return
 end subroutine advance
@@ -362,6 +411,44 @@ endif
 
 return
 end subroutine source
+
+!=======================================================================
+
+subroutine tracer_source(scs,lev)
+
+! Gets the source term (scs) for the tracer (anomaly) field (cs)
+! evolution equation (all in spectral space):
+
+implicit none
+
+ !Passed variables:
+double precision:: scs(nx,ny)
+integer:: lev
+
+ !Local variables:
+double precision:: cx(ny,nx),cy(ny,nx)
+double precision:: wkp(ny,nx)
+
+!---------------------------------------------------------------
+ !cs source:
+call gradient(cs,cx,cy)
+wkp=-uu*(dcdx+cx)-vv*(dcdy+cy)
+ !Convert to spectral space:
+call ptospc(nx,ny,wkp,scs,xfactors,yfactors,xtrig,ytrig)
+
+!----------------------------------------------------------------
+if (lev .eq. 0) then
+ !Spectrally truncate source:
+  scs=filt*scs
+ !Apply exponential integrating factors (and spectrally truncate sources):
+else if (lev .eq. 1) then
+  scs=epc*scs
+else
+  scs=epc**2*scs
+endif
+
+return
+end subroutine tracer_source
 
 !=======================================================================
 
@@ -456,7 +543,10 @@ if (t .lt. tgrid .and. t+dt .ge. tgrid) then
   gsave=.true.
 
    !Copy current gridded fields for use in time interpolation:
-  qspre=qs 
+  qspre=qs
+
+   !Do same for the tracer (anomaly), if present:
+  if (tracer) cspre=cs
 
    !Compute energy & enstrophy:
   call energy(enepre,enspre)
@@ -477,6 +567,13 @@ dfac=dt2*zzrms
 ss=exp(dfac*qdiss)
 epq=ss*filt
 emq=one/ss
+
+ !Possibly include factors for a tracer as well:
+if (tracer) then
+  ss=exp(dt2*tdiss)
+  epc=ss*filt
+  emc=one/ss
+endif
 
 return
 end subroutine adapt
@@ -572,6 +669,21 @@ write(31,rec=igrids) real(tgrid),real(wka)
  !Write vertical vorticity to zz.r4:
 call spctop(nx,ny,zzs,wka,xfactors,yfactors,xtrig,ytrig)
 write(32,rec=igrids) real(tgrid),real(wka)
+
+if (tracer) then
+   !Write tracer (anomaly) spectrum cspec.asc:
+  qqs=pt*cspre+ptc*cs
+  call spec1d(qqs,spec)
+  spec=log10(spmf*spec+1.d-32)
+  write(53,'(f12.5,1x,i5)') tgrid,kmaxred
+  do k=1,kmaxred
+    write(53,'(2(1x,f12.8))') alk(k),spec(k)
+  enddo
+
+   !Write tracer (anomaly) field to cc.r4:
+  call spctop(nx,ny,qqs,wka,xfactors,yfactors,xtrig,ytrig)
+  write(33,rec=igrids) real(tgrid),real(wka)
+endif
 
 write(*,'(a,f7.2,2(a,f13.6))') ' t = ',tgrid,' enstrophy = ',ens,' energy = ',ene
 

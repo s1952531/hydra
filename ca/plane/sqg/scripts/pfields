@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots b_0/(fN), zeta/f, xi/N and eta/N at a
 # selected time. Note, (xi,eta)/N = -nabla_h(b_0)/(fN).

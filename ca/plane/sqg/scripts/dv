@@ -1,4 +1,4 @@
-#!/bin/csh
+#!/usr/bin/env csh
 
 #=========================================================================#
 #    Runs dataview on any selected field in the evolution subdirectory

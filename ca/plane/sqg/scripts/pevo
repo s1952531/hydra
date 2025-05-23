@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots either b_0/N or zeta at six selected times
 
@@ -146,19 +146,33 @@ else:
     offset = 0.0
 
 #---------------------------------------------------------------------------
-nf = 6 # allow for 6 frames
+nf_in=input(' Number of times to display (even, default 6)? ')
+nf=int(nf_in or 6)
+
 nfmax = len(time)-1 #max frame in the data
 frame_list = np.empty(nf)
-print(' Enter the frames (note: 0 corresponds to t = 0)')
-dframe = int(nfmax/nf)
-frame_def = 0
+tmax=time[-1]
+print(' Enter the times (note: the maximum time is '+str(round(tmax,3))+')')
+dtime = tmax/float(nf-1)
+t_def = 0.0
+eps = (time[1]-time[0])/100.0
+frame = 0
+print('frame = ',frame)
 for j in range(nf):
-    frame_in = input(' Frame '+str(j+1)+' (default '+str(frame_def)+')? ')
-    frame_list[j] = int(frame_in or frame_def)
+    t_in = input(' Time '+str(j+1)+' (default '+str(t_def)+')? ')
+    t = int(t_in or t_def)
+    print('frame = ',frame)
+    print(time[frame]+eps,t)
+    while time[frame]+eps < t:
+        frame+= 1
+        print('***',frame)
+    frame_list[j] = int(frame)
+    print(j, frame_list[j])
     if j > 0:
-        dframe = int(frame_list[j] - frame_list[j-1])
-        frame_def = int(frame_list[j])
-    frame_def+= dframe
+        print(frame_list[j], frame_list[j-1])
+        dtime = time[frame_list[j]] - time[frame_list[j-1]]
+        t_def = time[frame_list[j]]
+    t_def+= dtime
 print()
 
 #---------------------------------------------------------------------------

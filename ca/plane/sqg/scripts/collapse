@@ -1,0 +1,51 @@
+#!/usr/bin/env csh
+
+#============================================================================#
+# Job setup script for the collapse of three vortices
+#============================================================================#
+set datagen = "collapse"
+
+# Data generation routine specific parameters:
+set p =  "0.5"      # Power, see comment above
+set opt = "1"       # Option - see below
+set c0 =  "16.0"    # Default b_m scaling for opt = 1
+set rad = "0.2"     # Default vortex radius for opt = 2
+
+#==========================================================================
+echo ' We take b_0/N = (1 - s)^p where s = (x^2 + y^2)/R^2'
+echo ' for s < 1, and b_0/N = 0 otherwise.'
+
+echo
+echo -n ' Power, p (default' $p')? '
+set var=$<
+if ($var != "") set p=$var
+
+echo ' Choose one of the following flow initialisation methods:'
+echo ' (1) all vortices have same |b_m| but different radii R, or'
+echo ' (2) all vortices have same R but different b_m.'
+echo -n ' Choice (default' $opt')? '
+set var=$<
+if ($var != "") set opt=$var
+
+if ($opt == "1") then
+    echo ' Without loss of generality, we take |b_m| = 2*(p+1)*C.'
+    echo -n ' Enter the C (default' $c0'): '
+    set var=$<
+    if ($var != "") set c0=$var
+    cat << /EOF > in_$datagen
+$p
+$opt
+$c0
+/EOF
+else
+    echo -n ' Enter the radius R (default' $rad'): '
+    set var=$<
+    if ($var != "") set rad=$var
+    cat << /EOF > in_$datagen
+$p
+$opt
+$rad
+/EOF
+endif
+
+$datagen < in_$datagen > out_$datagen

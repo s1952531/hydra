@@ -13,6 +13,9 @@ double precision:: filt(nx,ny),flo(nx,ny),fhi(nx,ny)
 double precision:: rkx(nx),hrkx(nx)
 double precision:: rky(ny),hrky(ny)
 
+ !For diffusing a tracer (optional):
+double precision,allocatable,dimension(:,:):: tdiss
+
 double precision:: xtrig(2*nx),ytrig(2*ny)
 integer:: xfactors(5),yfactors(5)
 
@@ -111,6 +114,16 @@ do ky=1,ny
     endif
   enddo
 enddo
+
+if (tracer) then
+   !Define tracer diffusion operator:
+  allocate(tdiss(nx,ny))
+  do ky=1,ny
+    do kx=1,nx
+      tdiss(kx,ky)=kappa*(rkx(kx)**2+rky(ky)**2)
+    enddo
+  enddo
+endif
 
 !-----------------------------------------------------------------------
  !Initialise arrays for computing the spectrum of any field:

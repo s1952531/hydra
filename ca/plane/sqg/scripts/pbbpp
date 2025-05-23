@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # This script plots the scaled buoyancy and pressure both in
 # an xy and an xz cross section from data in bb.r4, pp.r4,

@@ -104,11 +104,11 @@ subroutine initialise
 ! Routine initialises fixed constants and arrays, and reads in
 ! input files, opens output files ready for writing to. 
 
-implicit double precision(a-h,o-z)
-implicit integer(i-n)
+implicit none
 
- !Local variable:
+ !Local variables:
 double precision:: ff(ny,nx)
+integer:: itime
 
 !--------------------------------------------------
  !Call initialisation routines from modules:
@@ -121,7 +121,7 @@ call init_contours
 !-----------------------------------------------------------------
  !Read in full buoyancy and convert to spectral space:
 open(11,file='qq_init.r8',form='unformatted', &
-    & access='direct',status='old',recl=2*nbytes)
+      access='direct',status='old',recl=2*nbytes)
 read(11,rec=1) t,qr
 close(11)
 
@@ -134,8 +134,28 @@ write(*,'(a,1x,f13.8)') ' qjump = ',qjump
 ff=qr
 call ptospc(nx,ny,ff,qs,xfactors,yfactors,xtrig,ytrig)
 
+!-----------------------------------------------------------------
+if (tracer) then
+   !Read in a tracer field (optionally):
+   open(11,file='cc_init.r8',form='unformatted', &
+        access='direct',status='old',recl=2*nbytes)
+   read(11,rec=1) t,ff
+   close(11)
+
+   !Allocate memory for field in spectral space:
+   allocate(cs(nx,ny),cspre(nx,ny))
+
+   !Convert tracer field (in ff) to spectral space as cs:
+   call ptospc(nx,ny,ff,cs,xfactors,yfactors,xtrig,ytrig)
+
+   !Open files to save field evolution and spectra:
+   open(33,file='cc.r4',form='unformatted',access='direct', &
+                      status='replace',recl=nbytes)
+   open(53,file='spectra/cspec.asc',status='replace')
+endif
+
 !------------------------------------------------------------
- !Initially there are no contours:
+ !Initially there are no buoyancy contours:
 nq=0
 nptq=0
 
@@ -159,14 +179,14 @@ open(52,file='spectra/zspec.asc',status='replace')
 
  !Open files for coarse grid saves of b_0/N and zeta:
 open(31,file='bb.r4',form='unformatted',access='direct', &
-                 & status='replace',recl=nbytes)
+                   status='replace',recl=nbytes)
 open(32,file='zz.r4',form='unformatted',access='direct', &
-                 & status='replace',recl=nbytes)
+                   status='replace',recl=nbytes)
 
  !Open files for contour writes:
 open(80,file='cont/qqsynopsis.asc',status='unknown')
 open(83,file='cont/qqresi.r4',form='unformatted',access='direct', &
-                          & status='replace',recl=nbytes)
+                            status='replace',recl=nbytes)
 
  !Initialise counter for writing direct files to the correct counter:
 igrids=0
@@ -219,8 +239,10 @@ close(15)
 close(17)
 close(31)
 close(32)
+if (tracer) close(33)
 close(51)
 close(52)
+if (tracer) close(53)
 close(80)
 close(83)
 
