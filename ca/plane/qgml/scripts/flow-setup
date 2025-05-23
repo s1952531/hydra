@@ -1,0 +1,592 @@
+#!/bin/csh
+
+#=========================================================================#
+#   Job setup script for the plane/qgml class of hydra Fortran90 codes.
+#=========================================================================#
+
+echo
+echo '------------------------------------------------------------------------'
+echo ' The multi-layer quasi-geostrophic Combined Lagrangian Advection Method'
+echo '        in a 2D doubly-periodic horizontal domain in each layer'
+echo '------------------------------------------------------------------------'
+
+# Specify code numerical method class:
+set meth="ca"
+# Specify code geometry:
+set geom="plane"
+# Specify model equation type:
+set equa="qgml"
+# Specify algorithm name:
+set algo="caps"
+
+#==========================================================================
+# The following is totally generic!
+set local_home=${HOME}
+set hydradir=$local_home/hydra/$meth/$geom/$equa
+
+# Get output base directory:
+set basedir=`workdir`
+# Make the base data directory if it does not already exist:
+if (!(-d $basedir)) mkdir $basedir
+set basedir=$basedir/hydra
+if (!(-d $basedir)) mkdir $basedir
+set basedir=$basedir/$meth
+if (!(-d $basedir)) mkdir $basedir
+set basedir=$basedir/$geom
+if (!(-d $basedir)) mkdir $basedir
+set basedir=$basedir/$equa
+if (!(-d $basedir)) mkdir $basedir
+set basedir=$basedir/$algo
+if (!(-d $basedir)) mkdir $basedir
+
+set outdir=$basedir
+
+# Assign source and binary directories:
+set srcdir=$hydradir/$algo
+set bindir=$hydradir/scripts
+
+# Get the name of the computer to record in the job_info file below:
+set host=`hostname | awk -F. '{print $(1)}'`
+
+#==========================================================================
+# Generate a random number seed based on current time:
+
+set second=`date +%-S`
+set minute=`date +%-M`
+set hour=`date +%-H`
+set day=`date +%-d`
+@ iseed = ( $second + ( 60 * ( $minute + 60 * ( $hour + ( 24 * $day ) ) ) ) )
+
+# Create a temporary directory:
+set tmpdir=$outdir/tmp{$iseed}
+mkdir $tmpdir
+cd $tmpdir
+
+echo
+echo ' *** Job will be built in the temporary directory '
+echo $tmpdir
+
+# Create a job information summary file:
+touch job_info
+echo ' Job created at                      ' `date` >> job_info
+echo ' on                                  ' $host >> job_info
+
+#==========================================================================
+# Set fixed constant(s):
+
+set pi=3.14159265358979323846
+
+#==========================================================================
+# Choose number of layers and set up vertical structure:
+
+set nz = "3"        # Default number of layers
+echo
+echo -n ' Number of layers (default' $nz')? '
+set var=$<
+if ($var != "") set nz=$var
+echo ' ' >> job_info
+echo ' Number of layers:                   ' $nz >> job_info
+
+echo ' To set up the vertical structure, we specify the layer depths H_i'
+echo ' and the inverse lengths K_i = f_0/sqrt{(b_i-b_{i+1})*H} where b_i'
+echo ' is the buoyancy (reduced gravity) of layer i (here layer 1 is the'
+echo ' top layer).'
+echo
+echo ' The layer depths are normalised by H = sum_i H_i, so one can also'
+echo ' just enter the layer depth ratios H_i/H directly. Either way works.'
+echo
+
+# Set up defaults depending on nz:
+#---------------------------------
+# Fractional layer depths = a + i*b, i = 1 ... nz
+set a=`echo "0.8 / ( $nz * (1.0 - $nz) )" | bc -l`
+set b=`echo "2.0 * ( 1.0 + 0.8 / ($nz - 1) ) / ( $nz * ($nz + 1) )" | bc -l`
+# Inverse lengths K_i = i*c, i = 1 ... nz
+set c=1.0
+
+echo ' ' >> job_info
+touch vertical.asc
+set lay=1
+while ($lay <= $nz)
+   set thick=`echo "$a + $b * $lay" | bc -l`
+   set thick_trunc=0`echo "scale=4; $thick / 1" | bc -l`
+   echo -n ' (Fractional) depth of layer (default' $thick_trunc')? '
+   set var=$<
+   if ($var != "") set thick=$var
+   set thick_trunc=0`echo "scale=4; $thick / 1" | bc -l`
+   echo ' (Fractional) depth of layer' $lay':      ' $thick_trunc >> job_info
+   if ($lay < $nz) then
+      set kd=`echo "$c * $lay" | bc -l`
+   echo -n ' Inverse length K_i (default' $kd')? '
+      set var=$<
+      if ($var != "") set kd=$var
+   set kdsq=`echo "$kd*$kd" | bc -l`
+   echo ' K_i = f_0/sqrt{(b_i-b_{i+1})*H}:    ' $kd >> job_info
+   else
+      set kdsq="0.0"
+   endif
+   echo $thick $kdsq >> vertical.asc
+   echo ' ' >> job_info
+   @ lay ++
+end
+
+#==========================================================================
+# Choose horizontal resolution and number of PV levels:
+set ng = "512"      # Default inversion grid resolution in x (east - west)
+echo
+echo -n ' Grid resolution in x (default' $ng')? '
+set var=$<
+if ($var != "") set ng=$var
+echo ' ' >> job_info
+echo ' Width of the domain in x & y:         2*pi' >> job_info
+echo ' Inversion grid resolution in x & y: ' $ng >> job_info
+
+# Set number of contours used to represent PV:
+set nq="80"         # Default
+echo -n ' Number of PV jumps to represent the total PV variation (default' $nq')? '
+set var=$<
+if ($var != "") set nq=$var
+echo ' ' >> job_info
+echo ' Number of jumps to represent PV, nq:' $nq >> job_info
+
+#==========================================================================
+# Set up bathymetry if desired:
+
+set bathymetry = "y"
+echo
+echo -n ' Do you wish to include bathymetry (y/n, default' $bathymetry')? '
+set var=$<
+if ($var != "") set bathymetry=$var
+
+if ($bathymetry == "y") then
+   echo
+   echo ' The bathymetry eta_b(x,y) is multiplied by f_0/H_nz to be'
+   echo ' in PV units, where H_nz is the depth of the lower layer.'
+   echo
+   echo ' Choose one of the following options for f_0*eta_b/H_nz:'
+   set bathopt="4"
+   echo ' (1) Random, with variance spectrum c k^{2p+1} exp[-p(k/k_0)^2],'
+   echo ' (2) Random, with k^{-2} spectrum,'
+   echo ' (3) Periodic, of the form A sin(k(x-x_min)) sin(k(y-y_min)), or'
+   echo ' (4) Rotated elliptical-Gaussian shape in the domain centre.'
+   echo -n ' Option - (default' $bathopt')? '
+   set var=$<
+   if ($var != "") set bathopt=$var
+   echo
+
+   if ($bathopt == "1") then
+      echo ' ' >> job_info
+      echo ' Random bathymetry, with variance spectrum c k^{2p+1} exp[-p(k/k_0)^2]' >> job_info
+      set bathgen = "random_bath"
+      set pow = "1.0"
+      set rk0 = "10.0"
+      set rms = "0.2"
+      set slope = "0.0"
+
+      echo -n ' p (default' $pow')? '
+      set var=$<
+      if ($var != "") set pow=$var
+
+      echo -n ' k_0 (default' $rk0')? '
+      set var=$<
+      if ($var != "") set rk0=$var
+
+      echo -n ' rms field amplitude (default' $rms')? '
+      set var=$<
+      if ($var != "") set rms=$var
+
+      echo -n ' Mean slope in y (default' $slope')? '
+      set var=$<
+      if ($var != "") set slope=$var
+
+      echo $pow $rk0 > in_$bathgen
+      echo $rms >> in_$bathgen
+      echo $slope >> in_$bathgen
+
+      echo ' p:                                  ' $pow >> job_info
+      echo ' k_0:                                ' $rk0 >> job_info
+      echo ' rms field amplitude:                ' $rms >> job_info
+      echo ' Mean slope in y:                    ' $slope >> job_info
+
+   else if ($bathopt == "2") then
+      echo ' ' >> job_info
+      echo ' Random bathymetry, with k^{-2} spectrum' >> job_info
+      set bathgen = "random_km2_bath"
+      set rms = "1.0"
+      set slope = "0.0"
+
+      echo -n ' rms field amplitude (default' $rms')? '
+      set var=$<
+      if ($var != "") set rms=$var
+
+      echo -n ' Mean slope in y (default' $slope')? '
+      set var=$<
+      if ($var != "") set slope=$var
+
+      echo $rms >> in_$bathgen
+      echo $slope >> in_$bathgen
+
+      echo ' rms field amplitude:                ' $rms >> job_info
+      echo ' Mean slope in y:                    ' $slope >> job_info
+
+   else if ($bathopt == "3") then
+      echo ' ' >> job_info
+      echo ' Periodic bathymetry, of the form A sin(k(x-x_min)) sin(k(y-y_min))' >> job_info
+      set bathgen = "sine_bath"
+      set amp = "0.2"
+      set k_bath = "5"
+
+      echo -n ' A (default' $amp')? '
+      set var=$<
+      if ($var != "") set amp=$var
+
+      echo -n ' k (default' $k_bath')? '
+      set var=$<
+      if ($var != "") set k_bath=$var
+
+      echo $amp > in_$bathgen
+      echo $k_bath >> in_$bathgen
+
+      echo ' A:                                  ' $amp >> job_info
+      echo ' k:                                  ' $k_bath >> job_info
+
+   else if ($bathopt == "4") then
+      echo ' ' >> job_info
+      echo ' Rotated elliptical-Gaussian bathymetry in the domain centre' >> job_info
+      echo ' f_0*eta_b/H_nz = A*exp(-(X/a)^2-(Y/b)^2)' >> job_info
+      set bathgen = "ellipse_bath"
+      set amp = "-1.0"
+      set ael = "2.0"
+      set bel = "0.5"
+      set phi = "30.0"
+
+      echo ' We take f_0*eta_b/H_nz = A*exp(-(X/a)^2-(Y/b)^2), where'
+      echo ' X & Y are rotated CCW by an angle phi from the x & y axes,'
+      echo ' taken to cross through the domain centre.'
+      echo
+      echo -n ' A (default' $amp')? '
+      set var=$<
+      if ($var != "") set amp=$var
+
+      echo -n ' a (default' $ael')? '
+      set var=$<
+      if ($var != "") set ael=$var
+
+      echo -n ' b (default' $bel')? '
+      set var=$<
+      if ($var != "") set bel=$var
+
+      echo -n ' phi (in degrees, default' $phi')? '
+      set var=$<
+      if ($var != "") set phi=$var
+
+      echo $amp > in_$bathgen
+      echo $ael >> in_$bathgen
+      echo $bel >> in_$bathgen
+      echo $phi >> in_$bathgen
+
+      echo ' A:                                  ' $amp >> job_info
+      echo ' a:                                  ' $ael >> job_info
+      echo ' b:                                  ' $bel >> job_info
+      echo ' Angle rotated through (degrees):    ' $phi >> job_info
+
+   else
+      echo ' Not a valid choice - exiting...'
+      /bin/rm -r $tmpdir
+      exit(-1)
+
+   endif
+
+   set bathflag=".true."
+
+else
+   set bathflag=".false."
+endif
+
+#==========================================================================
+# Choose the data generation routine for initialising the PV distribution:
+
+set dataopt="2"
+echo
+echo ' Choose one of the following PV initialisation methods:'
+echo    ' (1) a flow at rest,'
+echo    ' (2) a baroclinic PV column having a parabolic PV profile, or'
+echo    ' (3) a spin-down experiment with waves initially in the upper layer.'
+echo -n ' Option - (default' $dataopt')? '
+set var=$<
+if ($var != "") set dataopt=$var
+
+# Set defaults for each data generation type:
+
+if ($dataopt == "1") then
+   # A state of rest initially
+   echo ' ' >> job_info
+   echo ' Starting from a flow at rest' >> job_info
+   set datagen = "rest"
+
+   # Create empty input file for routine:
+   touch in_$datagen
+
+else if ($dataopt == "2") then
+   # A baroclinic PV column
+   echo ' ' >> job_info
+   echo ' Starting from a baroclinic PV column' >> job_info
+   echo ' ' >> job_info
+   set datagen = "rod"
+
+   # Create input file for routine:
+   touch in_$datagen
+   echo
+   echo ' We consider a baroclinic PV column with a parabolic profile.'
+   set a="1.0"
+   echo -n ' Enter its radius (default' $a '): '
+   set var=$<
+   if ($var != "") set a=$var
+   set b="0.1"
+   echo -n ' Enter its displacement (default' $b '): '
+   set var=$<
+   if ($var != "") set b=$var
+
+   echo ' Radius, a:                          ' $a >> job_info
+   echo ' Displacement of PV column, b:       ' $b >> job_info
+   echo $a >> in_$datagen
+   echo $b >> in_$datagen
+
+else if ($dataopt == "3") then
+   # A spin-down experiment with sinusoidal Rossby waves in the upper layer only
+   echo ' ' >> job_info
+   echo ' Starting from a spin-down experiment' >> job_info
+   echo ' ' >> job_info
+   set datagen = "spin_down"
+
+   # Create input file for routine:
+   touch in_$datagen
+   set lay=1
+   echo
+   echo ' We consider the upper layer streamfunction psi1(x,y) = A sin(kx) sin(ly).'
+
+   set k_psi1 = "2"
+   set l_psi1 = "0.5"
+   set amp_psi1 = "1.0"
+
+   echo -n ' A (default' $amp_psi1')? '
+   set var=$<
+   if ($var != "") set amp_psi1=$var
+
+   echo -n ' k (default' $k_psi1')? '
+   set var=$<
+   if ($var != "") set k_psi1=$var
+
+   echo -n ' l (default' $l_psi1')? '
+   set var=$<
+   if ($var != "") set l_psi1=$var
+
+   echo ' Upper layer streamfunction psi1(x,y) = A sin(kx) sin(ly) with ' >> job_info
+   echo ' Amplitude A:                          ' $amp_psi1 >> job_info
+   echo ' x-wavenumber k:                       ' $k_psi1 >> job_info
+   echo ' y-wavenumber l:                       ' $l_psi1 >> job_info
+   echo $amp_psi1 >> in_$datagen
+   echo $k_psi1   >> in_$datagen
+   echo $l_psi1   >> in_$datagen
+
+else
+   echo ' Not a valid choice - exiting...'
+   /bin/rm -r $tmpdir
+   exit(-1)
+endif
+
+#==========================================================================
+# Choose main physical parameters:
+
+# Planetary vorticity gradient:
+set beta="1.0"
+echo
+echo -n ' Planetary vorticity gradient, beta (default' $beta')? '
+set var=$<
+if ($var != "") set beta=$var
+
+echo ' ' >> job_info
+echo ' Planetary vorticity gradient, beta: ' $beta >> job_info
+
+# Ekman friction:
+set friction="y"
+echo
+echo -n ' Include Ekman damping (y/n) (default' $friction')? '
+set var=$<
+if ($var != "") set friction=$var
+
+if ($friction == "y") then
+   set rekman="0.02"
+   echo -n ' Damping rate (default' $rekman')? '
+   set var=$<
+   if ($var != "") set rekman=$var
+
+   echo ' ' >> job_info
+   echo ' Ekman damping rate:                 ' $rekman >> job_info
+else
+   set rekman="0"
+endif
+
+# Wind-stress forcing:
+set wind="y"
+echo
+echo -n ' Include wind-stress forcing (y/n) (default' $wind')? '
+set var=$<
+if ($var != "") set wind=$var
+
+if ($wind == "y") then
+   echo
+   echo ' Wind stress adds a*sin(y) to the upper-layer PV tendency.'
+   set fwind="0.04"
+   echo -n ' Amplitude, a (default' $fwind')? '
+   set var=$<
+   if ($var != "") set fwind=$var
+
+   echo ' ' >> job_info
+   echo ' Wind stress adds a*sin(y) to Dq_1/Dt.' >> job_info
+   echo ' Amplitude, a:                       ' $fwind >> job_info
+else
+   set fwind="0"
+endif
+
+#==========================================================================
+# Choose data save frequencies and simulation duration:
+
+echo
+set tgsave="10.0"
+echo -n ' Time interval between gridded data saves (default' $tgsave')? '
+set var=$<
+if ($var != "") set tgsave=$var
+echo ' ' >> job_info
+echo ' Time interval between data saves:   ' $tgsave >> job_info
+
+set tcsave="100.0"   # Contour data save time increment
+echo -n ' Time interval between contour data saves (default' $tcsave')? '
+set var=$<
+if ($var != "") set tcsave=$var
+echo ' Time interval between contour saves:' $tcsave >> job_info
+
+set tsim="2000.0"
+echo -n ' Total simulation time (default' $tsim')? '
+set var=$<
+if ($var != "") set tsim=$var
+echo ' Total simulation time:              ' $tsim >> job_info
+
+#---------------------------------------------------------------------
+# Use default values for hyperviscosity (applied to residual PV only):
+set nnu=3
+set cdamp="2.0"
+
+echo ' ' >> job_info
+echo ' ***Lap^'{$nnu} 'Hyperdiffusion on residual PV ' >> job_info
+echo ' C*|q-beta*y|_rms = damping rate for k = ng/2 ' >> job_info
+echo ' Damping coefficient, C:             ' $cdamp >> job_info
+
+#=========================================================================
+# Build parameter file with cpp and make all codes:
+
+# Put all these dimensions into the dimens file needed for compilation:
+mkdir src
+cd src
+/bin/cp $srcdir/* .
+/bin/cp -r $hydradir/init .
+/bin/cp -r $hydradir/post .
+
+echo
+echo " Compiling source files....."
+
+# Use C pre-processor to put chosen parameters $copts into parameters.f90
+set copts1="-DN_G=$ng -DN_Z=$nz -DN_CONTQ=$nq"
+set copts2="-DT_SIM={$tsim} -DT_GSAVE={$tgsave} -DT_CSAVE={$tcsave} -DPV_GRAD={$beta}"
+set copts3="-DC_DAMP={$cdamp} -DPOW_HYPER=$nnu -DR_EKMAN={$rekman} -DF_WIND={$fwind} -DBATH_FLAG=$bathflag -DI_SEED=$iseed"
+set copts=`echo $copts1 $copts2 $copts3`
+precomp $copts parameters.f90
+
+# Compile all codes and move sources to sub-directory:
+make $algo setup $datagen proxy_post_all install clean
+
+make vertical install clean
+
+if ($bathymetry == "y") then
+   make $bathgen install clean
+endif
+
+cd ..
+
+#=========================================================================
+# Generate vertical modes:
+echo ' Generating vertical modes...'
+vertical < vertical.asc
+
+# For bathymetry, execute the bathymetry generation routine:
+if ($bathymetry == "y") then
+# Generate vertical modes:
+   echo ' Generating bathymetry...'
+   $bathgen < in_$bathgen > out_$bathgen
+endif
+
+# Execute the data generation script:
+echo ' Generating initial PV distribution...'
+$datagen < in_$datagen > out_$datagen
+
+# Copy useful data view scripts to job directory:
+/bin/cp $bindir/data_visualization .
+/bin/cp $bindir/fox.slurm .
+/bin/cp $bindir/image.py .
+/bin/cp $bindir/image_sequence.py .
+/bin/cp $bindir/pbath.py .
+/bin/cp $bindir/penergy.py .
+/bin/cp $bindir/pzetanorms.py .
+
+#==========================================================================
+# Create a directory named after the data generation script:
+cd ..
+if (!(-d $datagen)) mkdir $datagen
+cd $datagen
+
+# Set the job directory name (will be appended by 001, 002 etc...):
+set basejobdir=n{$ng}be{$beta}re{$rekman}fw{$fwind}
+echo
+echo -n ' Job directory name (default '{$basejobdir}')? '
+set var=$<
+if ($var != "") set basejobdir=$var
+
+# work out the last run which has been performed:
+# First make a bogus empty directory so this works!
+mkdir {$basejobdir}r000
+set last_run = `/bin/ls -d {$basejobdir}r??? | tail -c 4 | head -c 3`
+rmdir {$basejobdir}r000
+
+set next_run = `echo "$last_run + 1" | bc`
+set p1 = `echo "$next_run / 100" | bc`
+set jr = `echo "$next_run - ( 100 * $p1 )" | bc`
+set p2 = `echo "$jr / 10" | bc`
+set p3 = `echo "$jr - ( 10 * $p2 )" | bc`
+
+set pind={$p1}{$p2}{$p3}
+
+set jobdir={$basejobdir}r{$pind}
+
+#=============================================================
+# Lastly move all data to desired job directory:
+
+# Move temporary directory to job directory:
+mv $tmpdir $jobdir
+cd $jobdir
+set datadir=`pwd`
+set logfile="log"
+
+echo ' ' >> job_info
+echo ' Job directory:' >> job_info
+echo $datadir >> job_info
+
+echo ' Launching job in'
+echo $datadir
+touch $logfile
+bat $logfile $algo
+echo
+
+echo ' To view the log file, type'
+echo 'cd' $datadir
+echo 'tail -f' $logfile
+echo
