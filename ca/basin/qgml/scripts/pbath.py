@@ -47,5 +47,5 @@ bbi=ax.imshow(bb_array.T,cmap=cmap_wbgyr(),vmin=bb_array.min(),vmax=bb_array.max
 cbar=fig.colorbar(bbi,ax=ax)
 ax.set_xlabel('$x$',fontsize=20)
 ax.set_ylabel('$y$',fontsize=20)
-ax.set_title("Bathymetry",fontsize=36)
+# ax.set_title("Bathymetry",fontsize=36)
 plt.savefig("bath.png",dpi=150)

@@ -1,17 +1,17 @@
 #!/bin/csh
 
 image_sequence.py a l
-ffmpeg -framerate 10 -n -i %04d.png -c:v libx264 -pix_fmt yuv420p layers.mp4
+ffmpeg -framerate 10 -y -i %04d.png -c:v libx264 -pix_fmt yuv420p layers.mp4
 image_sequence.py a m
-ffmpeg -framerate 10 -n -i %04d.png -c:v libx264 -pix_fmt yuv420p modes.mp4
+ffmpeg -framerate 10 -y -i %04d.png -c:v libx264 -pix_fmt yuv420p modes.mp4
 measure.py
-ffmpeg -framerate 10 -n -i %04d.png -c:v libx264 -pix_fmt yuv420p pv_measure.mp4
+ffmpeg -framerate 10 -y -i %04d.png -c:v libx264 -pix_fmt yuv420p pv_measure.mp4
+find . -type f -name "*.png" ! -name "0000.png" -exec rm -f {} +
 
 if (-e bath.r8) then
     pbath.py
 endif
-find . -type f -name "*.png" ! -name "bath.png" -exec rm -f {} +
 
-penergy.py
+penergies.py
 pzetanorms.py
 p_temporal_avg.py a l
