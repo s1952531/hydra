@@ -11,16 +11,16 @@ recommended, as many features either do not exist or would take great
 effort to get working.
 
      The hydra package is otherwise fully self-contained.  Users
-should modify the scripts "machine", "homedir" and "workdir" in the
-scripts subdirectory (~/hydra/scripts) to be consistent with their own
-computer and user/work space organisation, and be sure to add "hydra"
-to their path (indicating which directories to search for scripts).
+should run the script "hydra/scripts/configure", which asks the User
+for the FORTRAN compiler as well as the base data directory, where all
+simulation data will be written. Be sure to add "hydra/scripts"
+to your local path (indicating which directories to search for scripts).
 It is also handy to add "." to the path, for example the line
 
 set path = ( $path ~/hydra/scripts . )
 
 in .cshrc if you use the tcsh shell.  The package is then ready
-for use once you have updated the path, e.g. by 
+for use once you have updated the path, e.g., by
 
 source .cshrc
 

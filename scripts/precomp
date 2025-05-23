@@ -24,7 +24,7 @@ else
 endif
 
 # Identify machine type:
-set mach = `machine`
+set mach = `cat $HOME/hydra/scripts/fortran_compiler`
 
 # Use C pre-processor to put chosen parameters $code:
 

@@ -1,0 +1,37 @@
+#!/bin/csh
+
+#================================================================================
+# This script initializes the hydra code for a new machine.
+# It sets up the FORTRAN compiler version and the location of the data directory.
+#================================================================================
+
+rm -f ${HOME}/hydra/scripts/workdir
+
+echo -n " Name of the FORTRAN compiler (default: gfortran): "
+set var=$<
+
+if ("$var" != "") then
+    set comp = $var
+else
+    set comp = "gfortran"
+endif
+
+echo $comp > ${HOME}/hydra/scripts/fortran_compiler
+
+echo -n " Name of the FULL path where all simulation data should go (default '${HOME}/data'): "
+set var=$<
+
+if ("$var" != "") then
+    set datadir = $var
+else
+    set datadir = "${HOME}/data"
+endif
+
+echo "#\!/bin/csh" > ${HOME}/hydra/scripts/workdir
+echo "" >> ${HOME}/hydra/scripts/workdir
+echo "echo " $datadir >> ${HOME}/hydra/scripts/workdir
+
+chmod +x ${HOME}/hydra/scripts/workdir
+
+echo ""
+echo "Files fortran_compiler and workdir created in ${HOME}/hydra/scripts"

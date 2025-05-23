@@ -48,15 +48,6 @@ dataview       python    Takes data files ending in .r8, .r4, etc and creates
                          image formats (png, eps, pdf, etc).
                          =>  Use -h to view all options.
 
-free_machines  python    Queries all machines in the data file "machine_list"
-                         (*** which the user should modify ***) to see which
-                         have free processors and how much disk space is 
-                         available on their local_raid or scratch disks.
-
-homedir        csh       Returns the directory containing the user's home
-                         directory, usually "/user" but sometimes "/home"
-                         (*** modify if necessary ***)
-
 hydra          csh       Main package script for launching simulations.
                          Typing "hydra -h" gives some general information
                          about the hydra package, including its structure.
@@ -64,11 +55,6 @@ hydra          csh       Main package script for launching simulations.
 i2gimage       python    Like c2gimage above but using a .i2 input file
 
 i2image        python    Like c2image above but using a .i2 input file
-
-machine        csh       Returns the name of the fortran compiler 
-                         depending on the name of the host machine.
-                         (*** It is necessary to modify this file and
-                         provide the machine names on your network ***)
 
 plotcol        python    General plotting routine for readable text files
                          (normally ending in .asc or .dat).  Makes a 
@@ -86,16 +72,6 @@ precomp        csh       C pre-processor for passing arguments; used within
                          a list of job parameters.  This script is not usually
                          used on its own, but could be.
                          =>  Type precomp to view all options.
-
-short_top      python    Views main running processes and disk usage on the
-                         local host machine.  Like "top" but simpler.
-
-workdir        csh       Returns the "working directory", where you want to
-                         create and run jobs.  Normally this is "/local_raid"
-                         but can be "/scratch" etc.  
-                         @@ Do not use your home directory! Keep the hydra
-                         directory structure unchanged to simplify updates. 
-                         (*** modify if necessary ***)
 
 
 ---------------------------------------------------------------------------
@@ -116,7 +92,7 @@ flow-setup     csh       Sets up a simulation, including compiling, and
                          "scripts" subdirectory.  Use the "dev" subdirectory
                          for testing purposes first. ***)
 
-spec_view      python    Views spectra for each time frame.  The spectra 
+spec_view/sv   python    Views spectra for each time frame.  The spectra 
                          are written out by the "evolution.f90" module in
                          the direcory containing the main fortran90 source
                          codes, e.g. "casl".   Advance forward by pressing or 
@@ -126,7 +102,7 @@ spec_view      python    Views spectra for each time frame.  The spectra
                          a wide variety of image formats (png, eps, pdf, etc).
                          =>  Use -h to view all options.
 
-zonalview      python    Views zonally-averaged quantities (e.g. u(y) with
+zonalview/zv   python    Views zonally-averaged quantities (e.g. u(y) with
                          u along the "x" axis and y along the "y" axis)) at
                          each time frame.  The required data are normally
                          produced by running the fortran90 executable "zonal"
