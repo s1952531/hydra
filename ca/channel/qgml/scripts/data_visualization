@@ -1,14 +1,14 @@
 #!/bin/csh
 
 image_sequence.py a l
-ffmpeg -framerate 10 -n -i %04d.png -c:v libx264 -pix_fmt yuv420p layers.mp4
+ffmpeg -framerate 10 -y -i %04d.png -c:v libx264 -pix_fmt yuv420p layers.mp4
 zonal_avg_evol.py t l
-ffmpeg -framerate 10 -n -i %04d.png -c:v libx264 -pix_fmt yuv420p avg.mp4
+ffmpeg -framerate 10 -y -i %04d.png -c:v libx264 -pix_fmt yuv420p avg.mp4
+find . -type f -name "*.png" ! -name "0000.png" -exec rm -f {} +
 
 if (-e bath.r8) then
     pbath.py
 endif
-find . -type f -name "*.png" ! -name "bath.png" -exec rm -f {} +
 
 penergy.py
 pzetanorms.py
