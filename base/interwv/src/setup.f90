@@ -7,7 +7,7 @@ module wavesetup
 ! for a three-layer configuration of piecewise-uniform N^2 
 ! bordered by error functions.
 
-! This needs the lapack or an equivalent to carry out the matrix operations
+! This needs the openblas or an equivalent to carry out the matrix operations
 
 ! Adapted from older f77 source by S King, Sept 3 @ St Andrews
 !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::

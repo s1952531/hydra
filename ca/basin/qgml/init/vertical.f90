@@ -2,7 +2,7 @@ program vertical
 
 ! This routine computes the vertical eigenvalues and eigenvectors
 ! of the linear system arising in the layer formulation.
-! *** Uses lapack to solve the eigensystem.
+! *** Uses openblas to solve the eigensystem.
 
 use parameters
 

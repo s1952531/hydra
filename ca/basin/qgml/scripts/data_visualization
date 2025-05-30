@@ -1,11 +1,11 @@
 #!/bin/csh
 
-image_sequence.py a l
-ffmpeg -framerate 10 -y -i %04d.png -c:v libx264 -pix_fmt yuv420p layers.mp4
-image_sequence.py a m
-ffmpeg -framerate 10 -y -i %04d.png -c:v libx264 -pix_fmt yuv420p modes.mp4
 measure.py
 ffmpeg -framerate 10 -y -i %04d.png -c:v libx264 -pix_fmt yuv420p pv_measure.mp4
+image_sequence.py a m
+ffmpeg -framerate 10 -y -i %04d.png -c:v libx264 -pix_fmt yuv420p modes.mp4
+image_sequence.py a l
+ffmpeg -framerate 10 -y -i %04d.png -c:v libx264 -pix_fmt yuv420p layers.mp4
 find . -type f -name "*.png" ! -name "0000.png" -exec rm -f {} +
 
 if (-e bath.r8) then

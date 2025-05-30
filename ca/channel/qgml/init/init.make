@@ -7,12 +7,7 @@ present_init_files = $(notdir $(basename $(wildcard $(sourcedir)/init/*.f90)))
 #---------------------------------------------------------------------------------
 # Rules:
 vertical: $(objects) $(sourcedir)/init/vertical.f90
-	# Check if LAPACK is installed, otherwise try to use OpenBLAS
-	if [ "$$(locate liblapack.so | grep -s "/liblapack.so" | wc -l)" != "0" ]; then \
-		$(f90) parameters.o $(sourcedir)/init/vertical.f90 -o vertical $(flags) -llapack; \
-	else \
-		$(f90) parameters.o $(sourcedir)/init/vertical.f90 -o vertical $(flags) -lopenblas; \
-	fi
+	$(f90) parameters.o $(sourcedir)/init/vertical.f90 -o vertical $(flags) -lopenblas
 
 eddy: $(objects) $(sourcedir)/init/eddy.f90
 	$(f90) parameters.o constants.o $(sourcedir)/init/eddy.f90 -o eddy $(flags)
