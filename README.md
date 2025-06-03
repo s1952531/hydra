@@ -23,7 +23,7 @@ The following steps should help to install and run this code library on practica
 
 3) Install the required linear algebra libraries. On Linux-based OS, this should be possible via
 
-   ```sudo apt-get install libblas-dev liblapack-dev```
+   ```sudo apt-get install libopenblas-dev```
 
 4) Add the following lines to the file ```~/.cshrc```:
 
