@@ -9,10 +9,11 @@ rootdir=os.path.join(homedir,'hydra','scripts')
 moddir=os.path.join(rootdir,'modules')
 graphicsdir=os.path.join(rootdir,'graphics')
 sys.path.append(moddir)
+sys.path.append(graphicsdir)
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import matplotlib.colors as clrs
+from utils import get_colourmap
 import argparse
 warnings.simplefilter("ignore",DeprecationWarning)
 
@@ -311,27 +312,6 @@ def readr8file(fname,args):
     out_array[i,:,:] = raw_array[i*(N+itime)+itime:(i+1)*(N+itime)].reshape(nx,ny)
   in_file.close()    
   return list(frames),out_array
-
-#---------------------------
-
-def get_colourmap():
-  cmap_file = open(os.path.join(graphicsdir,'colourmap'),'r')
-  cmap_list = []
-  istart=1024
-  iend=256**2-istart
-  for i in range(istart):
-    file_line = cmap_file.readline().split()
-  for i in range(iend+1):
-    file_line = cmap_file.readline().split()
-    a,b,c = file_line[0],file_line[1],file_line[2]
-    ele = (float(a),float(b),float(c))
-    cmap_list.append(ele)
-  stamap = clrs.LinearSegmentedColormap.from_list('amap',cmap_list,N=iend-istart+1)
-  plt.register_cmap(cmap=stamap)
-  return {'stamap':stamap,'jet':plt.cm.jet,'autumn':plt.cm.autumn,'winter':plt.cm.winter,'spring':plt.cm.spring,
-          'summer':plt.cm.summer,'hot':plt.cm.hot,'bone':plt.cm.bone,'cool':plt.cm.cool,'copper':plt.cm.copper,
-          'gray':plt.cm.gray,'hsv':plt.cm.hsv,'prism':plt.cm.prism,'pink':plt.cm.pink,
-          'flag':plt.cm.flag}
 
 #---------------------------
 
