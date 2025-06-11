@@ -61,3 +61,25 @@ To then start a simulation, type ```hydra``` once more, to setup a run as above.
 ```hydra/ca/basin/qgml/scripts/```
 
 Jobs are scheduled via ```sbatch fox.slurm```
+
+## Citations
+
+Please cite with:
+```c
+@misc{hydra,
+  key = {hydra},
+  title = {Hydra [Software]},
+  howpublished = {\url{https://github.com/daviddritschel/hydra}}
+}
+```
+
+## Contributors
+
+- [David Dritschel](https://www.st-andrews.ac.uk/mathematics-statistics/people/dgd1)
+- [Hennes Hajduk](https://www.mn.uio.no/geo/english/people/aca/metos/hennesh/index.html)
+
+## License
+
+- [BSD](https://github.com/daviddritschel/hydra/LICENSE)
+
+<br>
