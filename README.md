@@ -21,11 +21,13 @@ The following steps should help to install and run this code library on practica
 
    where ```/home/<user>``` is your home directory and ```<path1>``` and ```<path2>``` are two default search paths (any other number is possible here, just separate each path with a colon).
 
-3) Install the required linear algebra libraries. On Linux-based OS, this should be possible via
+3) Run the script ```configure``` in ```hydra/scripts``` to define the fortran compiler and parent directory for all individual hydra runs. Make sure to specify the absolute path here.
+
+4) Install the required linear algebra libraries. On Linux-based OS, this should be possible via
 
    ```sudo apt-get install libblas-dev liblapack-dev```
 
-4) Add the following lines to the file ```~/.cshrc```:
+5) Add the following lines to the file ```~/.cshrc```:
 
    ```
    alias bat '(  nice +19 nohup time \!:2-$ ) >&\! \!^ &'   
@@ -46,7 +48,7 @@ Hydra is hierarchical and modular in the sense that first the method, geometry, 
 
 If you are running hydra on some server with a job scheduling system (e.g., slurm, see [slurm.schedmd.com/documentation](https://slurm.schedmd.com/documentation.html)), some of the above steps require slight modifications. In our opinion, the easiest way to use hydra as on your local machine is by adapting the following of the above steps:
 
-3) On a cluster, you typically do not have the rights required to install software, such as OpenBLAS, which instead is often pre-installed and may need to be activated. In this case, use commands akin to
+4) On a cluster, you typically do not have the rights required to install software, such as OpenBLAS, which instead is often pre-installed and may need to be activated. In this case, use commands akin to
 
    ```module spider OpenBLAS```
 
@@ -54,7 +56,7 @@ to find out, which <version> is available, then load it via
 
    ```module load OpenBLAS/<version>```
 
-4) To avoid running computationally demanding processes on login nodes (the admins might go so far as to revoke your access to the cluster), you can simply remove the ```bat```-command from the script ```flow-setup``` that is executed for the run. As a consequence, hydra will only be compiled on a login node but not yet executed. As above, make sure that these changes take effect in your shell via ```source```.
+5) To avoid running computationally demanding processes on login nodes (the admins might go so far as to revoke your access to the cluster), you can simply remove the ```bat```-command from the script ```flow-setup``` that is executed for the run. As a consequence, hydra will only be compiled on a login node but not yet executed. As above, make sure that these changes take effect in your shell via ```source```.
 
 To then start a simulation, type ```hydra``` once more, to setup a run as above. After specifying the final run-directory, ```cd``` there. The ```log``` file will now be empty. To start the simulation, add a job to the queue via a job script that only runs the main executable and writes the output to the ```log```-file. The script ```fox.slurm``` does precisely this and can be found in
 
