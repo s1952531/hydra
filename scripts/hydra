@@ -44,13 +44,13 @@ endif
 set fulldirlist=`/bin/ls $basedir`
 set ndir=$#fulldirlist
 
-# Exclude "scripts", "doc", "lib", "base" and "README.md" from the list of numerical methods available:
+# Exclude "scripts", "doc", "lib", "base", "LICENSE" and "README.md" from the list of numerical methods available:
 set method=($fulldirlist)
 set nmet=0
 set i=1
 while ( $i <= $ndir )
    set dir=$fulldirlist[$i]
-   if ( ($dir != "scripts") && ($dir != "doc") && ($dir != "lib") && ($dir != "base") && ($dir != "README.md") ) then
+   if ( ($dir != "scripts") && ($dir != "doc") && ($dir != "lib") && ($dir != "base") && ($dir != "LICENSE") && ($dir != "README.md") ) then
      @ nmet ++
      set method[$nmet]=$dir
    endif
