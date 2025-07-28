@@ -16,6 +16,9 @@ twovort: $(objects) $(fft_lib) $(sourcedir)/init/twovort.f90
 bickley: $(objects) $(sourcedir)/init/bickley.f90
 	$(f90) parameters.o constants.o $(sourcedir)/init/bickley.f90 -o bickley $(flags)
 
+tetra: $(objects) $(sourcedir)/init/tetra.f90
+	$(f90) parameters.o constants.o $(sourcedir)/init/tetra.f90 -o tetra $(flags)
+
 rest-state: $(objects) $(sourcedir)/init/rest-state.f90
 	$(f90) parameters.o constants.o $(sourcedir)/init/rest-state.f90 -o rest-state $(flags)
 
