@@ -20,6 +20,9 @@ double precision:: qs(0:nx,0:ny,nz),qd(0:nx,0:ny,nz)
  !Current model time since beginning of simulation:
 double precision:: t
 
+ !Optionally used for checking energy equilibration:
+double precision:: rme,rmep,dtavg_rme
+
  !Counters for saving gridded and contour data periodically:
 integer:: igrids,iconts
 

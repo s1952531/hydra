@@ -1,0 +1,79 @@
+#!/bin/csh
+
+#--------------------------------------------------------------------------
+# Stepper script permitting a sequence of simulations at double resolution
+# This is called, optionally, at the end of flow_setup.
+#--------------------------------------------------------------------------
+
+# ndble: number of resolution doublings (passed in):
+set ndble = $1
+
+# First, run caps at lowest resolution until energy equilibration:
+echo ' Running caps at the coarsest resolution ...'
+caps
+# Save energy evolution file:
+/bin/mv evolution/energy.asc evolution/energy0.asc
+
+# Get current resolution, nx & ny:
+cd src
+set nx = `grep "nx=" parameters.f90 | awk -F= '{print $(NF)}'`
+set ny = `grep "ny=" parameters.f90 | awk -F= '{print $(NF)}'`
+cd ..
+
+#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Loop over doublings:
+set i = 0
+@ ilast = ( $ndble - 1 )
+while( $i < $ndble )
+
+   # Double resolution:
+   @ nxd = ( 2 * $nx )
+   @ nyd = ( 2 * $ny )
+
+   # Enter source directory for re-compilation:
+   cd src
+
+   # Replace nx & ny by new values in parameters.f90:
+   sed s/nx=$nx/nx=$nxd/ parameters.f90 > junk
+   mv junk parameters.f90
+   sed s/ny=$ny/ny=$nyd/ parameters.f90 > junk
+   mv junk parameters.f90
+   set nx = $nxd
+   set ny = $nyd
+
+   if ( $i == $ilast ) then
+      # Replace tavg_rme and frme by 0.0 to ensure highest resolution 
+      # simulation ends by the chosen simulation time, tsim:
+      set tavg = `grep "tavg_rme=" parameters.f90 | awk -F= '{print $(NF)}'`
+      sed s/tavg_rme=$tavg/tavg_rme=0.0/ parameters.f90 > junk
+      mv junk parameters.f90
+      set favg = `grep "frme=" parameters.f90 | awk -F= '{print $(NF)}'`
+      sed s/frme=$favg/frme=0.0/ parameters.f90 > junk
+      mv junk parameters.f90
+   endif
+      
+   # Recompile both caps and double_grid:
+   make caps clean install
+   make double_grid clean install
+
+   # Return to job directory:
+   cd ..
+
+   # Generate new initial data at double resolution from last data:
+   echo ' Interpolating final data to a double resolution grid ...'
+   double_grid
+
+   # Run next simulation:
+   echo ' Running caps at this resolution ...'
+   caps
+
+   @ i++
+
+   # Save energy evolution file:
+   /bin/mv evolution/energy.asc evolution/energy{$i}.asc
+end
+#<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+# Remove files which are no longer required:
+/bin/rm qq_final.r8
+echo ' Job complete.'

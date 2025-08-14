@@ -156,7 +156,7 @@ echo ' Width of the domain in y, L_y:      ' $elly >> job_info
 #==========================================================================
 # Choose horizontal resolution and number of PV levels:
 
-set nx = "256"      # Default inversion grid resolution in x (east - west)
+set nx = "16"      # Default inversion grid resolution in x (east - west)
 echo
 echo -n ' Grid resolution in x (default' $nx')? '
 set var=$<
@@ -183,7 +183,7 @@ echo ' Number of jumps to represent PV, nq:' $nq >> job_info
 #==========================================================================
 # Set up bathymetry if desired:
 
-set bathymetry = "y"
+set bathymetry = "n"
 echo
 echo -n ' Do you wish to include bathymetry (y/n, default' $bathymetry')? '
 set var=$<
@@ -516,7 +516,7 @@ if ($var != "") set wind=$var
 if ($wind == "y") then
    echo
    echo ' Wind stress adds a*sin(2*pi*(y-y_min)/L_y) to the upper-layer PV tendency.'
-   set fwind="-1.0"
+   set fwind="-0.1"
    echo -n ' Amplitude, a (default' $fwind')? '
    set var=$<
    if ($var != "") set fwind=$var
@@ -529,27 +529,79 @@ else
 endif
 
 #==========================================================================
+# Choose optional parameters to monitor running-mean total energy:
+
+echo
+set monrme = "y"
+echo
+echo ' Optionally, we can stop the simulation when the running-mean total'
+echo ' energy varies by less than a fraction F of its previous value'
+echo -n ' Do you wish to do this (y/n, default' $monrme')? '
+set var=$<
+if ($var != "") set monrme=$var
+
+if ($monrme != "n") then
+   echo
+   set tavg="20.0"
+   echo -n ' Window length of time average, T (default' $tavg')? '
+   set var=$<
+   if ($var != "") set tavg=$var
+   set frme="0.05"
+   echo -n ' Fraction, F (default' $frme')? '
+   set var=$<
+   if ($var != "") set frme=$var
+
+   echo
+   set ndble="1"
+   echo ' Number of times the simulation should restart at double resolution'
+   echo -n ' after energy equilibration (default' $ndble')? '
+   set var=$<
+   if ($var != "") set ndble=$var
+
+   echo ' ' >> job_info
+   echo ' Monitoring the running-mean total energy.' >> job_info
+   echo ' Time-averaging window, T:           ' $tavg >> job_info
+   echo ' Fraction that energy can vary by, F:' $frme >> job_info;
+   if ($ndble != "0") then
+      echo ' ' >> job_info
+      echo ' Number of resolution doublings:     ' $ndble >> job_info
+   endif
+else
+   set tavg="0"
+   set frme="0"
+   set ndble="0"
+endif
+
+#==========================================================================
 # Choose data save frequencies and simulation duration:
 
 echo
-set tgsave="0.5"
+set tgsave="1.0"
 echo -n ' Time interval between gridded data saves (default' $tgsave')? '
 set var=$<
 if ($var != "") set tgsave=$var
 echo ' ' >> job_info
 echo ' Time interval between data saves:   ' $tgsave >> job_info
 
-set tcsave="1000.0"   # Contour data save time increment
+set tcsave="2000.0"   # Contour data save time increment
 echo -n ' Time interval between contour data saves (default' $tcsave')? '
 set var=$<
 if ($var != "") set tcsave=$var
 echo ' Time interval between contour saves:' $tcsave >> job_info
 
-set tsim="250.0"
-echo -n ' Total simulation time (default' $tsim')? '
-set var=$<
-if ($var != "") set tsim=$var
-echo ' Total simulation time:              ' $tsim >> job_info
+if ($monrme != "n") then
+    set tsim="500.0"
+    echo -n ' Simulation duration (at final resolution, default' $tsim')? '
+    set var=$<
+    if ($var != "") set tsim=$var
+    echo ' Simulation duration (final resol.): ' $tsim >> job_info
+else
+    set tsim="500.0"
+    echo -n ' Simulation duration (default' $tsim')? '
+    set var=$<
+    if ($var != "") set tsim=$var
+    echo ' Simulation duration:                ' $tsim >> job_info
+endif
 
 #---------------------------------------------------------------------
 # Use default values for hyperviscosity (applied to residual PV only):
@@ -576,7 +628,7 @@ echo " Compiling source files....."
 
 # Use C pre-processor to put chosen parameters $copts into parameters.f90
 set copts1="-DN_X=$nx -DN_Y=$ny -DN_Z=$nz -DX_MIN={$xmin} -DX_MAX={$xmax} -DY_MIN={$ymin} -DY_MAX={$ymax} -DN_CONTQ=$nq"
-set copts2="-DT_SIM={$tsim} -DT_GSAVE={$tgsave} -DT_CSAVE={$tcsave} -DPV_GRAD={$beta}"
+set copts2="-DT_AVG={$tavg} -DF_RME={$frme} -DT_SIM={$tsim} -DT_GSAVE={$tgsave} -DT_CSAVE={$tcsave} -DPV_GRAD={$beta}"
 set copts3="-DC_DAMP={$cdamp} -DPOW_HYPER=$nnu -DR_EKMAN={$rekman} -DF_WIND={$fwind} -DBATH_FLAG=$bathflag -DI_SEED=$iseed"
 set copts=`echo $copts1 $copts2 $copts3`
 precomp $copts parameters.f90
@@ -608,7 +660,7 @@ endif
 echo ' Generating initial PV distribution...'
 $datagen < in_$datagen > out_$datagen
 
-# Copy useful data view scripts to job directory:
+# Copy useful scripts to job directory:
 /bin/cp $bindir/data_visualization .
 /bin/cp $bindir/fox.slurm .
 /bin/cp $bindir/image.py .
@@ -618,6 +670,7 @@ $datagen < in_$datagen > out_$datagen
 /bin/cp $bindir/pbath.py .
 /bin/cp $bindir/penergy.py .
 /bin/cp $bindir/pzetanorms.py .
+/bin/cp $bindir/step .
 
 #==========================================================================
 # Create a directory named after the data generation script:
@@ -664,7 +717,12 @@ echo $datadir >> job_info
 echo ' Launching job in'
 echo $datadir
 touch $logfile
-bat $logfile $algo
+# Launch job as a single run or a stepped sequence of double-resolution runs:
+if ($ndble == "0") then
+   bat $logfile $algo
+else
+   bat $logfile step $ndble
+endif
 echo
 
 echo ' To view the log file, type'

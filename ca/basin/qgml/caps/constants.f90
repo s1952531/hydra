@@ -77,8 +77,12 @@ double precision,parameter:: gly=elly/dble(ny),glyi=dble(ny)/elly
 double precision,parameter:: garea=glx*gly,dsumi=one/dble(nx*ny)
 double precision,parameter:: dnxi=one/dble(nx),dnyi=one/dble(ny)
 
+ !Optionally used for checking energy equilibration:
+double precision,parameter:: omfrme=one-frme,opfrme=one+frme
+
  !Logical control variables:
 logical,parameter:: friction=(rekman > zero)
 logical,parameter:: wind=(fwind /= zero)
+logical,parameter:: check_energy=(frme > zero)
 
 end module constants

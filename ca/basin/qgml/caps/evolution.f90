@@ -20,7 +20,7 @@ double precision:: zz(0:ny,0:nx,nz)
 double precision:: emq(0:nx,0:ny),epq(0:nx,0:ny)
 
 ! Time step, time step fractions and "twist" parameter:
-double precision:: dt,dt2,dt3,dt6,twist
+double precision:: dt,dt2,dt3,dt6,twist,tot
 
 ! Logicals for saving gridded & contour data
 logical:: gsave,csave
@@ -266,10 +266,6 @@ call inversion(0)
 ! Adapt the time step and save various diagnostics each time step:
 call adapt
 
-! Possibly save data (gsave & csave set by adapt):
-if (gsave) call savegrid
-if (csave) call savecont
-
 ! Calculate the source terms (sqs,sqd) for PV (qs,qd):
 call source(sqs,sqd,0)
 
@@ -495,6 +491,17 @@ enddo
 ! Save data to monitor.asc:
 write(16,'(f12.5,2(1x,f15.7))') t,zzmax,zzrms
 
+!---------------------------------------------------------------------
+! Set flags to save data:
+gsave=(int(t/tgsave) .eq. igrids)
+! Gridded data will be saved at time t if gsave is true.
+csave=(int(t/tcsave) .eq. iconts)
+! Contour data will be saved at time t if csave is true.
+
+! Possibly save data (gsave & csave set by adapt):
+if (gsave) call savegrid
+if (csave) call savecont
+
 ! Time step needed for accuracy:
 dtacc=dtfac/max(zzmax,srwfm)
 ! The restriction on the maximum Rossby wave frequency (srwfm)
@@ -524,12 +531,32 @@ emq=exp(-dfac*diss)
 epq=filt/emq
 ! diss & filt are defined in spectral.f90
 
-!---------------------------------------------------------------------
-! Set flags to save data:
-gsave=(int(t/tgsave) .eq. igrids)
-! Gridded data will be saved at time t if gsave is true.
-csave=(int(t/tcsave) .eq. iconts)
-! Contour data will be saved at time t if csave is true.
+if (check_energy) then
+   ! Compute running-mean total energy and see if this has stayed
+   ! approximately constant since the last calculation; if so, stop
+   ! and save the final PV field.
+   if (dtavg_rme < tavg_rme) then
+      rme = rme + dt*tot
+      dtavg_rme = dtavg_rme + dt
+   else
+      rme = rme/dtavg_rme
+      if (rmep > zero) then
+         ! Check if rme is sufficiently close to rmep to stop:
+         if ((rme > omfrme*rmep) .and. (rme < opfrme*rmep)) then
+            ! Save final PV field:
+            open(20,file='qq_final.r8',form='unformatted', &
+                 access='direct',status='replace',recl=2*nbytes)
+            write(20,rec=1) t,qq
+            close(20)
+            write(*,'(a,f10.3)') &
+                 ' *** Stopping due to energy equilibration at t = ',t
+            stop
+         endif
+      endif
+      rmep = rme
+      dtavg_rme = zero
+   endif
+endif
 
 return
 end subroutine adapt
@@ -544,7 +571,7 @@ subroutine savegrid
 implicit none
 
 ! Local variables:
-double precision:: tke,ape,tot
+double precision:: tke,ape
 integer:: iz
 
 !------------------------------------------------------------------
