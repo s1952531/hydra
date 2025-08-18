@@ -9,11 +9,12 @@ rootdir=os.path.join(homedir,'hydra','scripts')
 moddir=os.path.join(rootdir,'modules')
 graphicsdir=os.path.join(rootdir,'graphics')
 sys.path.append(moddir)
+sys.path.append(graphicsdir)
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import matplotlib.colors as clrs
 import matplotlib.ticker as ticker
+from utils import get_colourmap
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import argparse
 warnings.simplefilter("ignore",DeprecationWarning)
@@ -31,17 +32,17 @@ def parse_args():
   parser.add_argument('-extent', metavar='extent' , type=float , nargs=4, help='Extent of the plot [xmin,xmax,ymin,ymax]')
   parser.add_argument('-xlims', metavar='xlims' , type=float , nargs=2, help='Lower and upper x grid points/values to image')
   parser.add_argument('-ylims', metavar='ylims' , type=float , nargs=2, help='Lower and upper y grid points/balues to image')
-  parser.add_argument('-x0', action='store_true' , help='Read in an extra point in the x direction - useful for aperiodic codes')  
-  parser.add_argument('-y0', action='store_true' , help='Read in an extra point in the y direction - useful for aperiodic codes')  
-  parser.add_argument('-glob', action='store_true' , help='Scale colours based on the global min/max (or abs values) across all frames')  
-  parser.add_argument('-mod', action='store_true' , help='Scale colours based on +/- the max absolute value rather than straight min/max')  
-  parser.add_argument('-cb', action='store_true' , help='Add colourbar to plots - currently only makes sense for constant colourmap limits')  
-  parser.add_argument('-cbcme', action='store_true' , help='Add colourbar to plots - currently only makes sense for constant colourmap limits') 
+  parser.add_argument('-x0', action='store_true' , help='Read in an extra point in the x direction - useful for aperiodic codes')
+  parser.add_argument('-y0', action='store_true' , help='Read in an extra point in the y direction - useful for aperiodic codes')
+  parser.add_argument('-glob', action='store_true' , help='Scale colours based on the global min/max (or abs values) across all frames')
+  parser.add_argument('-mod', action='store_true' , help='Scale colours based on +/- the max absolute value rather than straight min/max')
+  parser.add_argument('-cb', action='store_true' , help='Add colourbar to plots - currently only makes sense for constant colourmap limits')
+  parser.add_argument('-cbcme', action='store_true' , help='Add colourbar to plots - currently only makes sense for constant colourmap limits')
   parser.add_argument('-cmap', metavar='cmap' , default='stamap', type=str , help='Colour map to use')
-  parser.add_argument('-noticks', action='store_true' , help='Remove tickmarks and labels from the axes') 
+  parser.add_argument('-noticks', action='store_true' , help='Remove tickmarks and labels from the axes')
 #XXXYYY
   parser.add_argument('-title', metavar='title' , type=str , nargs=1, help='Assign title')
-  parser.add_argument('-outticks', action='store_true' , help='Change tick marks to outside (only works on recent Python)') 
+  parser.add_argument('-outticks', action='store_true' , help='Change tick marks to outside (only works on recent Python)')
   parser.add_argument('-xticks', metavar='xticks' , type=float , nargs=3, help='Min, max and step for x tick marks')
   parser.add_argument('-axlab1', metavar='axlab1' , type=float , nargs=2, help='Re-label x axis with number and auto increase in number (must also use xticks)')
   parser.add_argument('-axlab2', metavar='axlab2' , type=str , nargs=1, help='Re-label x axis with text in front of number (must also use xticks and axlab1)')
@@ -52,12 +53,12 @@ def parse_args():
   parser.add_argument('-ytitle', metavar='ytitle' , type=str , nargs=1, help='Assign y axis title')
   parser.add_argument('-aspect', metavar='aspect' , type=float , nargs=1, help='Change the aspect ratio of the output image (default is 1)')
 #XXXYYY
-  parser.add_argument('-notitle', action='store_true' , help='Remove title with frame number')  
-  parser.add_argument('-notime', action='store_true' , help='Do not read a time interleaved with the frames')  
+  parser.add_argument('-notitle', action='store_true' , help='Remove title with frame number')
+  parser.add_argument('-notime', action='store_true' , help='Do not read a time interleaved with the frames')
   parser.add_argument('-dpi', metavar='dpi' , type=int , default='800', help='dpi of any saved image file')
   parser.add_argument('-mult', metavar='mult' , type=int,default='1', help='Factor to increase stated grid resolution by in each direction (eg 16x)')
   parser.add_argument('-skip', metavar='skip' , type=int,default='1', help='How many x and y poionts to skip (i.e. read every [skip] points)')
-  args = parser.parse_args() 
+  args = parser.parse_args()
   return args
 
 #---------------------------
@@ -65,11 +66,11 @@ def parse_args():
 def readtxtfile(args):
   # Open input file:
   try:
-    in_file = open(args.input,'r')# try opening passed filename  
+    in_file = open(args.input,'r')# try opening passed filename
   except IOError:
-     print ("File could not be opened")
-     sys.exit()
-  
+    print ("File could not be opened")
+    sys.exit()
+
   # Set up grid point numbers
   nx = args.ndim[0]*args.mult
   ny = args.ndim[1]*args.mult
@@ -79,7 +80,7 @@ def readtxtfile(args):
     nx = nx+1
   if args.y0:
     ny = ny+1
-    
+
   #  Read in data and close input file:
   raw_array = np.array(np.fromfile(file=in_file,dtype=float,sep='\n'))
   in_file.close()
@@ -88,10 +89,10 @@ def readtxtfile(args):
   if not args.notime:
     itime=1
   else:
-    itime=0     
+    itime=0
   # Set the number of frames:
   N = nx*ny
-  nframes = int(len(raw_array)/(N+itime))  
+  nframes = int(len(raw_array)/(N+itime))
   print(' Number of frames generated: %d' %nframes)
 
   # Shape the data array into a useful shape for plotting:
@@ -108,10 +109,10 @@ def readi4file(args):
 
   # Open input file:
   try:
-    in_file = open(args.input,'r')# try opening passed filename  
+    in_file = open(args.input,'r')# try opening passed filename
   except IOError:
-     print ("File could not be opened")
-     sys.exit()
+    print ("File could not be opened")
+    sys.exit()
 
   # Set up grid point numbers
   nx = args.ndim[0]*args.mult
@@ -137,7 +138,7 @@ def readi4file(args):
       bytes = in_file.read(4)
       raw_array[i] = float(struct.unpack('i',bytes)[0])
       i+=1
-  in_file.close()    
+  in_file.close()
   return frames,raw_array.reshape((nframes,nx,ny))
 
 #---------------------------
@@ -147,10 +148,10 @@ def readc1file(args):
 
   # Open input file:
   try:
-    in_file = open(args.input,'r')# try opening passed filename  
+    in_file = open(args.input,'r')# try opening passed filename
   except IOError:
-     print ("File could not be opened")
-     sys.exit()
+    print ("File could not be opened")
+    sys.exit()
 
   # Set up grid point numbers
   nx = args.ndim[0]*args.mult
@@ -176,7 +177,7 @@ def readc1file(args):
       bytes = in_file.read(1)
       raw_array[i] = float(struct.unpack('B',bytes)[0])
       i+=1
-  in_file.close()    
+  in_file.close()
   return frames,raw_array.reshape((nframes,nx,ny))
 
 #---------------------------
@@ -186,10 +187,10 @@ def readc2file(args):
 
   # Open input file:
   try:
-    in_file = open(args.input,'r')# try opening passed filename  
+    in_file = open(args.input,'r')# try opening passed filename
   except IOError:
-     print ("File could not be opened")
-     sys.exit()
+    print ("File could not be opened")
+    sys.exit()
 
   # Set up grid point numbers
   nx = args.ndim[0]*args.mult
@@ -218,7 +219,7 @@ def readc2file(args):
       b2=int(struct.unpack('B',bytes2)[0])
       raw_array[i] = float(b1*256+b2)
       i+=1
-  in_file.close()    
+  in_file.close()
   return frames,raw_array.reshape((nframes,nx,ny))
 
 #---------------------------
@@ -227,10 +228,10 @@ def readr4file(args):
 
   # Open input file:
   try:
-    in_file = open(args.input,'r')# try opening passed filename  
+    in_file = open(args.input,'r')# try opening passed filename
   except IOError:
-     print ("File could not be opened")
-     sys.exit()
+    print ("File could not be opened")
+    sys.exit()
 
   # Set up grid point numbers
   nx = args.ndim[0]*args.mult
@@ -246,10 +247,10 @@ def readr4file(args):
   if not(args.notime):
     itime=1
   else:
-    itime=0     
+    itime=0
   # Set the number of frames:
   file_bytes = os.path.getsize(args.input)
-  N = nx*ny  
+  N = nx*ny
   nframes = int(file_bytes/((N+itime)*4))
   print(' Number of frames generated: %d' %nframes)
   frames = range(nframes)
@@ -257,7 +258,7 @@ def readr4file(args):
   out_array = np.empty((nframes,nx,ny))
   for i in frames:
     out_array[i,:,:] = raw_array[i*(N+itime)+itime:(i+1)*(N+itime)].reshape(nx,ny)
-  in_file.close()    
+  in_file.close()
   return frames,out_array
 
 #---------------------------
@@ -266,10 +267,10 @@ def readi2file(args):
 
   # Open input file:
   try:
-    in_file = open(args.input,'r')# try opening passed filename  
+    in_file = open(args.input,'r')# try opening passed filename
   except IOError:
-     print ("File could not be opened")
-     sys.exit()
+    print ("File could not be opened")
+    sys.exit()
 
   # Set up grid point numbers
   nx = args.ndim[0]*args.mult
@@ -283,12 +284,12 @@ def readi2file(args):
 
   # Set the number of frames:
   file_bytes = os.path.getsize(args.input)
-  N = nx*ny  
+  N = nx*ny
   nframes = int(file_bytes/(N*2))
   print(' Number of frames generated: %d' %nframes)
   frames = range(nframes)
   raw_array = np.fromfile(in_file,dtype=np.dtype('u2'))+2**15-1
-  in_file.close()    
+  in_file.close()
   return frames,raw_array.reshape((nframes,nx,ny))
 
 #---------------------------
@@ -297,10 +298,10 @@ def readr8file(args):
 
   # Open input file:
   try:
-    in_file = open(args.input,'r')# try opening passed filename  
+    in_file = open(args.input,'r')# try opening passed filename
   except IOError:
-     print ("File could not be opened")
-     sys.exit()
+    print ("File could not be opened")
+    sys.exit()
 
   # Set up grid point numbers
   nx = args.ndim[0]*args.mult
@@ -316,7 +317,7 @@ def readr8file(args):
   if not(args.notime):
     itime=1
   else:
-    itime=0     
+    itime=0
   # Set the number of frames:
   file_bytes = os.path.getsize(args.input)
   N = nx*ny
@@ -327,30 +328,8 @@ def readr8file(args):
   out_array = np.empty((nframes,nx,ny),dtype=np.float64)
   for i in frames:
     out_array[i,:,:] = raw_array[i*(N+itime)+itime:(i+1)*(N+itime)].reshape(nx,ny)
-  in_file.close()    
+  in_file.close()
   return frames,out_array
-
-#---------------------------
-
-def get_colourmap():
-  cmap_file = open(os.path.join(graphicsdir,'colourmap'),'r')
-  cmap_list = []
-  istart=1024
-  iend=256**2-istart
-  for i in range(istart):
-    file_line = cmap_file.readline().split()
-  for i in range(iend+1):
-    file_line = cmap_file.readline().split()
-    a,b,c = file_line[0],file_line[1],file_line[2]
-    ele = (float(a),float(b),float(c))
-    cmap_list.append(ele)
-  stamap = clrs.LinearSegmentedColormap.from_list('amap',cmap_list,N=iend-istart+1)
-  plt.register_cmap(cmap=stamap)
-  return {'stamap':stamap,'jet':plt.cm.jet,'seismic':plt.cm.seismic,'rjet':plt.cm.jet_r,'rseismic':plt.cm.seismic_r,'autumn':plt.cm.autumn,'winter':plt.cm.winter,'spring':plt.cm.spring,
-          'summer':plt.cm.summer,'hot':plt.cm.hot,'bone':plt.cm.bone,'rbone':plt.cm.bone_r,'cool':plt.cm.cool,'copper':plt.cm.copper,
-          'gray':plt.cm.gray,'hsv':plt.cm.hsv,'bwr':plt.cm.bwr,'prism':plt.cm.prism,'pink':plt.cm.pink,'RdBu':plt.cm.RdBu,
-          'rRdBu':plt.cm.RdBu_r,'Blues':plt.cm.Blues,'rBlues':plt.cm.Blues_r,'GnBu':plt.cm.GnBu,'PuBu':plt.cm.PuBu,'BuPu':plt.cm.BuPu,
-          'YlGnBu':plt.cm.YlGnBu,'Greys':plt.cm.Greys,'binary':plt.cm.binary,'rainbow':plt.cm.gist_rainbow,'flag':plt.cm.flag}
 
 #---------------------------
 
@@ -395,7 +374,7 @@ def show_frames(frames,main_array,args,cmap_val,lev_mins,lev_maxs):
         ylabels = [item.get_text() for item in ax.get_yticklabels()]
         for x in xrange(n+1):
           p=args.aylab1[0]+x*args.aylab1[1]
-          ylabels[x] = '%d' %p 
+          ylabels[x] = '%d' %p
         ax.set_yticklabels(ylabels,fontsize='medium')
 
     # Add minor ticks to the x-axis (first, last+1, step) and make the major ticks bigger
@@ -432,15 +411,15 @@ def show_frames(frames,main_array,args,cmap_val,lev_mins,lev_maxs):
 
     #if args.cb:
     #  plt.colorbar(im)
-    axes.set_xlim(xlim)  
+    axes.set_xlim(xlim)
     axes.set_ylim(ylim)
     fig.canvas.draw()
     return
-    
+
   def on_press(event):
     global keys,frame,nframes
     if event.key not in 'lcsfh':
-      keys.add(event.key)  
+      keys.add(event.key)
     if len(keys) == 1 and '=' in keys:
       frame = (frame+1+nframes) % nframes
       draw_frame(event)
@@ -481,12 +460,12 @@ def show_frames(frames,main_array,args,cmap_val,lev_mins,lev_maxs):
       keys.clear()
       keys.add('r')
     return
-      
+
   def on_release(event):
     global keys
-    keys.remove(event.key)  
+    keys.remove(event.key)
     return
-  
+
   global frame,keys,im,nframes,extent,glob_cmap_val,cb
   glob_cmap_val=cmap_val
   nframes=len(frames)
@@ -517,7 +496,7 @@ def show_frames(frames,main_array,args,cmap_val,lev_mins,lev_maxs):
 
   # Set x & y axes limits:
   if args.xlims:
-    ax.set_xlim(args.xlims)  
+    ax.set_xlim(args.xlims)
   if args.ylims:
     ax.set_ylim(args.ylims)
 
@@ -554,9 +533,9 @@ def show_frames(frames,main_array,args,cmap_val,lev_mins,lev_maxs):
       ylabels = [item.get_text() for item in ax.get_yticklabels()]
       for x in xrange(n+1):
         p=args.aylab1[0]+x*args.aylab1[1]
-        ylabels[x] = '%d' %p 
+        ylabels[x] = '%d' %p
       ax.set_yticklabels(ylabels,fontsize='medium')
- 
+
   # Add minor ticks to the x-axis (first, last+1, step) and make the major ticks bigger
   if args.minxticks:
     minorticks = np.arange(args.minxticks[0], args.minxticks[1]+1, args.minxticks[2])
@@ -594,7 +573,7 @@ def show_frames(frames,main_array,args,cmap_val,lev_mins,lev_maxs):
   if args.cb:
     cb=plt.colorbar(im)
 
-  # Add Cristina's color bar 
+  # Add Cristina's color bar
   if args.cbcme:
     divider = make_axes_locatable(ax)
     #cbar aspect for site 4 with plot aspect 0.85 is 11.1
@@ -608,7 +587,7 @@ def show_frames(frames,main_array,args,cmap_val,lev_mins,lev_maxs):
   # Connect key presses to event handlers:
   cid=fig.canvas.mpl_connect('key_press_event',on_press)
   cid2=fig.canvas.mpl_connect('key_release_event',on_release)
-      
+
   # Close the individual figure
   plt.show()
 
@@ -670,12 +649,12 @@ if __name__ == '__main__':
     lev_maxs=[lev_max for frame in frames]
   else:
     if args.glob:
-      if args.mod:        
+      if args.mod:
         lev_max = max(abs(main_array.min()),abs(main_array.max()))
         lev_min = -lev_max
       else:
         lev_min = main_array.min()
-        lev_max = main_array.max()    
+        lev_max = main_array.max()
       lev_mins=[lev_min for frame in frames]
       lev_maxs=[lev_max for frame in frames]
     else:
@@ -688,7 +667,7 @@ if __name__ == '__main__':
       else:
         for frame in frames:
           lev_min = main_array[frame].min()
-          lev_max = main_array[frame].max()    
+          lev_max = main_array[frame].max()
           lev_mins.append(lev_min)
           lev_maxs.append(lev_max)
   # Pass control to subroutines controlling image
