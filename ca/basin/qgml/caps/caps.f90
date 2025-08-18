@@ -123,6 +123,13 @@ igrids=0
 iconts=0
  !These are used in module evolution
 
+ !Optionally used for checking energy equilibration:
+if (check_energy) then
+   rme=zero
+   rmep=zero
+   dtavg_rme=zero
+endif
+
 !------------------------------------------------------------------
  !Open all diagnostic plain text files:     
 open(14,file='evolution/complexity.asc',status='unknown')

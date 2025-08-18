@@ -113,7 +113,7 @@ set fourpi=`echo "scale=10; 4 * $pi" | bc -l`
 
 #==========================================================================
 # Get the data generation routine to be used:
-set dataopt="0"
+set dataopt="6"
 echo
 echo ' Choose one of the following flow initialisation methods:'
 echo ' (0) a single vortex patch,'
@@ -121,7 +121,8 @@ echo ' (1) a Bickley jet,'
 echo ' (2) multiple Bickley jets,'
 echo ' (3) take data from' $workdir/$meth/$geom/$equa/initial_data
 echo ' (4) stochastic vorticity forcing starting from a state of rest,'
-echo -n ' (5) initially random relative vorticity - (default' $dataopt')? '
+echo ' (5) initially random relative vorticity, or'
+echo -n ' (6) tetrahedra with zero angular momentum - (default' $dataopt')? '
 set var=$<
 if ($var != "") set dataopt=$var
 
@@ -223,6 +224,21 @@ else if ($dataopt == "5") then
    set omega=$twopi
    set t_save="2.0"
    set t_sim="20.0"
+   set n_period="50"
+   set rekman="0.0" 
+   set esr="0.0" 
+   set ksr="16" 
+
+else if ($dataopt == "6") then 
+   set datagen = "tetra"
+   set forcing = "n"
+   set damping = "n"
+   set asp="1.0"
+   set ng="256"
+   set dq="5.0"
+   set omega="0.0"
+   set t_save="0.5"
+   set t_sim="5.0"
    set n_period="50"
    set rekman="0.0" 
    set esr="0.0" 
@@ -470,12 +486,9 @@ echo ' ' >> job_info
 echo ' Job directory:' $datadir >> job_info
 
 echo
-echo ' Launching job ...'
-cd $datadir
-bjob $algo
-echo
-echo ' To view the running job, type'
+echo ' To launch the simulation, type'
 echo
 echo 'cd' $datadir
+echo 'bat log' $algo
 echo 'tailf monitor.asc'
 echo

@@ -15,6 +15,9 @@ eddy: $(objects) $(sourcedir)/init/eddy.f90
 rest: $(objects) $(sourcedir)/init/rest.f90
 	$(f90) parameters.o constants.o $(sourcedir)/init/rest.f90 -o rest $(flags)
 
+double_grid: $(objects) $(sourcedir)/init/double_grid.f90
+	$(f90) parameters.o constants.o $(sourcedir)/init/double_grid.f90 -o double_grid $(flags)
+
 spin_down: $(objects) $(sourcedir)/init/spin_down.f90
 	$(f90) parameters.o constants.o $(sourcedir)/init/spin_down.f90 -o spin_down $(flags)
 

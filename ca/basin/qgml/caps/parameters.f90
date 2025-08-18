@@ -33,6 +33,14 @@ double precision,parameter:: tcsave=T_CSAVE
 ! tgsave : time interval between gridded (field) data saves
 ! tcsave : time interval between contour data saves
 !          *** should be a multiple of tgsave ***
+double precision,parameter:: tavg_rme=T_AVG
+! tavg_rme : if > 0, this time interval is used to accumulate
+!            the running-mean total energy E_rm, which, if
+!            within a fraction frme of its previous value,
+!            signals the simulation to stop and save the
+!            current PV field in qq_final.r8.
+double precision,parameter:: frme=F_RME
+! frme     : see above. Use 0 to avoid running-mean calculation
 
 ! Hyperdiffusion damping parameters:
 double precision,parameter:: cdamp=C_DAMP,nnu=POW_HYPER

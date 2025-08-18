@@ -6,6 +6,8 @@ present_post_files = $(notdir $(basename $(wildcard $(sourcedir)/post/*.f90)))
 
 #---------------------------------------------------------------------------------
  #Rules:
+bci2l: $(objects) $(sourcedir)/post/bci2l.f90
+	$(f90) parameters.o constants.o $(sourcedir)/post/bci2l.f90 -o bci2l $(flags)
 
  # Suppress output apart from errors and warnings:
 .SILENT:
