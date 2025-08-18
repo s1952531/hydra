@@ -9,10 +9,12 @@ rootdir=os.path.join(homedir,'hydra','scripts')
 moddir=os.path.join(rootdir,'modules')
 graphicsdir=os.path.join(rootdir,'graphics')
 sys.path.append(moddir)
+sys.path.append(graphicsdir)
 import numpy as np
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.colors as clrs
+from utils import get_colourmap
 import argparse
 warnings.simplefilter("ignore",DeprecationWarning)
 
@@ -49,8 +51,8 @@ def readtxtfile(args):
   # Open input file:
   try:
     in_file = open(args.input,'r')# try opening passed filename  
-  except IOError, message:# error if file not found 
-    print >> sys.stderr, ' File could not be opened', message
+  except IOError as message: # error if file not found 
+    print(' File could not be opened', message, file=sys.stderr)
     sys.exit()
   
   # Set up grid point numbers
@@ -75,7 +77,7 @@ def readtxtfile(args):
   # Set the number of frames:
   N = nx*ny
   nframes = int(len(raw_array)/(N+itime))  
-  print ' Number of frames generated: %d' %nframes
+  print(' Number of frames generated: %d' %nframes)
 
   # Shape the data array into a useful shape for plotting:
   frames = range(nframes)
@@ -92,8 +94,8 @@ def readi4file(args):
   # Open input file:
   try:
     in_file = open(args.input,'r')# try opening passed filename  
-  except IOError, message:# error if file not found 
-    print >> sys.stderr, ' File could not be opened', message
+  except IOError as message: # error if file not found 
+    print(' File could not be opened', message, file=sys.stderr)
     sys.exit()
 
   # Set up grid point numbers
@@ -110,7 +112,7 @@ def readi4file(args):
   N = nx*ny
   file_bytes = os.path.getsize(args.input)
   nframes = int(file_bytes/(N*4))
-  print ' Number of frames generated: %d' %nframes
+  print(' Number of frames generated: %d' %nframes)
 
   frames = range(nframes)
   raw_array = np.zeros(N*nframes,float)
@@ -131,8 +133,8 @@ def readc1file(args):
   # Open input file:
   try:
     in_file = open(args.input,'r')# try opening passed filename  
-  except IOError, message:# error if file not found 
-    print >> sys.stderr, ' File could not be opened', message
+  except IOError as message: # error if file not found 
+    print(' File could not be opened', message, file=sys.stderr)
     sys.exit()
 
   # Set up grid point numbers
@@ -149,7 +151,7 @@ def readc1file(args):
   N = nx*ny
   file_bytes = os.path.getsize(args.input)
   nframes = int(file_bytes/N)
-  print ' Number of frames generated: %d' %nframes
+  print(' Number of frames generated: %d' %nframes)
 
   frames = range(nframes)
   raw_array = np.zeros(N*nframes,float)
@@ -169,9 +171,9 @@ def readc2file(args):
 
   # Open input file:
   try:
-    in_file = open(args.input,'r')# try opening passed filename  
-  except IOError, message:# error if file not found 
-    print >> sys.stderr, ' File could not be opened', message
+    in_file = open(args.input,'r')# try opening passed filename
+  except IOError as message: # error if file not found 
+    print(' File could not be opened', message, file=sys.stderr)
     sys.exit()
 
   # Set up grid point numbers
@@ -188,7 +190,7 @@ def readc2file(args):
   N = nx*ny
   file_bytes = os.path.getsize(args.input)
   nframes = int(file_bytes/(N*2))
-  print ' Number of frames generated: %d' %nframes
+  print(' Number of frames generated: %d' %nframes)
 
   frames = range(nframes)
   raw_array = np.zeros(N*nframes,float)
@@ -211,8 +213,8 @@ def readr4file(args):
   # Open input file:
   try:
     in_file = open(args.input,'r')# try opening passed filename  
-  except IOError, message:# error if file not found 
-    print >> sys.stderr, ' File could not be opened', message
+  except IOError as message: # error if file not found 
+    print(' File could not be opened', message, file=sys.stderr)
     sys.exit()
 
   # Set up grid point numbers
@@ -234,7 +236,7 @@ def readr4file(args):
   file_bytes = os.path.getsize(args.input)
   N = nx*ny  
   nframes = int(file_bytes/((N+itime)*4))
-  print ' Number of frames generated: %d' %nframes
+  print(' Number of frames generated: %d' %nframes)
   frames = range(nframes)
   raw_array = np.fromfile(in_file,dtype=np.float32)
   out_array = np.empty((nframes,nx,ny))
@@ -250,8 +252,8 @@ def readi2file(args):
   # Open input file:
   try:
     in_file = open(args.input,'r')# try opening passed filename  
-  except IOError, message:# error if file not found 
-    print >> sys.stderr, ' File could not be opened', message
+  except IOError as message: # error if file not found 
+    print(' File could not be opened', message, file=sys.stderr)
     sys.exit()
 
   # Set up grid point numbers
@@ -268,7 +270,7 @@ def readi2file(args):
   file_bytes = os.path.getsize(args.input)
   N = nx*ny  
   nframes = int(file_bytes/(N*2))
-  print ' Number of frames generated: %d' %nframes
+  print(' Number of frames generated: %d' %nframes)
   frames = range(nframes)
   raw_array = np.fromfile(in_file,dtype=np.dtype('u2'))+2**15-1
   in_file.close()    
@@ -281,8 +283,8 @@ def readr8file(args):
   # Open input file:
   try:
     in_file = open(args.input,'r')# try opening passed filename  
-  except IOError, message:# error if file not found 
-    print >> sys.stderr, ' File could not be opened', message
+  except IOError as message: # error if file not found 
+    print(' File could not be opened', message, file=sys.stderr)
     sys.exit()
 
   # Set up grid point numbers
@@ -304,7 +306,7 @@ def readr8file(args):
   file_bytes = os.path.getsize(args.input)
   N = nx*ny
   nframes = int(file_bytes/((N+itime)*8))
-  print ' Number of frames generated: %d' %nframes
+  print(' Number of frames generated: %d' %nframes)
   frames = range(nframes)
   raw_array = np.fromfile(in_file,dtype=np.float64)
   out_array = np.empty((nframes,nx,ny),dtype=np.float64)
@@ -315,34 +317,13 @@ def readr8file(args):
 
 #---------------------------
 
-def get_colourmap():
-  cmap_file = open(os.path.join(graphicsdir,'colourmap'),'r')
-  cmap_list = []
-  istart=1024
-  iend=256**2-istart
-  for i in range(istart):
-    file_line = cmap_file.readline().split()
-  for i in range(iend+1):
-    file_line = cmap_file.readline().split()
-    a,b,c = file_line[0],file_line[1],file_line[2]
-    ele = (float(a),float(b),float(c))
-    cmap_list.append(ele)
-  stamap = clrs.LinearSegmentedColormap.from_list('amap',cmap_list,N=iend-istart+1)
-  plt.register_cmap(cmap=stamap)
-  return {'stamap':stamap,'jet':plt.cm.jet,'autumn':plt.cm.autumn,'winter':plt.cm.winter,'spring':plt.cm.spring,
-          'summer':plt.cm.summer,'hot':plt.cm.hot,'bone':plt.cm.bone,'cool':plt.cm.cool,'copper':plt.cm.copper,
-          'gray':plt.cm.gray,'hsv':plt.cm.hsv,'spectral':plt.cm.spectral,'prism':plt.cm.prism,'pink':plt.cm.pink,
-          'flag':plt.cm.flag}
-
-#---------------------------
-
 def get_coords(args):
 
   # Open input file:
   try:
     in_file = open('coords.r8','r')# try opening passed filename  
-  except IOError, message:# error if file not found 
-    print >> sys.stderr, ' File could not be opened', message
+  except IOError as message: # error if file not found 
+    print(' File could not be opened', message, file=sys.stderr)
     sys.exit()
 
   # Set up grid point numbers
@@ -448,7 +429,7 @@ def show_frames(frames,X,Y,main_array,args,cmap_val,lev_mins,lev_maxs):
   if args.frame <= nframes:
     frame=args.frame-1
   else:
-    print ' Cannot start at the specified frame as fewer frames are found'
+    print(' Cannot start at the specified frame as fewer frames are found')
     frame=0
 
   # Make a plot figure:
@@ -499,29 +480,29 @@ if __name__ == '__main__':
   suffix = args.input.split('.')[-1]
 
   if suffix == 'dat' or suffix == 'asc':
-    print ' Reading formatted text input file'
+    print(' Reading formatted text input file')
     frames,main_array = readtxtfile(args)
   elif suffix == 'r4':
-    print ' Reading real input file'
+    print(' Reading real input file')
     frames,main_array = readr4file(args)
   elif suffix == 'r8':
-    print ' Reading double precision input file'
+    print(' Reading double precision input file')
     frames,main_array = readr8file(args)
   elif suffix == 'i2':
-    print ' Reading short integer input file'
+    print(' Reading short integer input file')
     frames,main_array = readi2file(args)
   elif suffix == 'i4':
-    print ' Reading integer input file'
+    print(' Reading integer input file')
     frames,main_array = readi4file(args)
   elif suffix == 'c1':
-    print ' Reading single character input file'
+    print(' Reading single character input file')
     frames,main_array = readc1file(args)
   elif suffix == 'c2':
-    print ' Reading two character input file'
+    print(' Reading two character input file')
     frames,main_array = readc2file(args)
   else:
-    print ' Not sure what the file format is'
-    print ' based on the extension --- default to formatted text'
+    print(' Not sure what the file format is')
+    print(' based on the extension --- default to formatted text')
     frames,main_array = readtxtfile(args)
 
   # Set saved image dpi
