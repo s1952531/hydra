@@ -20,7 +20,7 @@ double precision:: zz(0:ny,0:nxm1,nz)
 double precision:: emq(0:nxm1,0:ny),epq(0:nxm1,0:ny)
 
 ! Time step, time step fractions and "twist" parameter:
-double precision:: dt,dt2,dt3,dt6,twist
+double precision:: dt,dt2,dt3,dt6,twist,tot
 
 ! Logicals for saving gridded & contour data
 logical:: gsave,csave
@@ -266,10 +266,6 @@ call inversion(0)
 
 ! Adapt the time step and save various diagnostics each time step:
 call adapt
-
-! Possibly save data (gsave & csave set by adapt):
-if (gsave) call savegrid
-if (csave) call savecont
 
 ! Calculate the source terms (sqs,sqd) for PV (qs,qd):
 call source(sqs,sqd,0)
@@ -522,6 +518,17 @@ enddo
 ! Save data to monitor.asc:
 write(16,'(f12.5,2(1x,f15.7))') t,zzmax,zzrms
 
+!---------------------------------------------------------------------
+! Set flags to save data:
+gsave=(int(t/tgsave) .eq. igrids)
+! Gridded data will be saved at time t if gsave is true.
+csave=(int(t/tcsave) .eq. iconts)
+! Contour data will be saved at time t if csave is true.
+
+! Possibly save data (gsave & csave set by adapt):
+if (gsave) call savegrid
+if (csave) call savecont
+
 ! Time step needed for accuracy:
 dtacc=dtfac/max(zzmax,srwfm)
 ! The restriction on the maximum Rossby wave frequency (srwfm)
@@ -551,13 +558,6 @@ emq=exp(-dfac*diss)
 epq=filt/emq
 ! diss & filt are defined in spectral.f90
 
-!---------------------------------------------------------------------
-! Set flags to save data:
-gsave=(int(t/tgsave) .eq. igrids)
-! Gridded data will be saved at time t if gsave is true.
-csave=(int(t/tcsave) .eq. iconts)
-! Contour data will be saved at time t if csave is true.
-
 return
 end subroutine adapt
 
@@ -571,7 +571,7 @@ subroutine savegrid
 implicit none
 
 ! Local variables:
-double precision:: tke,ape,tot
+double precision:: tke,ape
 integer:: iz
 
 !------------------------------------------------------------------
