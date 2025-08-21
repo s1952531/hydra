@@ -1,0 +1,175 @@
+#!/usr/bin/env python3
+
+# Given the surface buoyancy anomaly b_0 (e.g. from PS3D), this script
+# generates the full 3D buoyancy anomaly b and the vorticity components
+# xi, eta and zeta using QG balance.
+
+# The user must provide the horizontal and vertical grid dimensions,
+# as well as the domain width L and depth H, and the Coriolis and
+# mean buoyancy frequencies, f and N.
+
+#========== Perform the generic imports =========
+
+# Python 2D FFTs (change moddir to use a different path):
+import sys,os,warnings
+#uname = os.getlogin()
+homedir = os.getenv('HOME')
+moddir = os.path.join(homedir,'hydra','lib','pyfft')
+sys.path.append(moddir)
+from fft2d import FFT
+
+# Numpy:
+import numpy as np
+
+#--------------------------------------------------------------------------
+# Specify all necessary input parameters:
+print
+q_in = input(' Horizontal resolution (default 256)? ')
+ng = int(q_in or 256)
+
+q_in = input(' Vertical resolution (default 384)? ')
+nz = int(q_in or 384)
+
+q_in = input(' Physical width L of the domain / pi (default 2)? ')
+Lopi = float(q_in or 2.0)
+L = Lopi*np.pi
+
+q_in = input(' Physical depth H of the domain / pi (default 1/32)? ')
+Hopi = float(q_in or 1.0/32.0)
+H = Hopi*np.pi
+
+q_in = input(' Coriolis frequency f (default 1)? ')
+f = float(q_in or 1.0)
+
+q_in = input(' Buoyancy frequency N (default 8)? ')
+N = float(q_in or 8.0)
+
+# Scaled depth (NH/f):
+D = N*H/f
+
+# Scaled z coordinates (Nz/f) used in QG balance below:
+zt = np.linspace(-D,0.0,nz+1)
+
+#--------------------------------------------------------------------------
+# Open and read buoyancy data file:
+q_in = input(' File containing surface buoyancy anomaly (default nqq_init.r8)? ')
+filename = str(q_in or 'nqq_init.r8')
+
+in_file = open(filename,'r')
+raw_array = np.fromfile(in_file,dtype = np.float64)
+in_file.close()
+
+# Store surface buoyancy in the array b0:
+b0 = np.empty([ng,ng])
+b0 = raw_array.reshape(ng,ng)
+# *** Note: b0 may contain a mean value different from zero.
+
+# Re-scale b0 to be able to use the scaled QG balance solution below:
+fN = f*N
+b0 = b0/fN
+
+#--------------------------------------------------------------------------
+# Initialise FFT module:
+fft = FFT([ng, ng], [2.0*np.pi, 2.0*np.pi])
+
+# FFT b0 to spectral space as b0s:
+b0s = fft.fftxyp2s(b0)
+
+# Get the x & y wavenumbers (2D arrays in pyfft/fft2d.py):
+dum = np.ones([ng,ng])
+rkx = np.imag(fft.diffx(dum))
+dum = np.ones([ng,ng])
+rky = np.imag(fft.diffy(dum))
+
+# Define K = sqrt{kx^2 + ky^2}:
+K = np.sqrt(rkx**2+rky**2)
+
+# Define K*D:
+KD = K*D
+
+# Define 1/(1 - exp(-2*K*D)) but avoid division by zero when kx = ky = 0:
+KD[0,0] = 1.0
+expm2a = 1.0/(1.0-np.exp(-2.0*KD))
+KD[0,0] = 0.0
+expm2a[0,0] = 0.0
+
+#--------------------------------------------------------------------------
+# Set up 3D arrays to store balanced fields at all heights:
+bb = np.empty([nz+1,ng,ng]) # buoyancy anomaly (b')
+xx = np.empty([nz+1,ng,ng]) # x vorticity component (xi)
+yy = np.empty([nz+1,ng,ng]) # y vorticity component (eta)
+zz = np.empty([nz+1,ng,ng]) # z vorticity component (zeta)
+
+# Set up 2D work array (to contain spectral buoyancy anomaly at any height):
+bbs = np.empty([ng,ng])
+
+# Loop over scaled height z and build 3D balanced fields:
+for iz in range(nz+1):
+    # Preparation:
+    Kz = K*zt[iz]
+    # Define exp(-2*K*(D+z))):
+    expm2ab = np.exp(-2.0*(KD+Kz))
+    # Define common factor in definition of buoyancy and vertical vorticity:
+    efac = b0s*np.exp(Kz)*expm2a
+    # This is b0hat(k,l)*exp(K*z)/(1 - exp(-2*K*D)) 
+
+    # Buoyancy anomaly (b') at scaled height z:
+    bbs = efac*(1.0-expm2ab)
+    # Uses sinh(a+b)/sinh(a) = (1 - exp(-2(a+b))) * exp(b)/(1 - exp(-2a))
+
+    # Vertical vorticity (zeta) at scaled height z:
+    ds = -K*efac*(1.0+expm2ab)
+    # Uses cosh(a+b)/sinh(a) = (1 + exp(-2(a+b))) * exp(b)/(1 - exp(-2a))
+
+    # Return zeta (in ds) to physical space as zz:
+    zz[iz,:,:] = fft.fftxys2p(ds)
+
+    # Correct kx = ky = 0 mode for buoyancy anomaly:
+    bbs[0,0] = b0s[0,0]*(zt[iz]/D+1.0)
+    # b0s[0,0] is proportional to the mean surface buoyancy anomaly.
+
+    # Horizontal vorticity, xi = -b_x & eta = -b_y (store in xx & yy):
+    ds = fft.diffx(bbs)
+    xx[iz,:,:] = -fft.fftxys2p(ds)
+
+    ds = fft.diffy(bbs)
+    yy[iz,:,:] = -fft.fftxys2p(ds)
+
+    # FFT spectral buoyancy anomaly bbs to physical space (store in bb):
+    bb[iz,:,:] = fft.fftxys2p(bbs)
+
+#------------------------------------------------------------------------
+# Undo scaling above to provide physical output expected in e.g. PS3D:
+bb = fN*bb
+xx = N*xx
+yy = N*yy
+zz = f*zz
+
+#------------------------------------------------------------------------
+# Write data:
+
+# Surface fields:
+np.asarray(bb[-1,:,:], dtype=np.float64).tofile('bb0.r8')
+np.asarray(xx[-1,:,:], dtype=np.float64).tofile('xx0.r8')
+np.asarray(yy[-1,:,:], dtype=np.float64).tofile('yy0.r8')
+np.asarray(zz[-1,:,:], dtype=np.float64).tofile('zz0.r8')
+
+# x = 0 cross sections:
+ix = int(ng/2)
+np.asarray(bb[:,ix,:].T, dtype=np.float64).tofile('bb_x0.r8')
+np.asarray(xx[:,ix,:].T, dtype=np.float64).tofile('xx_x0.r8')
+np.asarray(yy[:,ix,:].T, dtype=np.float64).tofile('yy_x0.r8')
+np.asarray(zz[:,ix,:].T, dtype=np.float64).tofile('zz_x0.r8')
+
+# y = 0 cross sections:
+iy = int(ng/2)
+np.asarray(bb[:,:,iy].T, dtype=np.float64).tofile('bb_y0.r8')
+np.asarray(xx[:,:,iy].T, dtype=np.float64).tofile('xx_y0.r8')
+np.asarray(yy[:,:,iy].T, dtype=np.float64).tofile('yy_y0.r8')
+np.asarray(zz[:,:,iy].T, dtype=np.float64).tofile('zz_y0.r8')
+
+# Full 3D fields:
+np.asarray(bb, dtype=np.float64).tofile('bb.r8')
+np.asarray(xx, dtype=np.float64).tofile('xx.r8')
+np.asarray(yy, dtype=np.float64).tofile('yy.r8')
+np.asarray(zz, dtype=np.float64).tofile('zz.r8')

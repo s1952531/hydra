@@ -1,0 +1,130 @@
+#!/usr/bin/env python3
+
+# This script computes and plots min, max and rms zeta from data in zz.r4
+# It also reads max|grad{b}| from froude.asc, previously computed by
+# src/post/froude.f90.
+
+#     @@@@   Run from the current job directory   @@@@
+
+#========== Perform the generic imports =========
+import sys,os,warnings
+import numpy as np
+import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from matplotlib.artist import setp
+import matplotlib.cm as cm
+import matplotlib as mpl
+from matplotlib import rcParams
+from matplotlib import rc
+rcParams.update({'figure.autolayout': True})
+warnings.simplefilter("ignore",DeprecationWarning)
+
+# Ensure latex fonts throughout:
+rc('font', **{'family': 'Times New Roman'})
+rc('text', usetex=True)
+
+# set tick label size:
+label_size = 20
+mpl.rcParams['xtick.labelsize'] = label_size
+mpl.rcParams['ytick.labelsize'] = label_size
+# set x tick width and size:
+mpl.rcParams['xtick.major.size'] = 5
+mpl.rcParams['xtick.major.width'] = 2
+mpl.rcParams['xtick.minor.size'] = 3
+mpl.rcParams['xtick.minor.width'] = 1
+# set y tick width and size:
+mpl.rcParams['ytick.major.size'] = 5
+mpl.rcParams['ytick.major.width'] = 2
+mpl.rcParams['ytick.minor.size'] = 3
+mpl.rcParams['ytick.minor.width'] = 1
+# set axes width:
+mpl.rcParams['axes.linewidth'] = 1
+
+#=================================================================
+# Set Rossby number:
+alpha = 0.125
+
+# Set maximum time to plot:
+tmax = 160.0
+
+# Set up figure:
+fig, (ax1, ax2, ax3, ax4) = plt.subplots(figsize=[16.4,16.4], nrows=4, ncols=1)
+
+ax1.set_box_aspect(0.25)
+ax2.set_box_aspect(0.25)
+ax3.set_box_aspect(0.25)
+ax4.set_box_aspect(0.25)
+ax1.set_xlim(0.,tmax)
+ax2.set_xlim(0.,tmax)
+ax3.set_xlim(0.,tmax)
+ax4.set_xlim(0.,tmax)
+ax4.set_xlabel('$t$', fontsize=24)
+ax1.set_ylabel('$Ro_{\\mathsf{min}}$', fontsize=24)
+ax2.set_ylabel('$Ro_{\\mathsf{max}}$', fontsize=24)
+ax3.set_ylabel('$Ro_{\\mathsf{rms}}$', fontsize=24)
+ax4.set_ylabel('$Fr_{\\mathsf{max}}$', fontsize=24)
+
+# List of directories:
+dir_list = ['/home/dgd/data/hydra/ps/plane/sqg/ps/random_zeta/k04ro0.25/', \
+            '/home/dgd/data/hydra/ca/plane/sqg/caps/ranpv/n256k04ro0.25/', \
+            '/home/dgd/data/hydra/ca/plane/sqg/caps/ranpv/n512k04ro0.25/', \
+            '/home/dgd/data/hydra/ca/plane/sqg/caps/ranpv/n1024k04ro0.25/']
+ndir = len(dir_list)
+
+# Resolutions:
+resol = np.array([256, 256, 512, 1024])
+
+# colours:
+col = ['k','b','r','m','c','g']
+
+# labels:
+lab = ['PS256','CA256','CA512','CA1024']
+
+# Read data and plot:
+for m in range(ndir):
+    direc = dir_list[m]
+    in_file=open(direc+'froude.asc','r')
+    time, fmax = np.loadtxt(in_file,dtype=float,unpack=True)
+    in_file.close()
+
+    time = time/alpha
+    fmax = alpha*fmax
+
+    # Open and vorticity data file:
+    in_file=open(direc+'zz.r4','r')
+    raw_array=np.fromfile(in_file,dtype=np.float32)
+    in_file.close()
+
+    ng=int(resol[m])
+    N=ng*ng
+
+    nf = len(time)
+    zmin = np.empty(nf)
+    zmax = np.empty(nf)
+    zrms = np.empty(nf)
+
+    for j in range(nf):
+        z=alpha*raw_array[j*(N+1)+1:(j+1)*(N+1)].reshape(ng,ng).T
+        zmin[j] = -np.amin(z)
+        zmax[j] = np.amax(z)
+        zrms[j] = np.sqrt(np.sum(z**2)/float(N))
+
+    ax1.plot(time,zmin,c=col[m],lw=2,label=lab[m])
+    ax2.plot(time,zmax,c=col[m],lw=2,label=lab[m])
+    ax3.plot(time,zrms,c=col[m],lw=2,label=lab[m])
+    ax4.plot(time,fmax,c=col[m],lw=2,label=lab[m])
+
+    ax1.axhline(-1.0,c='c',lw=1)
+    ax2.axhline( 1.0,c='c',lw=1)
+    ax4.axhline( 1.0,c='c',lw=1)
+
+    ax1.legend(loc='best',prop={'size':16}, shadow=True)
+
+fig.savefig('compare_norms.png', format='png', dpi=600)
+
+print()
+print(' To display the results, type:')
+print()
+print(' eom compare_norms.png &')
+print()

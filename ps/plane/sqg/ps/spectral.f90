@@ -7,14 +7,10 @@ use sta2dfft
 integer,parameter:: nwx=nx/2,nwy=ny/2
 
  !Common arrays, constants:
-double precision:: rksq(nx,ny),qdiss(nx,ny)
+double precision:: filt(nx,ny),qdiss(nx,ny)
 double precision:: green(nx,ny),vorop(nx,ny)
-double precision:: filt(nx,ny),flo(nx,ny),fhi(nx,ny)
 double precision:: rkx(nx),hrkx(nx)
 double precision:: rky(ny),hrky(ny)
-
- !For diffusing a tracer (optional):
-double precision,allocatable,dimension(:,:):: tdiss
 
 double precision:: xtrig(2*nx),ytrig(2*ny)
 integer:: xfactors(5),yfactors(5)
@@ -36,7 +32,7 @@ implicit none
 
  !Local variables:
 double precision:: scx,rkxmax,scy,rkymax
-double precision:: delk,delki,fac,rkmsi,rksqu,snorm
+double precision:: delk,delki,fac,rkmsi,rksq,snorm
 integer:: kx,ky,k,iy
 
 !----------------------------------------------------------------------
@@ -89,33 +85,19 @@ do ky=2,ny
 enddo
 
 !-----------------------------------------------------------------------
- !Define squared total wavenumber, diffusion operators, low and hi-pass
- !Butterworth filters (Wireless Engineer, vol. 7, 1930, pp. 536-541), etc:
-fac=36.d0/dble(ngridp)
+ !Define squared total wavenumber and various spectral operators:
 rkmsi=one/max(rkxmax**2,rkymax**2)
 do ky=1,ny
   do kx=1,nx
      !Approximate dealiasing filter (Hou & Li):
     filt(kx,ky)=exp(-36.d0*((rkx(kx)/rkxmax)**36+(rky(ky)/rkymax)**36))
-    rksqu=rkx(kx)**2+rky(ky)**2
-    qdiss(kx,ky)=cdamp*(rkmsi*rksqu)**nnu
-    flo(kx,ky)=one/(one+(fac*rksqu)**2)
-    fhi(kx,ky)=filt(kx,ky)*(one-flo(kx,ky))
-    flo(kx,ky)=filt(kx,ky)*flo(kx,ky)
-    rksq(kx,ky)=filt(kx,ky)*rksqu
-    vorop(kx,ky)=-green(kx,ky)*rksq(kx,ky)
+    rksq=rkx(kx)**2+rky(ky)**2
+    qdiss(kx,ky)=cdamp*(rkmsi*rksq)**nnu
+    vorop(kx,ky)=-filt(kx,ky)*green(kx,ky)*rksq
   enddo
 enddo
-
-if (tracer) then
-   !Define tracer diffusion operator:
-  allocate(tdiss(nx,ny))
-  do ky=1,ny
-    do kx=1,nx
-      tdiss(kx,ky)=kappa*(rkx(kx)**2+rky(ky)**2)
-    enddo
-  enddo
-endif
+ !Ensure filter does not change domain mean:
+filt(1,1)=one
 
 !-----------------------------------------------------------------------
  !Initialise arrays for computing the spectrum of any field:
@@ -127,7 +109,7 @@ do k=0,kmax
 enddo
 do ky=1,ny
   do kx=1,nx
-    k=nint(sqrt(rksq(kx,ky))*delki)
+    k=nint(sqrt(rkx(kx)**2+rky(ky)**2)*delki)
     kmag(kx,ky)=k
     spmf(k)=spmf(k)+one
   enddo

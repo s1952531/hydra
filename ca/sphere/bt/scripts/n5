@@ -1,0 +1,35 @@
+#!/bin/csh
+
+#=========================================================================#
+#   Job setup script for a specific initial condition with 5 vortices
+#=========================================================================#
+
+set datagen = "n5"
+
+# Default input parameter:
+set a = "80"     # Inverse square length
+#=========================================================================#
+
+# Get output base directory:
+set workdir=`workdir`
+
+/bin/cp $workdir/hydra/ca/sphere/bt/5vortex_ICs .
+
+echo
+echo ' The vorticity field of each vortex has the form'
+echo '     omega(x,y,z) = a*kappa_j*exp(-2*a*s), where'
+echo ' s = 2*(1-d)/(1+d) with d = x*x_j+y*y_j+z*z_j.'
+echo ' (Both (x,y,z) and (x_j,y_j,z_j) are unit vectors.)'
+echo -n ' Inverse-square length a (default' $a')? ' 
+set var=$<
+if ($var != "") set a=$var
+
+echo ' ' >> job_info
+echo ' We set up 5 vortices with the following x, y, z and kappa:' >> job_info
+cat 5vortex_ICs >> job_info
+
+cat << /EOF > in_$datagen
+$a
+/EOF
+
+$datagen < in_$datagen > out_$datagen

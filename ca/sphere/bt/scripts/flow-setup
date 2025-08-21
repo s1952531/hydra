@@ -121,8 +121,9 @@ echo ' (1) a Bickley jet,'
 echo ' (2) multiple Bickley jets,'
 echo ' (3) take data from' $workdir/$meth/$geom/$equa/initial_data
 echo ' (4) stochastic vorticity forcing starting from a state of rest,'
-echo ' (5) initially random relative vorticity, or'
-echo -n ' (6) tetrahedra with zero angular momentum - (default' $dataopt')? '
+echo ' (5) initially random relative vorticity,'
+echo ' (6) 5 specific vortices in ~/data/hydra/ca/sphere/bt/5vortex_ICs, or'
+echo -n ' (7) tetrahedra with zero angular momentum - (default' $dataopt')? '
 set var=$<
 if ($var != "") set dataopt=$var
 
@@ -230,6 +231,21 @@ else if ($dataopt == "5") then
    set ksr="16" 
 
 else if ($dataopt == "6") then 
+   set datagen = "n5"
+   set forcing = "n"
+   set damping = "n"
+   set asp="1.0"
+   set ng="256"
+   set dq="5.0"
+   set omega="0.0"
+   set t_save="5.0"
+   set t_sim="50.0"
+   set n_period="50"
+   set rekman="0.0" 
+   set esr="0.0"
+   set ksr="16"
+
+else if ($dataopt == "7") then 
    set datagen = "tetra"
    set forcing = "n"
    set damping = "n"
@@ -479,8 +495,10 @@ mv $tmpdir $jobdir
 cd $jobdir
 set datadir=`pwd`
 
-# Copy handy script for viewing zonal averages:
+# Copy handy scripts for imaging:
 /bin/cp $bindir/zonalview .
+/bin/cp $bindir/image.py .
+/bin/cp $bindir/dv
 
 echo ' ' >> job_info
 echo ' Job directory:' $datadir >> job_info

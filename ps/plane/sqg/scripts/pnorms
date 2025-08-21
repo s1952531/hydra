@@ -120,11 +120,6 @@ ax1.legend(loc='best',prop={'size':16}, shadow=True)
 
 fig.savefig('norms.png', format='png', dpi=600)
 
-diag_file = open('rom-rop-frm.asc','w')
-for j in range(nf):
-   diag_file.write("{:.3f} {:.7f} {:.7f} {:.7f} \n".format(time[j], -zmin[j], zmax[j], frmax[j]))
-diag_file.close()
-
 print()
 print(' To display the results, type:')
 print()

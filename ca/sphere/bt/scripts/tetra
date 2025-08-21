@@ -1,0 +1,68 @@
+#!/bin/csh
+
+#=========================================================================#
+#   Job setup script for an initial condition consisting of sets of 
+#   vortex tetrahedra.
+#=========================================================================#
+
+set datagen = "tetra"
+
+# Default input parameters:
+set k2 = "1.0"    # kappa_2/kappa_1
+set k3 = "-1.0"   # kappa_3/kappa_1
+set k4 = "-1.0"   # kappa_4/kappa_1
+set ntetra = "10" # Number of tetrahedra
+set a = "100"     # Inverse square length
+#=========================================================================#
+
+echo ' We set up vortex tetrahedra each having zero angular momentum'
+echo ' on a sphere. Each tetrahedron consists of vortices with'
+echo ' strengths kappa_j, for j = 1, 2, 3 and 4.'
+echo
+echo -n ' kappa_2/kappa_1 (default' $k2')? ' 
+set var=$<
+if ($var != "") set k2=$var
+echo -n ' kappa_3/kappa_1 (default' $k3')? ' 
+set var=$<
+if ($var != "") set k3=$var
+echo -n ' kappa_4/kappa_1 (default' $k4')? ' 
+set var=$<
+if ($var != "") set k4=$var
+
+echo
+echo -n ' Number of vortex tetrahedra to place (default' $ntetra')? ' 
+set var=$<
+if ($var != "") set ntetra=$var
+
+echo
+echo ' The vorticity field of each vortex has the form'
+echo '     omega(x,y,z) = a*kappa_j*exp(-2*a*s), where'
+echo ' s = 2*(1-d)/(1+d) with d = x*x_j+y*y_j+z*z_j.'
+echo ' (Both (x,y,z) and (x_j,y_j,z_j) are unit vectors.)'
+echo -n ' Inverse-square length a (default' $a')? ' 
+set var=$<
+if ($var != "") set a=$var
+
+echo ' ' >> job_info
+echo ' We set up vortex tetrahedra each having zero angular momentum' >> job_info
+echo ' on a sphere. Each tetrahedron consists of vortices with' >> job_info
+echo ' strengths kappa_j, for j = 1, 2, 3 and 4.' >> job_info
+echo ' kappa_2/kappa_1:                    ' $k2 >> job_info
+echo ' kappa_3/kappa_1:                    ' $k3 >> job_info
+echo ' kappa_4/kappa_1:                    ' $k4 >> job_info
+echo ' ' >> job_info
+echo ' Number of tetrahedra placed:        ' $ntetra >> job_info
+echo ' ' >> job_info
+echo ' The vorticity field of each vortex has the form' >> job_info
+echo '     omega(x,y,z) = a*kappa_j*exp(-2*a*s), where' >> job_info
+echo ' s = 2*(1-d)/(1+d) with d = x*x_j+y*y_j+z*z_j.' >> job_info
+echo ' (Both (x,y,z) and (x_j,y_j,z_j) are unit vectors.)' >> job_info
+echo ' Inverse-square length, a:           ' $a >> job_info
+
+cat << /EOF > in_$datagen
+$k2 $k3 $k4
+$ntetra
+$a
+/EOF
+
+$datagen < in_$datagen > out_$datagen

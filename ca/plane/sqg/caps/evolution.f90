@@ -122,10 +122,8 @@ call ptospc(nx,ny,qa,qc,xfactors,yfactors,xtrig,ytrig)
  !Define residual buoyancy qd = (1-F)[qs-qc], and copy current gridded 
  !field (qs) for use in time interpolation:
 qd=fhi*(qs-qc)
-qs=filt*qs 
 qspre=qs
- !Here fhi = 1-F is a high-pass spectral filter and filt is a 
- !de-aliasing filter (defined in spectral.f90)
+ !Here fhi = 1-F is a high-pass spectral filter defined in spectral.f90
 
 if (tracer) then
    !Allocate memory for tracer (anomaly) evolution:
@@ -532,6 +530,8 @@ twist=twist+dt*zzmax
  !Record various diagnostics to monitor.asc:
 cfl=umax*dt/glx
 write(17,'(1x,f12.5,1x,f12.7,1x,f14.7,1x,f12.7)') t,zzrms,zzmax,umax
+ !Record min/max relative vorticity:
+write(16,'(1x,f12.5,1x,f14.7,1x,f14.7)') t,minval(zz),maxval(zz)
 
 !---------------------------------------------------------------------
  !Set flag to save gridded data every tgsave time units:

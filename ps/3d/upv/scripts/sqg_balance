@@ -1,0 +1,154 @@
+#!/usr/bin/env python3
+
+# Given a double precision binary file containing the scaled surface
+# buoyancy b_0/(fN), this script generates the full 3D scaled buoyancy
+# b/(fN), and the scaled vorticity components xi/N, eta/N and zeta/f.
+
+# The user must give the scaled domain depth D = NH/f as input below.
+
+#========== Perform the generic imports =========
+
+# Python 2D FFTs:
+import sys,os,warnings
+uname = os.getlogin()
+homedir = os.getenv('HOME')
+moddir = os.path.join(homedir,'hydra','lib','pyfft')
+sys.path.append(moddir)
+from fft2d import FFT
+
+# Numpy:
+import numpy as np
+
+#--------------------------------------------------------------------------
+# Ask for input parameters:
+print
+q_in = input(' Horizontal resolution (default 256)? ')
+ng = int(q_in or 256)
+N = ng*ng
+
+q_in = input(' Vertical resolution (default 384)? ')
+nz = int(q_in or 384)
+
+# Scaled depth (NH/f):
+q_in = input(' Scaled depth (D = NH/f) of the domain / pi (default 0.25)? ')
+sD = float(q_in or 0.25)
+D = sD*np.pi
+
+# Scaled z coordinates (Nz/f):
+zt = np.linspace(-D,0.0,nz+1)
+
+#--------------------------------------------------------------------------
+# Open and read buoyancy data file:
+q_in = input(' File containing surface buoyancy (default nqq_init.r8)? ')
+filename = str(q_in or 'nqq_init.r8')
+
+in_file = open(filename,'r')
+raw_array = np.fromfile(in_file,dtype = np.float64)
+in_file.close()
+# Set up array to contain scaled surface buoyancy:
+b0 = np.empty([ng,ng])
+
+# Read average buoyancy:
+#in_file = open('average_qq.asc','r')
+#boff = np.loadtxt(in_file,dtype = float,unpack = True)
+#in_file.close()
+
+# Store data:
+#b0 = boff+raw_array[1:N+1].reshape(ng,ng)
+b0 = raw_array.reshape(ng,ng)
+
+# Initialise FFT module:
+fft = FFT([ng, ng], [2.0*np.pi, 2.0*np.pi])
+
+# FFT b0 to spectral space as b0s:
+b0s = fft.fftxyp2s(b0)
+
+# Get the x & y wavenumbers (2D arrays in pyfft/fft2d.py):
+dum = np.ones([ng,ng])
+rkx = np.imag(fft.diffx(dum))
+dum = np.ones([ng,ng])
+rky = np.imag(fft.diffy(dum))
+
+# Define K = sqrt{kx^2 + ky^2}:
+K = np.sqrt(rkx**2+rky**2)
+
+# Define K*D:
+KD = K*D
+
+# Define 1/(1 - exp(-2*K*D)) but avoid division by zero when kx = ky = 0:
+KD[0,0] = 1.0
+expm2a = 1.0/(1.0-np.exp(-2.0*KD))
+KD[0,0] = 0.0
+expm2a[0,0] = 0.0
+
+# Set up 3D arrays to store results:
+bb = np.empty([nz+1,ng,ng])
+xx = np.empty([nz+1,ng,ng])
+yy = np.empty([nz+1,ng,ng])
+zz = np.empty([nz+1,ng,ng])
+
+# Set up 2D work array (to contain spectral buoyancy anomaly at any height):
+bbs = np.empty([ng,ng])
+
+# Loop over scaled height z and build 3D buoyancy anomaly and vorticity fields:
+for iz in range(nz+1):
+    # Preparation:
+    Kz = K*zt[iz]
+    # Define exp(-2*K*(D+z))):
+    expm2ab = np.exp(-2.0*(KD+Kz))
+    # Define common factor in definition of buoyancy and vertical vorticity:
+    efac = b0s*np.exp(Kz)*expm2a
+    # This is b0hat(k,l)*exp(K*z)/(1 - exp(-2*K*D)) 
+
+    # Buoyancy anomaly at scaled height z (***not*** including background):
+    bbs = efac*(1.0-expm2ab)
+    # Uses sinh(a+b)/sinh(a) = (1 - exp(-2(a+b))) * exp(b)/(1 - exp(-2a))
+
+    # Vertical vorticity (zeta) at scaled height z:
+    ds = -K*efac*(1.0+expm2ab)
+    # Uses cosh(a+b)/sinh(a) = (1 + exp(-2(a+b))) * exp(b)/(1 - exp(-2a))
+
+    # Return to physical space as zz:
+    zz[iz,:,:] = fft.fftxys2p(ds)
+
+    # Correct kx = ky = 0 mode for buoyancy anomaly:
+    bbs[0,0] = b0s[0,0]*(zt[iz]/D+1.0)
+
+    # Horizontal vorticity, xi = -b_x & eta = -b_y (store in xx & yy):
+    ds = fft.diffx(bbs)
+    xx[iz,:,:] = -fft.fftxys2p(ds)
+
+    ds = fft.diffy(bbs)
+    yy[iz,:,:] = -fft.fftxys2p(ds)
+
+    # FFT spectral buoyancy anomaly bbs to physical space (store in bb):
+    bb[iz,:,:] = fft.fftxys2p(bbs)
+
+#------------------------------------------------------------------------
+# Write data:
+
+# Surface fields:
+np.asarray(bb[-1,:,:], dtype=np.float64).tofile('bb0.r8')
+np.asarray(xx[-1,:,:], dtype=np.float64).tofile('xx0.r8')
+np.asarray(yy[-1,:,:], dtype=np.float64).tofile('yy0.r8')
+np.asarray(zz[-1,:,:], dtype=np.float64).tofile('zz0.r8')
+
+# x = 0 cross sections:
+ix = int(ng/2)
+np.asarray(bb[:,ix,:].T, dtype=np.float64).tofile('bb_x0.r8')
+np.asarray(xx[:,ix,:].T, dtype=np.float64).tofile('xx_x0.r8')
+np.asarray(yy[:,ix,:].T, dtype=np.float64).tofile('yy_x0.r8')
+np.asarray(zz[:,ix,:].T, dtype=np.float64).tofile('zz_x0.r8')
+
+# y = 0 cross sections:
+iy = int(ng/2)
+np.asarray(bb[:,:,iy].T, dtype=np.float64).tofile('bb_y0.r8')
+np.asarray(xx[:,:,iy].T, dtype=np.float64).tofile('xx_y0.r8')
+np.asarray(yy[:,:,iy].T, dtype=np.float64).tofile('yy_y0.r8')
+np.asarray(zz[:,:,iy].T, dtype=np.float64).tofile('zz_y0.r8')
+
+# 3D fields:
+np.asarray(bb, dtype=np.float64).tofile('bb.r8')
+np.asarray(xx, dtype=np.float64).tofile('xx.r8')
+np.asarray(yy, dtype=np.float64).tofile('yy.r8')
+np.asarray(zz, dtype=np.float64).tofile('zz.r8')
