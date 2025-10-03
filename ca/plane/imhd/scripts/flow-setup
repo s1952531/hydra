@@ -567,6 +567,6 @@ echo $datadir >> job_info
 echo
 echo ' To set the job running and monitor progress, type'
 echo 'cd' $datadir
-echo 'bat log caps'
+#echo 'bat log caps'
 echo 'tail -f log'
 echo

@@ -711,7 +711,7 @@ echo $datadir >> job_info
 
 echo ' Launching job in'
 echo $datadir
-bat log casl
+#bat log casl
 echo
 
 echo ' To view the log file, type'

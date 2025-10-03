@@ -405,5 +405,5 @@ echo $datadir >> job_info
 
 echo ' To set the job running, type'
 echo cd $datadir
-echo bat log $algo
+#echo bat log $algo
 echo

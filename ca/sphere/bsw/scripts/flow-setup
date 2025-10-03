@@ -477,5 +477,5 @@ echo
 echo ' To set the job running, type'
 echo
 echo cd $datadir
-echo "bat log" $algo
+#echo "bat log" $algo
 echo

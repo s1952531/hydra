@@ -507,6 +507,6 @@ echo
 echo ' To launch the simulation, type'
 echo
 echo 'cd' $datadir
-echo 'bat log' $algo
+#echo 'bat log' $algo
 echo 'tailf monitor.asc'
 echo
