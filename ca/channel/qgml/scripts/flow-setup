@@ -678,7 +678,7 @@ echo $datadir >> job_info
 echo ' Launching job in'
 echo $datadir
 touch $logfile
-bat $logfile $algo
+#bat $logfile $algo
 echo
 
 echo ' To view the log file, type'

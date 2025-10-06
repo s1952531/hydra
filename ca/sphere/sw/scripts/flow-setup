@@ -601,7 +601,7 @@ echo
 echo ' Launching job in the background.'
 
 # Set job running:
-bat log $algo
+#bat log $algo
 
 echo
 echo ' To monitor progress, type'

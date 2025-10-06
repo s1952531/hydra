@@ -295,5 +295,5 @@ echo ' To initialise balanced initial fields and set the job running, type'
 echo
 echo cd $datadir
 echo "dgbal < log"
-echo "bat log" $algo
+#echo "bat log" $algo
 echo

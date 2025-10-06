@@ -719,9 +719,9 @@ echo $datadir
 touch $logfile
 # Launch job as a single run or a stepped sequence of double-resolution runs:
 if ($ndble == "0") then
-   bat $logfile $algo
+   #bat $logfile $algo
 else
-   bat $logfile step $ndble
+   #bat $logfile step $ndble
 endif
 echo
 
