@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-# This script plots b_0, zeta, xi and eta at a selected time.
+# This script plots the initial tendencies of b_0, zeta, xi
+# and eta at a selected time.
 # Note, (xi,eta) = -nabla_h(b_0)/f.
 
 #     @@@@   Run from the current job directory   @@@@
@@ -86,22 +87,9 @@ def contint(fmin,fmax):
     return ci
 
 #---------------------------------------------------------------------------
-# Open ene-ens.asc file to get the available times for plotting:
 in_file=open('ene-ens.asc','r')
 time, ene, ens = np.loadtxt(in_file,dtype=float,unpack=True)
 in_file.close()
-
-# Select time to image:
-print()
-t_def=time[-1]
-t_in=input(' Time to image (default '+str(t_def)+')? ')
-t=float(t_in or t_def)
-
-# Find frame in data:
-frame=0
-while abs(time[frame]-t) > 0.001:
-    frame+=1
-print(' Selected t =',time[frame])
 
 print
 ng_in=input(' Resolution (default 256)? ')
@@ -121,6 +109,9 @@ bsc=eps*cof*bvf
 # Vertical vorticity re-dimensionalisation scale:
 zsc=eps*cof
 
+# d/dt in dimensional units:
+dti=eps/(bvf*(time[1]-time[0]))
+
 # To show more contour lines in main image:
 mult = 2
 
@@ -132,20 +123,12 @@ in_file.close()
 # Set up array to contain data:
 bb=np.empty([ng+1,ng+1])
 
-# Read average buoyancy for plotting purposes:
-in_file = open('average_qq.asc','r')
-boff = np.loadtxt(in_file,dtype=float,unpack=True)
-in_file.close()
-
-# Get data at selected time:
-bb[0:ng,0:ng]=bsc*(boff+raw_array[frame*(N+1)+1:(frame+1)*(N+1)].reshape(ng,ng))
+# Get data:
+bb[0:ng,0:ng]=bsc*dti*(raw_array[N+2:2*(N+1)].reshape(ng,ng)- \
+                       raw_array[1:N+1].reshape(ng,ng))
 
 # Get min/max values for bb:
-bmin = np.amin(bb)
-bmax = np.amax(bb)
-print(' b_min =',"{:.6f}".format(bmin),' b_max =',"{:.6f}".format(bmax))
-bmag = max(-bmin,bmax)
-bmax = bmag
+bmax = np.amax(abs(bb))
 bmin = -bmax
 
 # Obtain contour levels for plotting the colorbars:
@@ -159,7 +142,7 @@ jmin = -int(-bmin/db)-1
 jmax =  int( bmax/db)
 blevelsf = db/2+np.linspace(db*float(jmin),db*float(jmax),jmax-jmin+1)
 
-# Compute xi = -b_x/f and eta = -b_y/f (use arrays xx & yy):
+# Compute xi_t = -b_xt/f and eta_t = -b_yt (use arrays xx & yy):
 ncells = [ng, ng]
 extent = [2.0*np.pi, 2.0*np.pi]
 
@@ -182,11 +165,7 @@ yy[ng,0:ng]=yy[0,0:ng]
 yy[0:ng+1,ng]=yy[0:ng+1,0]
 
 # Get min/max values for xx:
-xmin = np.amin(xx)
-xmax = np.amax(xx)
-print(' x_min =',"{:.6f}".format(xmin),' x_max =',"{:.6f}".format(xmax))
-xmag = max(-xmin,xmax)
-xmax = xmag
+xmax = np.amax(abs(xx))
 xmin = -xmax
 
 # Obtain contour levels for plotting the colorbars:
@@ -201,11 +180,7 @@ jmax =  int( xmax/dx)
 xlevelsf = dx/2+np.linspace(dx*float(jmin),dx*float(jmax),jmax-jmin+1)
 
 # Get min/max values for yy:
-ymin = np.amin(yy)
-ymax = np.amax(yy)
-print(' y_min =',"{:.6f}".format(ymin),' y_max =',"{:.6f}".format(ymax))
-ymag = max(-ymin,ymax)
-ymax = ymag
+ymax = np.amax(abs(yy))
 ymin = -ymax
 
 # Obtain contour levels for plotting the colorbars:
@@ -227,16 +202,13 @@ in_file.close()
 # Set up array to contain data:
 zz=np.empty([ng+1,ng+1])
 
-zz[0:ng,0:ng]=zsc*raw_array[frame*(N+1)+1:(frame+1)*(N+1)].reshape(ng,ng)
+zz[0:ng,0:ng]=zsc*dti*(raw_array[N+2:2*(N+1)].reshape(ng,ng)- \
+                       raw_array[1:N+1].reshape(ng,ng))
 zz[ng,0:ng]=zz[0,0:ng]
 zz[0:ng+1,ng]=zz[0:ng+1,0]
 
 # Get min/max values:
-zmin = np.amin(zz)
-zmax = np.amax(zz)
-print(' z_min =',"{:.6f}".format(zmin),' z_max =',"{:.6f}".format(zmax))
-zmag = max(-zmin,zmax)
-zmax = zmag
+zmax = np.amax(abs(zz))
 zmin = -zmax
 
 # Obtain contour levels for plotting the colorbars:
@@ -290,10 +262,10 @@ plt.setp(ax2.get_xticklabels(), visible=False)
 plt.setp(ax2.get_yticklabels(), visible=False)
 plt.setp(ax4.get_yticklabels(), visible=False)
 
-ax1.set_title('$b$', fontsize=20)
-ax2.set_title('$\\zeta$', fontsize=20)
-ax3.set_title('$\\xi$', fontsize=20)
-ax4.set_title('$\\eta$', fontsize=20)
+ax1.set_title('$b_t$', fontsize=20)
+ax2.set_title('$\\zeta_t$', fontsize=20)
+ax3.set_title('$\\xi_t$', fontsize=20)
+ax4.set_title('$\\eta_t$', fontsize=20)
 
 ax3.set_xlabel('$x/L$', fontsize=20)
 ax4.set_xlabel('$x/L$', fontsize=20)
@@ -343,7 +315,7 @@ fig.subplots_adjust(wspace=0.4, hspace=0.0)
 
 #=========================================================================
 # Save image:
-figfile='t'+str(t)+'.pdf'
+figfile='initial_tendencies.pdf'
 fig.savefig(figfile, format='pdf', dpi=600)
 print()
 print(' To view the image, type')

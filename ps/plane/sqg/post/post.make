@@ -9,6 +9,9 @@ present_post_files = $(notdir $(basename $(wildcard $(sourcedir)/post/*.f90)))
 select: $(objects) $(sourcedir)/post/select.f90
 	$(f90) parameters.o constants.o $(sourcedir)/post/select.f90 -o select $(flags)
 
+extend: $(objects) $(fft_lib) $(sourcedir)/post/extend.f90
+	$(f90) $(fft_lib) $(objects) $(sourcedir)/post/extend.f90 -o extend $(flags)
+
 froude: $(objects) $(fft_lib) $(sourcedir)/post/froude.f90
 	$(f90) $(fft_lib) $(objects) $(sourcedir)/post/froude.f90 -o froude $(flags)
 

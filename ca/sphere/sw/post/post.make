@@ -16,12 +16,12 @@ zonal: $(objects) $(fft_lib) $(sourcedir)/post/zonal.f90
 	$(f90) $(fft_lib) $(objects) $(sourcedir)/post/zonal.f90 -o zonal $(flags)
 genfg: $(objects) $(fft_lib) post/genfg.f90
 	$(f90) $(fft_lib) $(objects) post/genfg.f90 -o genfg $(flags)
+hov: $(objects) $(fft_lib) post/hov.f90
+	$(f90) $(fft_lib) $(objects) post/hov.f90 -o hov $(flags)
 ortho: $(objects) post/ortho.f90
 	$(f90) parameters.o constants.o post/ortho.f90 -o ortho $(flags)
 measure: $(objects) post/measure.f90
 	$(f90) parameters.o constants.o post/measure.f90 -o measure $(flags)
-hov: $(objects) post/hov.f90
-	$(f90) parameters.o post/hov.f90 -o hov $(flags)
 jets: $(objects) post/jets.f90
 	$(f90) parameters.o post/jets.f90 -o jets $(flags)
 angm: $(objects) post/angm.f90

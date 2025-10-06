@@ -120,7 +120,7 @@ qc=qc-qavg
 
  !Write initial absolute vorticity field:
 open(20,file='qq_init.r8',form='unformatted', &
-      access='direct',status='new',recl=2*nbytes)
+      access='direct',status='replace',recl=2*nbytes)
 write(20,rec=1) zero,qc
 close(20)
 

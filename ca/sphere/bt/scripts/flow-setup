@@ -122,7 +122,7 @@ echo ' (2) multiple Bickley jets,'
 echo ' (3) take data from' $workdir/$meth/$geom/$equa/initial_data
 echo ' (4) stochastic vorticity forcing starting from a state of rest,'
 echo ' (5) initially random relative vorticity,'
-echo ' (6) 5 specific vortices in ~/data/hydra/ca/sphere/bt/5vortex_ICs, or'
+echo ' (6) 5 specific vortices in' $hydradir/5vortex_ICs', or'
 echo -n ' (7) tetrahedra with zero angular momentum - (default' $dataopt')? '
 set var=$<
 if ($var != "") set dataopt=$var
@@ -498,7 +498,7 @@ set datadir=`pwd`
 # Copy handy scripts for imaging:
 /bin/cp $bindir/zonalview .
 /bin/cp $bindir/image.py .
-/bin/cp $bindir/dv
+/bin/cp $bindir/dv .
 
 echo ' ' >> job_info
 echo ' Job directory:' $datadir >> job_info

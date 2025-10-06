@@ -4,12 +4,12 @@ program hov
 
 ! Written 4 September 2021 by D G Dritschel @ St Andrews
 
-use parameters
+use spectral
 
 implicit none
 
 double precision:: zuu(ng),zhh(ng),zek(ng),zqq(ng),zvq(ng),zqg(0:ng)
-double precision:: t,dli,ombar
+double precision:: t,ombar
 integer:: iread, loop, j
 
 !---------------------------------------------------------------------
@@ -63,7 +63,6 @@ do
    !Compute PV gradient at full latitudes (use zero polar values):
   zqg(0)=0.d0
   zqg(ng)=0.d0
-  dli=dble(ng)/pi
   do j=1,ng-1
     zqg(j)=dli*(zqq(j+1)-zqq(j))
   enddo
