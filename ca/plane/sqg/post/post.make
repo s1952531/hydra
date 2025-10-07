@@ -12,6 +12,9 @@ conprint: $(objects) $(sourcedir)/post/conprint.f90
 area: $(objects) $(sourcedir)/post/area.f90
 	$(f90) parameters.o constants.o $(sourcedir)/post/area.f90 -o area $(flags)
 
+extend: $(objects) $(fft_lib) $(sourcedir)/post/extend.f90
+	$(f90) $(fft_lib) $(objects) $(sourcedir)/post/extend.f90 -o extend $(flags)
+
 genfg: $(objects) $(sourcedir)/congen.f90 $(sourcedir)/post/genfg.f90
 	$(f90) parameters.o constants.o contours.o $(sourcedir)/congen.f90 $(sourcedir)/post/genfg.f90 -o genfg $(flags) 
 
