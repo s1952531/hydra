@@ -10,10 +10,8 @@ set datagen = "n5"
 set a = "80"     # Inverse square length
 #=========================================================================#
 
-# Get output base directory:
-set workdir=`workdir`
-
-/bin/cp $workdir/hydra/ca/sphere/bt/5vortex_ICs .
+set local_home=${HOME}
+/bin/cp $local_home/hydra/ca/sphere/bt/5vortex_ICs .
 
 echo
 echo ' The vorticity field of each vortex has the form'
