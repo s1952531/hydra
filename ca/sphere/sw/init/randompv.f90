@@ -53,12 +53,12 @@ enddo
 rk0i=one/dble(k0)
 do m=1,nt
   do j=1,ng
-    pslon(j,m)=(rk0i*wave(m)*clati(j))**2
+    pslon(j,m)=(rk0i*wzon(m)*clati(j))**2
     gslon(j,m)=exp(-pslon(j,m))
   enddo
 enddo
 do k=1,nt
-  pslat(k)=(rk0i*wave(k))**2
+  pslat(k)=(rk0i*wzon(k))**2
   gslat(k)=exp(-pslat(k))
 enddo
 
