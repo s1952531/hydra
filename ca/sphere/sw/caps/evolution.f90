@@ -6,7 +6,7 @@ use common
 
 implicit none
 
-double precision:: qt(ng,nt),qc(ng,nt),qd(ng,nt) !Various PVs
+double precision:: qt(nLatGridPts,nLongGridPts),qc(nLatGridPts,nLongGridPts),qd(nLatGridPts,nLongGridPts) !Various PVs
 
 !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
  !Internal subroutine definitions (inherit global variables):
@@ -47,8 +47,8 @@ do while (t .le. tsim)
 
    !Save data periodically:
   itime=nint(t/dt)
-  jtime=itime/ngsave
-  if (ngsave*jtime .eq. itime) then
+  jtime=itime/nDTGridSave
+  if (nDTGridSave*jtime .eq. itime) then
     call inversion(1)
     call savegrid(jtime+1)
     ggen=.false.
@@ -56,8 +56,8 @@ do while (t .le. tsim)
     ggen=.true.
   endif
    !ggen is used to indicate if calling inversion is needed in advance below
-  jtime=itime/ncsave
-  if (ncsave*jtime .eq. itime) call savecont(jtime+1)
+  jtime=itime/nDTContSave
+  if (nDTContSave*jtime .eq. itime) call savecont(jtime+1)
 
    !Perform contour surgery or recontouring when twist is large enough:
   if (twist .gt. twistmax) then
@@ -88,13 +88,13 @@ enddo
 
  !Possibly save final data:
 itime=nint(t/dt)
-jtime=itime/ngsave
-if (ngsave*jtime .eq. itime) then
+jtime=itime/nDTGridSave
+if (nDTGridSave*jtime .eq. itime) then
   call inversion(1)
   call savegrid(jtime+1)
 endif
-jtime=itime/ncsave
-if (ncsave*jtime .eq. itime) call savecont(jtime+1)
+jtime=itime/nDTContSave
+if (nDTContSave*jtime .eq. itime) call savecont(jtime+1)
 
 return
 end subroutine advect
@@ -115,21 +115,21 @@ write(14,'(1x,f12.5,1x,i8,1x,i9)') t,n,npt
 
 !------------------------------------------------------------
  !Re-instate qs as the PV anomaly (here qs is on the grid):
-do i=1,nt
-  qs(:,i)=qs(:,i)-cof
+do i=1,nLongGridPts
+  qSpec(:,i)=qSpec(:,i)-corFreq
 enddo
 
  !Convert qs to semi-spectral space:
-call forfft(ng,nt,qs,trig,factors) 
+call forfft(nLatGridPts,nLongGridPts,qSpec,trig,factors) 
 
  !Convert PV contours (x,y,z) to gridded PV anomaly as qc:
 call con2grid(qc)
 
  !Convert qc to semi-spectral space:
-call forfft(ng,nt,qc,trig,factors) 
+call forfft(nLatGridPts,nLongGridPts,qc,trig,factors) 
 
  !Define (semi-spectral) residual PV qd = (1-F)*(qs-qc):
-qd=qs-qc
+qd=qSpec-qc
 call hipass(qd)
 
 return
@@ -147,7 +147,7 @@ subroutine prepare
 implicit none
 
 ! Local variables:
-double precision:: qa(ng,nt),aqa
+double precision:: qa(nLatGridPts,nLongGridPts),aqa
 integer:: i
 
 !------------------------------------------------------------
@@ -158,24 +158,24 @@ integer:: i
 call reset
 
  !Obtain full PV anomaly (qs) on the grid:
-call revfft(ng,nt,qs,trig,factors)
+call revfft(nLatGridPts,nLongGridPts,qSpec,trig,factors)
 
  !Add f to define full PV:
-do i=1,nt
-  qs(:,i)=qs(:,i)+cof
+do i=1,nLongGridPts
+  qSpec(:,i)=qSpec(:,i)+corFreq
 enddo
 
  !Correct average PV by enforcing zero average vorticity:
-qa=qs*(one+hh)
+qa=qSpec*(one+heightAnom)
 aqa=average(qa)
-qs=qs-aqa
+qSpec=qs-aqa
 
  !Obtain PV anomaly due to contours (qc) on the grid:
-call revfft(ng,nt,qc,trig,factors)
+call revfft(nLatGridPts,nLongGridPts,qc,trig,factors)
 
  !Define residual PV (qr) needed for recontouring:
-do i=1,nt
-  qr(:,i)=qs(:,i)-qc(:,i)-cof
+do i=1,nLongGridPts
+  qAnomResid(:,i)=qSpec(:,i)-qc(:,i)-corFreq
 enddo
 
  !Note: We are leaving this module after this; qd will be redefined
@@ -210,10 +210,10 @@ logical:: ggen
 integer,parameter:: niter=2
 
  !Semi-spectral fields needed in time stepping:
-double precision:: qsi(ng,nt),sqs(ng,nt)
-double precision:: qdi(ng,nt),qdm(ng,nt),sqd(ng,nt)
-double precision:: dsi(ng,nt),sds(ng,nt),nds(ng,nt)
-double precision:: gsi(ng,nt),sgs(ng,nt),ngs(ng,nt)
+double precision:: qsi(nLatGridPts,nLongGridPts),sqs(nLatGridPts,nLongGridPts)
+double precision:: qdi(nLatGridPts,nLongGridPts),qdm(nLatGridPts,nLongGridPts),sqd(nLatGridPts,nLongGridPts)
+double precision:: dsi(nLatGridPts,nLongGridPts),sds(nLatGridPts,nLongGridPts),nds(nLatGridPts,nLongGridPts)
+double precision:: gsi(nLatGridPts,nLongGridPts),sgs(nLatGridPts,nLongGridPts),ngs(nLatGridPts,nLongGridPts)
  !Contour positions needed in time stepping:
 double precision:: xi(npt),yi(npt),zi(npt)
  !Contour velocities:
@@ -241,7 +241,7 @@ call reset
  !Start with a guess for F^{n+1} for all contours and fields:
 
  !Contours:
-call velint(uu,vv,u,v,w)
+call velint(uVel,vVel,u,v,w)
  !Here (u,v,w) stands for the Cartesian velocity on the contours
  !at time level n, i.e. u(x^n,t^n)
 do i=1,npt
@@ -273,23 +273,23 @@ call source(sqs,sqd,sds,sgs)
 qdi=qd
 qdm=qd+dt4*sqd
 qd=diss*(qdm+dt4*sqd)-qdi
-qsi=qs+dt2*sqs
-qs=qs+dt*sqs
+qsi=qSpec+dt2*sqs
+qSpec=qs+dt*sqs
 
  !Update divergence and acceleration divergence:
-dsi=ds
-gsi=gs
+dsi=velDiv
+gsi=accelDiv
 nds=sds+dt4i*dsi
 ngs=sgs+dt4i*gsi
 sds=nds+sds            !2*N_tilde_delta
 sgs=ngs+sgs            !2*N_tilde_gamma
-gs=rdis*sds+sgs
-call simp(gs,sgs,ds)   ! ds is not used
-ds=sgs-dsi
-gs=rdis*sgs-sds-gsi
+accelDiv=rdis*sds+sgs
+call simp(accelDiv,sgs,velDiv)   ! ds is not used
+velDiv=sgs-dsi
+accelDiv=rdis*sgs-sds-gsi
 
  !If there is topographic forcing, update the topography for t+dt:
-if (forcing) call topography
+if (isTopoForcing) call topography
 
 !------------------------------------------------------------------
  !Iterate to improve estimates of F^{n+1}:
@@ -302,7 +302,7 @@ do iter=1,niter
   call source(sqs,sqd,sds,sgs)
 
    !Interpolate gridded velocity (uu,vv) at contour nodes as (u,v):
-  call velint(uu,vv,u,v,w)
+  call velint(uVel,vVel,u,v,w)
   do i=1,npt
     xtmp=xi(i)+dt2*u(i)
     ytmp=yi(i)+dt2*v(i)
@@ -316,21 +316,21 @@ do iter=1,niter
 
    !Update PV fields:
   qd=diss*(qdm+dt4*sqd)-qdi
-  qs=qsi+dt2*sqs
+  qSpec=qsi+dt2*sqs
 
    !Update divergence and acceleration divergence:
   sds=nds+sds            !2*N_tilde_delta
   sgs=ngs+sgs            !2*N_tilde_gamma
-  gs=rdis*sds+sgs        !rdis is the R operator
-  call simp(gs,sgs,ds)   !inverts R^2-G operator on gs; ds is not used
-  ds=sgs-dsi             !sgs here is 2*delta_bar
-  gs=rdis*sgs-sds-gsi    !Now ds and gs are at time level n+1
+  accelDiv=rdis*sds+sgs        !rdis is the R operator
+  call simp(accelDiv,sgs,velDiv)   !inverts R^2-G operator on gs; ds is not used
+  velDiv=sgs-dsi             !sgs here is 2*delta_bar
+  accelDiv=rdis*sgs-sds-gsi    !Now ds and gs are at time level n+1
 enddo
 
  !Apply latitudinal hyperviscous damping to qd, ds & gs:
 call latdamp(qd)
-call latdamp(ds)
-call latdamp(gs)
+call latdamp(velDiv)
+call latdamp(accelDiv)
  !The longitudinal part is incorporated above in diss, rdis and simp.
 
  !Advance time:
@@ -356,39 +356,39 @@ subroutine source(sqs,sqd,sds,sgs)
 implicit none
 
  !Passed variables:
-double precision:: sqs(ng,nt),sqd(ng,nt),sds(ng,nt),sgs(ng,nt)
+double precision:: sqs(nLatGridPts,nLongGridPts),sqd(nLatGridPts,nLongGridPts),sds(nLatGridPts,nLongGridPts),sgs(nLatGridPts,nLongGridPts)
 
  !Local variables:
-double precision:: wka(ng,nt),wkb(ng,nt),wkc(ng,nt),wkd(ng,nt)
-double precision:: wke(ng,nt),wkf(ng,nt),wkp(ng,nt),wkq(ng,nt)
-double precision:: wku(ng,nt),wkv(ng,nt)
-double precision:: bs(ng,nt),dd(ng,nt),rhs(ng),avgval
+double precision:: wka(nLatGridPts,nLongGridPts),wkb(nLatGridPts,nLongGridPts),wkc(nLatGridPts,nLongGridPts),wkd(nLatGridPts,nLongGridPts)
+double precision:: wke(nLatGridPts,nLongGridPts),wkf(nLatGridPts,nLongGridPts),wkp(nLatGridPts,nLongGridPts),wkq(nLatGridPts,nLongGridPts)
+double precision:: wku(nLatGridPts,nLongGridPts),wkv(nLatGridPts,nLongGridPts)
+double precision:: bs(nLatGridPts,nLongGridPts),dd(nLatGridPts,nLongGridPts),rhs(nLatGridPts),avgval
 integer:: i
 
 !---------------------------------------------------------------
  !qd source:
-call deriv(ng,nt,rk,qd,wkp)
-call revfft(ng,nt,wkp,trig,factors) ! wkp = d(qd)/d(lon)
+call deriv(nLatGridPts,nLongGridPts,rk,qd,wkp)
+call revfft(nLatGridPts,nLongGridPts,wkp,trig,factors) ! wkp = d(qd)/d(lon)
 wka=qd
-call revfft(ng,nt,wka,trig,factors) 
+call revfft(nLatGridPts,nLongGridPts,wka,trig,factors) 
 call latder(wka,wkq)                ! wkq = d(qd)/d(lat)
-do i=1,nt
-  sqd(:,i)=-uu(:,i)*clati*wkp(:,i)-vv(:,i)*wkq(:,i)
+do i=1,nLongGridPts
+  sqd(:,i)=-uVel(:,i)*clati*wkp(:,i)-vVel(:,i)*wkq(:,i)
 enddo
  !Add non-conservative term associated with thermal damping if present:
-if (thermal) sqd=sqd+rth*qq*(one-one/(one+hh))
+if (thermal) sqd=sqd+rth*qAnomFull*(one-one/(one+heightAnom))
  !Convert to semi-spectral space and de-alias:
 call dealias(sqd)
 
 !---------------------------------------------------------------
  !qs source:
-call deriv(ng,nt,rk,qs,wkp)
-call revfft(ng,nt,wkp,trig,factors) ! wkp = d(qs)/d(lon)
-wka=qs
-call revfft(ng,nt,wka,trig,factors) 
+call deriv(nLatGridPts,nLongGridPts,rk,qSpec,wkp)
+call revfft(nLatGridPts,nLongGridPts,wkp,trig,factors) ! wkp = d(qs)/d(lon)
+wka=qSpec
+call revfft(nLatGridPts,nLongGridPts,wka,trig,factors) 
 call latder(wka,wkq)                ! wkq = d(qs)/d(lat)
-do i=1,nt
-  sqs(:,i)=-uu(:,i)*clati*wkp(:,i)-vv(:,i)*(wkq(:,i)+bet) !include beta*v
+do i=1,nLongGridPts
+  sqs(:,i)=-uVel(:,i)*clati*wkp(:,i)-vVel(:,i)*(wkq(:,i)+bet) !include beta*v
 enddo
  !Convert to semi-spectral space and de-alias:
 call dealias(sqs)
@@ -398,66 +398,66 @@ call dealias(sqs)
 
  !Compute A = z*U + dV/d(lon) -> wka & B = z*V - dU/d(lon) -> wkb,
  !where U = u/r & V = v/r, while z = sin(lat) and r = cos(lat):
-do i=1,nt
-  wku(:,i)=clati*uu(:,i)
-  wkv(:,i)=clati*vv(:,i)
+do i=1,nLongGridPts
+  wku(:,i)=clati*uVel(:,i)
+  wkv(:,i)=clati*vVel(:,i)
   wka(:,i)=wkv(:,i)
   wkb(:,i)=wku(:,i)
 enddo
  !*** Do not re-use wku ***
 
  !Convert wka & wkb to semi-spectral space:
-call forfft(ng,nt,wka,trig,factors) 
-call forfft(ng,nt,wkb,trig,factors) 
+call forfft(nLatGridPts,nLongGridPts,wka,trig,factors) 
+call forfft(nLatGridPts,nLongGridPts,wkb,trig,factors) 
 
  !Compute longitudinal derivatives:
-call deriv(ng,nt,rk,wka,wkc)
-call deriv(ng,nt,rk,wkb,wkd)
+call deriv(nLatGridPts,nLongGridPts,rk,wka,wkc)
+call deriv(nLatGridPts,nLongGridPts,rk,wkb,wkd)
 
  !Recover physical fields:
-call revfft(ng,nt,wkc,trig,factors) 
-call revfft(ng,nt,wkd,trig,factors) 
+call revfft(nLatGridPts,nLongGridPts,wkc,trig,factors) 
+call revfft(nLatGridPts,nLongGridPts,wkd,trig,factors) 
 
  !Complete definition of A & B and define wkf = f*zeta & wkb = 2*f*beta*v:
-do i=1,nt
+do i=1,nLongGridPts
   wka(:,i)=slat*wku(:,i)+wkc(:,i) !slat = z = sin(lat)
   wkb(:,i)=slat*wkv(:,i)-wkd(:,i)
-  wkf(:,i)=cof*zz(:,i)            !cof = f
-  wkd(:,i)=dfb*vv(:,i)            !dfb = 2*f*beta
+  wkf(:,i)=corFreq*relVort(:,i)            !cof = f
+  wkd(:,i)=dfb*vVel(:,i)            !dfb = 2*f*beta
 enddo
  !*** Do not re-use wka, wkb, wkf or wkd ***
 
  !Get physical space velocity divergence -> dd:
-dd=ds
-call revfft(ng,nt,dd,trig,factors) 
+dd=velDiv
+call revfft(nLatGridPts,nLongGridPts,dd,trig,factors) 
  !*** Do not re-use dd ***
 
  !Get physical space derivatives of divergence:
-call deriv(ng,nt,rk,ds,wkv)
-call revfft(ng,nt,wkv,trig,factors) ! wkv = d(delta)/d(lon)
+call deriv(nLatGridPts,nLongGridPts,rk,velDiv,wkv)
+call revfft(nLatGridPts,nLongGridPts,wkv,trig,factors) ! wkv = d(delta)/d(lon)
 call latder(dd,wkc)                 ! wkc = d(delta)/d(lat)
 
  !Compute the nonlinear part of the velocity divergence tendency (sds):
-wkp=uu**2+vv**2 ! *** Do not re-use wkp ***
-sds=two*(wka*(zz-wka)-wkb*(wkb+dd))-wkp-dd**2-wku*wkv-vv*wkc
+wkp=uVel**2+vVel**2 ! *** Do not re-use wkp ***
+sds=two*(wka*(relVort-wka)-wkb*(wkb+dd))-wkp-dd**2-wku*wkv-vVel*wkc
  !wku = u/r on rhs above; *** wka & wkb now safe to re-use below ***
 
  !If Equivalent Barotropic, deal with nonlinear height term:
 if (eqbarot) then
-  bs=Rocpi*(one+hh)**Rocp-hh
+  bs=Rocpi*(one+heightAnom)**Rocp-heightAnom
    !Add effect of topographic forcing if present:
-  if (forcing) bs=bs+bb
-  call forfft(ng,nt,bs,trig,factors) ! *** Do not re-use bs ***
+  if (isTopoForcing) bs=bs+bTopog
+  call forfft(nLatGridPts,nLongGridPts,bs,trig,factors) ! *** Do not re-use bs ***
   call laplace(bs,wka)
-  call revfft(ng,nt,wka,trig,factors)
+  call revfft(nLatGridPts,nLongGridPts,wka,trig,factors)
   sds=sds-csq*wka
 else
    !Standard SW case with R/c_p = 1; just add forcing if present:
-  if (forcing) then
-    bs=bb
-    call forfft(ng,nt,bs,trig,factors)
+  if (isTopoForcing) then
+    bs=bTopog
+    call forfft(nLatGridPts,nLongGridPts,bs,trig,factors)
     call laplace(bs,wka)
-    call revfft(ng,nt,wka,trig,factors)
+    call revfft(nLatGridPts,nLongGridPts,wka,trig,factors)
     sds=sds-csq*wka
   endif
 endif
@@ -469,37 +469,37 @@ call dealias(sds)
 
  !First compute div((u,v)*Z) (immediately below wkf = Z = f*zeta):
 wka=wkf
-call forfft(ng,nt,wka,trig,factors)
-call deriv(ng,nt,rk,wka,wkv)
-call revfft(ng,nt,wkv,trig,factors) ! wkv = dZ/d(lon)
+call forfft(nLatGridPts,nLongGridPts,wka,trig,factors)
+call deriv(nLatGridPts,nLongGridPts,rk,wka,wkv)
+call revfft(nLatGridPts,nLongGridPts,wkv,trig,factors) ! wkv = dZ/d(lon)
 call latder(wkf,wkc)                ! wkc = dZ/d(lat)
 
  !Store div((u,v)*Z) + 2*f*beta*v in sgs temporarily:
-sgs=dd*wkf+wku*wkv+vv*wkc+wkd
+sgs=dd*wkf+wku*wkv+vVel*wkc+wkd
  !De-alias and convert to semi-spectral space:
 call dealias(sgs)
  !*** wkf can now be re-used ***
 
  !Define B = c^2*h + (u^2 + v^2)/2 -> wkb:
-wkb=csq*hh+f12*wkp
+wkb=csq*heightAnom+f12*wkp
  !De-alias and convert to semi-spectral space:
 call dealias(wkb)
  !Add effect of topographic forcing and/or eq. bt. nonlinearity if present:
-if (forcing .or. eqbarot) wkb=wkb+csq*bs
+if (isTopoForcing .or. eqbarot) wkb=wkb+csq*bs
  !Calculate dB/d(lon) -> wkf (keep this semi-spectral):
-call deriv(ng,nt,rk,wkb,wkf)
+call deriv(nLatGridPts,nLongGridPts,rk,wkb,wkf)
 
  !Compute div((u,v)*h) -> wke:
-wka=hh
-call forfft(ng,nt,wka,trig,factors) 
-call deriv(ng,nt,rk,wka,wkv)
-call revfft(ng,nt,wkv,trig,factors) ! wkv = dh/d(lon)
-call latder(hh,wkc)                 ! wkc = dh/d(lat)
-wke=dd*hh+wku*wkv+vv*wkc
+wka=heightAnom
+call forfft(nLatGridPts,nLongGridPts,wka,trig,factors) 
+call deriv(nLatGridPts,nLongGridPts,rk,wka,wkv)
+call revfft(nLatGridPts,nLongGridPts,wkv,trig,factors) ! wkv = dh/d(lon)
+call latder(heightAnom,wkc)                 ! wkc = dh/d(lat)
+wke=dd*heightAnom+wku*wkv+vVel*wkc
  !Note wku = u/r on rhs above
 
  !If thermal damping is present, add contribution:
-if (thermal) wke=wke+rth*hh
+if (thermal) wke=wke+rth*heightAnom
 
  !Compute Laplacian of div((u,v)*h) in wke after de-aliasing:
 call dealias(wke)     ! Now wke is in semi-spectral space
@@ -512,11 +512,11 @@ sgs=csq*wka+fpole*wkf-sgs
 !-----------------------------------------------------
  !Remove global mean values of sds & sgs:
 rhs=sds(:,1)*clat
-avgval=(f1112*(rhs(1)+rhs(ng))+sum(rhs(2:ngm1)))*rsumi
+avgval=(f1112*(rhs(1)+rhs(nLatGridPts))+sum(rhs(2:nLatGridPtsMin1)))*rsumi
 sds(:,1)=sds(:,1)-avgval
 
 rhs=sgs(:,1)*clat
-avgval=(f1112*(rhs(1)+rhs(ng))+sum(rhs(2:ngm1)))*rsumi
+avgval=(f1112*(rhs(1)+rhs(nLatGridPts))+sum(rhs(2:nLatGridPtsMin1)))*rsumi
 sgs(:,1)=sgs(:,1)-avgval
 
 return
@@ -541,19 +541,19 @@ if (iopt .eq. 1) then
   call con2grid(qc)
 
    !Convert qc to semi-spectral space:
-  call forfft(ng,nt,qc,trig,factors) 
+  call forfft(nLatGridPts,nLongGridPts,qc,trig,factors) 
 endif
 
  !Combine fields to update qt with full (semi-spectral) field,
  !qt = F*(qs-qc) + qc + qd, where F is a low pass filter:
-qt=qs-qc
+qt=qSpec-qc
 call lopass(qt)
 qt=qt+qc+qd
 
  !Invert PV, divergence and acceleration divergence to obtain the
  !dimensionless height anomaly and velocity field, as well as the
  !gridded PV anomaly and relative vorticity (see spectral.f90):
-call main_invert(qt,ds,gs,hh,uu,vv,qq,zz)
+call main_invert(qt,velDiv,accelDiv,heightAnom,uVel,vVel,qAnomFull,relVort)
  !Note: qt, ds & gs are in semi-spectral space while 
  !      hh, uu, vv, qq and zz are in physical space.
 
@@ -569,7 +569,7 @@ subroutine reset
 implicit none
 
  !Axillary PV array:
-double precision:: qa(ng,nt)
+double precision:: qa(nLatGridPts,nLongGridPts)
 
 !-------------------------------------------------------------------
  !Reset  qs = F*(qs-qc) + qc + qd  and  qd = (1-F)*(qs-qc)
@@ -580,11 +580,11 @@ double precision:: qa(ng,nt)
 call con2grid(qc)
 
  !Convert qc to semi-spectral space:
-call forfft(ng,nt,qc,trig,factors) 
-qa=qs-qc
+call forfft(nLatGridPts,nLongGridPts,qc,trig,factors) 
+qa=qSpec-qc
 call lopass(qa)
-qs=qa+qc+qd
-qd=qs-qc
+qSpec=qa+qc+qd
+qd=qSpec-qc
 call hipass(qd)
 
 return
@@ -599,7 +599,7 @@ subroutine topography
 implicit none
 
 ! Work array:
-double precision:: wkb(ng,nt)
+double precision:: wkb(nLatGridPts,nLongGridPts)
 double precision:: fac
 
 !-------------------------------------------------------------------
@@ -607,13 +607,13 @@ double precision:: fac
 call generate_forcing(wkb,brms)
 
  !Blend with existing forcing (Markovian process):
-bb=wold*bb+wnew*wkb
+bTopog=wold*bTopog+wnew*wkb
  !See constants.f90 for wold and wnew
 
  !Restore rms value of blended field:
-call getrms(bb,fac)
+call getrms(bTopog,fac)
 fac=brms/fac
-bb=fac*bb
+bTopog=fac*bTopog
 
 return
 end subroutine topography
@@ -628,23 +628,23 @@ subroutine diagnose
 implicit none
 
  !Local variables:
-double precision:: wkp(ng,nt)
+double precision:: wkp(nLatGridPts,nLongGridPts)
 double precision:: zmax,frmax,hmax,hmin
 double precision:: zrms,drms
 
 !----------------------------------------------------------------------
  !Increment the integral of |zeta|_max:
-zmax=maxval(abs(zz))
+zmax=maxval(abs(relVort))
 twist=twist+dt*zmax
 
  !Compute diagnostics:
-frmax=sqrt(csqi*maxval((uu**2+vv**2)/(one+hh)))
-call getrms(zz,zrms)
-wkp=ds
-call revfft(ng,nt,wkp,trig,factors)
+frmax=sqrt(csqi*maxval((uVel**2+vVel**2)/(one+heightAnom)))
+call getrms(relVort,zrms)
+wkp=velDiv
+call revfft(nLatGridPts,nLongGridPts,wkp,trig,factors)
 call getrms(wkp,drms)
-hmax=maxval(hh)
-hmin=minval(hh)
+hmax=maxval(heightAnom)
+hmin=minval(heightAnom)
 
  !Record |zeta|_max/f_pole, Fr_max, h_min, h_max, zeta_rms, delta_rms:
 write(16,'(1x,f12.5,6(1x,f14.8))') t,zmax/fpole,frmax,hmin,hmax,zrms,drms
@@ -664,33 +664,33 @@ implicit none
 integer:: igrids
 
  !Local variables:
-double precision:: htot(ng,nt),wkp(ng,nt)
-double precision:: spec(ng)
+double precision:: htot(nLatGridPts,nLongGridPts),wkp(nLatGridPts,nLongGridPts)
+double precision:: spec(nLatGridPts)
 double precision:: ekin,epot,etot,angm
 integer:: i,m
 
 !-----------------------------------------------------------------
 !Compute kinetic energy:
-htot=one+hh
-wkp=htot*(uu**2+vv**2)
+htot=one+heightAnom
+wkp=htot*(uVel**2+vVel**2)
 ekin=twopi*average(wkp)
 
  !Compute potential energy:
 if (eqbarot) then
   wkp=htot*(htot**Rocp-one)*pefac  !Rocp = kappa;  pefac = 2/(1 + kappa)
 else
-  wkp=hh**2
+  wkp=heightAnom**2
 endif
  !Add effect of topographic forcing if any:
-if (forcing) wkp=wkp+two*bb*hh
+if (isTopoForcing) wkp=wkp+two*bTopog*heightAnom
 epot=twopi*csq*average(wkp)
 
  !Total energy:
 etot=ekin+epot
 
  !Compute angular momentum:
-do i=1,nt
-  wkp(:,i)=clat*((one+hh(:,i))*uu(:,i)+omega*clat*hh(:,i))
+do i=1,nLongGridPts
+  wkp(:,i)=clat*((one+heightAnom(:,i))*uVel(:,i)+omega*clat*heightAnom(:,i))
 enddo
 angm=fourpi*average(wkp)
 
@@ -701,51 +701,51 @@ write(*,'(a,f13.6,a,f14.7,a,f14.7)') ' t = ',t,'     E_tot = ',etot, &
 
 !-----------------------------------------------------------------
  !Compute 1d longitudinal power spectra for various fields:
-wkp=zz
-call forfft(ng,nt,wkp,trig,factors)
+wkp=relVort
+call forfft(nLatGridPts,nLongGridPts,wkp,trig,factors)
 call longspec(wkp,spec)
 spec=log10(spec+1.d-32)
-write(51,'(f13.6,1x,i5)') t,ng
-do m=1,ng
+write(51,'(f13.6,1x,i5)') t,nLatGridPts
+do m=1,nLatGridPts
   write(51,'(2(1x,f12.8))') alm(m),spec(m)
 enddo
 
-call longspec(ds,spec)
+call longspec(velDiv,spec)
 spec=log10(spec+1.d-32)
-write(52,'(f13.6,1x,i5)') t,ng
-do m=1,ng
+write(52,'(f13.6,1x,i5)') t,nLatGridPts
+do m=1,nLatGridPts
   write(52,'(2(1x,f12.8))') alm(m),spec(m)
 enddo
 
-call longspec(gs,spec)
+call longspec(accelDiv,spec)
 spec=log10(spec+1.d-32)
-write(53,'(f13.6,1x,i5)') t,ng
-do m=1,ng
+write(53,'(f13.6,1x,i5)') t,nLatGridPts
+do m=1,nLatGridPts
   write(53,'(2(1x,f12.8))') alm(m),spec(m)
 enddo
 
-wkp=hh
-call forfft(ng,nt,wkp,trig,factors)
+wkp=heightAnom
+call forfft(nLatGridPts,nLongGridPts,wkp,trig,factors)
 call longspec(wkp,spec)
 spec=log10(spec+1.d-32)
-write(54,'(f13.6,1x,i5)') t,ng
-do m=1,ng
+write(54,'(f13.6,1x,i5)') t,nLatGridPts
+do m=1,nLatGridPts
   write(54,'(2(1x,f12.8))') alm(m),spec(m)
 enddo
 
 !-----------------------------------------------------------------
  !Write various gridded fields to direct access files:
-write(31,rec=igrids) real(t),real(qq)
-wkp=ds
-call revfft(ng,nt,wkp,trig,factors)
+write(31,rec=igrids) real(t),real(qAnomFull)
+wkp=velDiv
+call revfft(nLatGridPts,nLongGridPts,wkp,trig,factors)
 write(32,rec=igrids) real(t),real(wkp)
-wkp=gs
-call revfft(ng,nt,wkp,trig,factors)
+wkp=accelDiv
+call revfft(nLatGridPts,nLongGridPts,wkp,trig,factors)
 write(33,rec=igrids) real(t),real(wkp)
-write(34,rec=igrids) real(t),real(hh)
-write(35,rec=igrids) real(t),real(zz)
+write(34,rec=igrids) real(t),real(heightAnom)
+write(35,rec=igrids) real(t),real(relVort)
  !If present, save topographic forcing for post-processing:
-if (forcing) write(36,rec=igrids) real(t),real(bb)
+if (isTopoForcing) write(36,rec=igrids) real(t),real(bTopog)
 
 return
 end subroutine savegrid
@@ -762,7 +762,7 @@ implicit none
 integer:: irec
 
  !Local variables:
-double precision:: qa(ng,nt)
+double precision:: qa(nLatGridPts,nLongGridPts)
 character(len=3):: pind
 
 !---------------------------------------------------------------
@@ -774,7 +774,7 @@ write(80,'(i8,1x,i9,1x,f12.5,1x,f16.12)') n,npt,t,dq
 
  !Save residual needed to build ultra-fine-grid PV for plotting purposes:
 qa=qt-qc
-call revfft(ng,nt,qa,trig,factors)
+call revfft(nLatGridPts,nLongGridPts,qa,trig,factors)
 write(83,rec=irec) real(t),real(qa)
 
  !Save PV contours:

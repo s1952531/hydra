@@ -75,7 +75,7 @@ subroutine initialise
 implicit none
 
 ! Local variables:
-double precision:: qt(ng,nt)
+double precision:: qAnom(nLatGridPts,nLongGridPts)
 integer:: i  
 
 !----------------------------------------------------------------------
@@ -87,10 +87,10 @@ call init_spectral
 call init_contours
 
  !If topographic forcing is present, read in initial state:
-if (forcing) then
+if (isTopoForcing) then
   open(11,file='bb_init.r8',form='unformatted', &
         access='direct',status='old',recl=2*nbytes)
-  read(11,rec=1) t,bb
+  read(11,rec=1) t,bTopog
   close(11)
 endif
 
@@ -99,7 +99,7 @@ endif
  !the initial fields (h is used as a guess):
 open(11,file='hh_init.r8',form='unformatted', &
       access='direct',status='old',recl=2*nbytes)
-read(11,rec=1) t,hh
+read(11,rec=1) t,heightAnom
 close(11)
 
 !----------------------------------------------------------------------
@@ -107,37 +107,37 @@ close(11)
  !vorticity and h is the dimensionless height anomaly:
 open(11,file='qq_init.r8',form='unformatted', &
       access='direct',status='old',recl=2*nbytes)
-read(11,rec=1) t,qr
+read(11,rec=1) t,qAnomResid
 close(11)
 
  !Copy into qs for proper start (see subroutine init in evolution.f90):
-qs=qr
+qSpec=qAnomResid
 
 !----------------------------------------------------------------------
- !Read in gridded divergence, ds:
+ !Read in gridded veolicity divergence, ds:
 open(11,file='dd_init.r8',form='unformatted', &
       access='direct',status='old',recl=2*nbytes)
-read(11,rec=1) t,ds
+read(11,rec=1) t,velDiv
 close(11)
 
  !Ensure domain average is zero:
-call zeroavg(ds)
+call zeroavg(velDiv)
 
  !De-alias and convert to semi-spectral space as ds:
-call dealias(ds)
+call dealias(velDiv)
 
 !----------------------------------------------------------------------
  !Read in gridded acceleration divergence, gs:
 open(11,file='gg_init.r8',form='unformatted', &
       access='direct',status='old',recl=2*nbytes)
-read(11,rec=1) t,gs
+read(11,rec=1) t,accelDiv
 close(11)
 
  !Ensure domain average is zero:
-call zeroavg(gs)
+call zeroavg(accelDiv)
 
  !De-alias and convert to semi-spectral space as gs:
-call dealias(gs)
+call dealias(accelDiv)
 
 !----------------------------------------------------------------------
  !Obtain initial dimensionless height anomaly (hh), velocity (uu,vv),
@@ -145,21 +145,22 @@ call dealias(gs)
  !zero domain averaged zz:
 
  !Define PV anomaly (qt) needed for inversion below:
-do i=1,nt
-  qt(:,i)=qs(:,i)-cof
+do i=1,nLongGridPts
+  qAnom(:,i)=qSpec(:,i)-corFreq
 enddo
 
  !Convert qt to semi-spectral space:
-call forfft(ng,nt,qt,trig,factors) 
+call forfft(nLatGridPts,nLongGridPts,qAnom,trig,factors) 
 
-call main_invert(qt,ds,gs,hh,uu,vv,qq,zz)
+call main_invert(qAnom,velDiv,accelDiv,heightAnom,uVel,vVel,qAnomFull,relVort)
  !Note: qt, ds & gs are in semi-spectral space while 
  !      hh, uu, vv, qq and zz are in physical space.
 
 !----------------------------------------------------------------------
  !Initially there are no contours (they are built from the gridded PV):
-n=0
-npt=0
+ !congen.f90 says '!Counters for total number of nodes and contours: npt=0 n=0'
+n=0 !number of contours
+npt=0 
 
 !--------------------------------------
  !Open all plain text diagnostic files:
@@ -178,7 +179,7 @@ open(34,file='evolution/hh.r4',form='unformatted',access='direct', &
                              status='replace',recl=nbytes)
 open(35,file='evolution/zz.r4',form='unformatted',access='direct', &
                              status='replace',recl=nbytes)
-if (forcing) then
+if (isTopoForcing) then
    !Save topographic forcing for use in post-processing (e.g. dgbal):
   open(36,file='evolution/bb.r4',form='unformatted',access='direct', &
         status='replace',recl=nbytes)
@@ -196,8 +197,8 @@ open(83,file='contours/qqresi.r4',form='unformatted',access='direct', &
                                 status='replace',recl=nbytes)
 
  !Define number of time steps between grid and contour saves:
-ngsave=nint(tgsave/dt)
-ncsave=nint(tcsave/dt)
+nDTGridSave=nint(tGridSave/dt)
+nDTContSave=nint(tContSave/dt)
  !*** WARNING: tgsave and tcsave should be an integer multiple of dt
 
 return
@@ -251,7 +252,7 @@ close(32)
 close(33)
 close(34)
 close(35)
-if (forcing) close(36)
+if (isTopoForcing) close(36)
 close(51)
 close(52)
 close(53)

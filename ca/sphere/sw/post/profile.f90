@@ -11,12 +11,12 @@ use spectral
 
 implicit none
 
-real:: t,qqr4(ng,nt)
-double precision:: uu(ng,nt),vv(ng,nt),hh(ng,nt),zz(ng,nt)
-double precision:: qq(ng,nt),dd(ng,nt),gg(ng,nt)
-double precision:: qs(ng,nt),ds(ng,nt),gs(ng,nt)
-double precision:: zuu(ng),zhh(ng),zqq(ng)
-double precision:: auu(ng),ahh(ng),aqq(ng)
+real:: t,qqr4(nLatGridPts,nLongGridPts)
+double precision:: uu(nLatGridPts,nLongGridPts),vv(nLatGridPts,nLongGridPts),hh(nLatGridPts,nLongGridPts),zz(nLatGridPts,nLongGridPts)
+double precision:: qq(nLatGridPts,nLongGridPts),dd(nLatGridPts,nLongGridPts),gg(nLatGridPts,nLongGridPts)
+double precision:: qs(nLatGridPts,nLongGridPts),ds(nLatGridPts,nLongGridPts),gs(nLatGridPts,nLongGridPts)
+double precision:: zuu(nLatGridPts),zhh(nLatGridPts),zqq(nLatGridPts)
+double precision:: auu(nLatGridPts),ahh(nLatGridPts),aqq(nLatGridPts)
 double precision:: t1,t2,tmax,zfac,phi
 integer:: i,j,loop,navg,iread
 
@@ -34,7 +34,7 @@ open(34,file='evolution/hh.r4',form='unformatted',access='direct', &
 !---------------------------------------------------------------
  !Initialise inversion constants and arrays:
 call init_spectral
-zfac=one/dble(nt)
+zfac=one/dble(nLongGridPts)
 
 !---------------------------------------------------------------
  !Read final time in data:
@@ -56,19 +56,19 @@ read(34,rec=1) t,qqr4
 hh=dble(qqr4)
 zhh=zero
 zqq=zero
-do i=1,nt
+do i=1,nLongGridPts
   zhh=zhh+hh(:,i)
   zqq=zqq+qq(:,i)
 enddo
 zhh=zhh*zfac
 zuu=zero
-zqq=zqq*zfac-cof
+zqq=zqq*zfac-corFreq
 
 open(21,file='evolution/hini.asc',status='replace')
 open(22,file='evolution/uini.asc',status='replace')
 open(23,file='evolution/qini.asc',status='replace')
 
-do j=1,ng
+do j=1,nLatGridPts
   phi=(dble(j)-f12)*dl-hpi
   write(21,'(2(1x,f14.10))') zhh(j),phi
   write(22,'(2(1x,f14.10))') zuu(j),phi
@@ -103,14 +103,14 @@ do
     navg=navg+1
 
      !FFT some fields:
-    do i=1,nt
-      qs(:,i)=qq(:,i)-cof
+    do i=1,nLongGridPts
+      qs(:,i)=qq(:,i)-corFreq
     enddo
-    call forfft(ng,nt,qs,trig,factors) 
+    call forfft(nLatGridPts,nLongGridPts,qs,trig,factors) 
     ds=dd
-    call forfft(ng,nt,ds,trig,factors) 
+    call forfft(nLatGridPts,nLongGridPts,ds,trig,factors) 
     gs=gg
-    call forfft(ng,nt,gs,trig,factors) 
+    call forfft(nLatGridPts,nLongGridPts,gs,trig,factors) 
   
      !Find velocity field (uu,vv):  
     call main_invert(qs,ds,gs,hh,uu,vv,qq,zz)
@@ -123,7 +123,7 @@ do
     zqq=zero
 
      !Average zonally and accumulate in time:
-    do i=1,nt
+    do i=1,nLongGridPts
       zhh=zhh+hh(:,i)
       zuu=zuu+uu(:,i)
       zqq=zqq+qq(:,i)
@@ -146,14 +146,14 @@ close(34)
 zfac=one/dble(navg)
 ahh=ahh*zfac
 auu=auu*zfac
-aqq=aqq*zfac-cof
+aqq=aqq*zfac-corFreq
 
  !Open and write output files:
 open(21,file='evolution/havg.asc',status='replace')
 open(22,file='evolution/uavg.asc',status='replace')
 open(23,file='evolution/qavg.asc',status='replace')
 
-do j=1,ng
+do j=1,nLatGridPts
   phi=(dble(j)-f12)*dl-hpi
   write(21,'(2(1x,f14.10))') ahh(j),phi
   write(22,'(2(1x,f14.10))') auu(j),phi

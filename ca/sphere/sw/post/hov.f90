@@ -8,7 +8,7 @@ use spectral
 
 implicit none
 
-double precision:: zuu(ng),zhh(ng),zek(ng),zqq(ng),zvq(ng),zqg(0:ng)
+double precision:: zuu(nLatGridPts),zhh(nLatGridPts),zek(nLatGridPts),zqq(nLatGridPts),zvq(nLatGridPts),zqg(0:nLatGridPts)
 double precision:: t,ombar
 integer:: iread, loop, j
 
@@ -43,7 +43,7 @@ do
   read(53,*) t
   read(54,*) t
   read(55,*) t
-  do j=1,ng
+  do j=1,nLatGridPts
     read(51,*) zuu(j)
     read(52,*) zhh(j)
     read(53,*) zek(j)
@@ -52,7 +52,7 @@ do
   enddo
 
    !Remove mean angular velocity from zuu:
-  ombar=(f1112*(zuu(1)+zuu(ng))+sum(zuu(2:ngm1)))*rsumi
+  ombar=(f1112*(zuu(1)+zuu(nLatGridPts))+sum(zuu(2:nLatGridPtsMin1)))*rsumi
   zuu=zuu-ombar*clat
 
   write(61) zuu
@@ -62,8 +62,8 @@ do
   write(65) zvq
    !Compute PV gradient at full latitudes (use zero polar values):
   zqg(0)=0.d0
-  zqg(ng)=0.d0
-  do j=1,ng-1
+  zqg(nLatGridPts)=0.d0
+  do j=1,nLatGridPts-1
     zqg(j)=dli*(zqq(j+1)-zqq(j))
   enddo
   write(66) zqg
@@ -90,18 +90,18 @@ open(88,file='hov-plotting',status='replace')
 write(88,*) ' To plot Hovmuller diagrams of u_bar(t,phi), etc, type:'
 write(* ,*) ' To plot Hovmuller diagrams of u_bar(t,phi), etc, type:'
 write(* ,*)
-write(88,'(a,i5,1x,i4)') ' dataview hovu.r8 -ndim ',loop,ng
-write(88,'(a,i5,1x,i4)') ' dataview hovh.r8 -ndim ',loop,ng
-write(88,'(a,i5,1x,i4)') ' dataview hovk.r8 -ndim ',loop,ng
-write(88,'(a,i5,1x,i4)') ' dataview hovq.r8 -ndim ',loop,ng
-write(88,'(a,i5,1x,i4)') ' dataview hovf.r8 -ndim ',loop,ng
-write(88,'(a,i5,1x,i4)') ' dataview hovg.r8 -ndim ',loop,ng+1
-write(* ,'(a,i5,1x,i4)') ' dataview hovu.r8 -ndim ',loop,ng
-write(* ,'(a,i5,1x,i4)') ' dataview hovh.r8 -ndim ',loop,ng
-write(* ,'(a,i5,1x,i4)') ' dataview hovk.r8 -ndim ',loop,ng
-write(* ,'(a,i5,1x,i4)') ' dataview hovq.r8 -ndim ',loop,ng
-write(* ,'(a,i5,1x,i4)') ' dataview hovf.r8 -ndim ',loop,ng
-write(* ,'(a,i5,1x,i4)') ' dataview hovg.r8 -ndim ',loop,ng+1
+write(88,'(a,i5,1x,i4)') ' dataview hovu.r8 -ndim ',loop,nLatGridPts
+write(88,'(a,i5,1x,i4)') ' dataview hovh.r8 -ndim ',loop,nLatGridPts
+write(88,'(a,i5,1x,i4)') ' dataview hovk.r8 -ndim ',loop,nLatGridPts
+write(88,'(a,i5,1x,i4)') ' dataview hovq.r8 -ndim ',loop,nLatGridPts
+write(88,'(a,i5,1x,i4)') ' dataview hovf.r8 -ndim ',loop,nLatGridPts
+write(88,'(a,i5,1x,i4)') ' dataview hovg.r8 -ndim ',loop,nLatGridPts+1
+write(* ,'(a,i5,1x,i4)') ' dataview hovu.r8 -ndim ',loop,nLatGridPts
+write(* ,'(a,i5,1x,i4)') ' dataview hovh.r8 -ndim ',loop,nLatGridPts
+write(* ,'(a,i5,1x,i4)') ' dataview hovk.r8 -ndim ',loop,nLatGridPts
+write(* ,'(a,i5,1x,i4)') ' dataview hovq.r8 -ndim ',loop,nLatGridPts
+write(* ,'(a,i5,1x,i4)') ' dataview hovf.r8 -ndim ',loop,nLatGridPts
+write(* ,'(a,i5,1x,i4)') ' dataview hovg.r8 -ndim ',loop,nLatGridPts+1
 write(88,*)
 write(* ,*)
 close(88)

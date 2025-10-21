@@ -9,8 +9,8 @@ use constants
  !Declarations:
 implicit none
 
-double precision:: hh(ng,nt),qq(ng,nt)
-double precision:: slat(ng),clat(ng)
+double precision:: hh(nLatGridPts,nLongGridPts),qq(nLatGridPts,nLongGridPts)
+double precision:: slat(nLatGridPts),clat(nLatGridPts)
 double precision:: eps,amp,phi0,b,binv,phi,fm,acmlon
 double precision:: rsum,rsumi,dsumi,vsum
 integer:: i,j,m
@@ -44,20 +44,20 @@ read(*,*) m
 
 !------------------------------------------------------------------------------
  !Define cos and sin(latitude):
-do j=1,ng
+do j=1,nLatGridPts
   phi=dl*(dble(j)-f12)-hpi
   slat(j)=sin(phi)
   clat(j)=cos(phi)
 enddo
 
  !For removing global averages:
-rsum=f1112*(clat(1)+clat(ng))
-do j=2,ngm1
+rsum=f1112*(clat(1)+clat(nLatGridPts))
+do j=2,nLatGridPtsMin1
   rsum=rsum+clat(j)
 enddo
  !Note, rsum = 1/sin(dl/2) - sin(dl/2)/6 exactly.
 rsumi=one/rsum
-dsumi=rsumi/dble(nt)
+dsumi=rsumi/dble(nLongGridPts)
 
  !Write initial divergence field:
 hh=zero
@@ -70,9 +70,9 @@ close(20)
  !Compute initial height field:
 fm=dble(m)
 binv=one/b
-do i=1,nt
+do i=1,nLongGridPts
   acmlon=amp*cos(fm*(dl*dble(i-1)-pi))
-  do j=1,ng
+  do j=1,nLatGridPts
     phi=dl*(dble(j)-f12)-hpi-clat(j)*acmlon
     hh(j,i)=eps*tanh(binv*(phi-phi0))
   enddo
@@ -80,15 +80,15 @@ enddo
 
  !Remove global mean height anomaly:
 vsum=zero
-do i=1,nt
-  vsum=vsum+f1112*(clat(1)*hh(1,i)+clat(ng)*hh(ng,i))
-  do j=2,ngm1
+do i=1,nLongGridPts
+  vsum=vsum+f1112*(clat(1)*hh(1,i)+clat(nLatGridPts)*hh(nLatGridPts,i))
+  do j=2,nLatGridPtsMin1
     vsum=vsum+clat(j)*hh(j,i)
   enddo
 enddo
 vsum=vsum*dsumi
-do i=1,nt
-  do j=1,ng
+do i=1,nLongGridPts
+  do j=1,nLatGridPts
     hh(j,i)=hh(j,i)-vsum
   enddo
 enddo
@@ -100,8 +100,8 @@ write(20,rec=1) zero,hh
 close(20)
 
 !Compute PV field for an initially resting state:
-do i=1,nt
-  do j=1,ng
+do i=1,nLongGridPts
+  do j=1,nLatGridPts
     qq(j,i)=fpole*slat(j)/(one+hh(j,i))
   enddo
 enddo

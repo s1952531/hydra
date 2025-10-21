@@ -6,10 +6,10 @@ module parameters
 double precision,parameter:: pi=3.141592653589793238462643383279502884197169399375105820974944592307816d0
 
 ! ==> Numerical parameters <==
-integer,parameter:: ng=N_G, nt=2*ng
+integer,parameter:: nLatGridPts=N_G, nLongGridPts=2*nLatGridPts
 integer,parameter:: ncont=N_CONTQ
 double precision,parameter:: dt=T_STEP,tsim=T_SIM
-double precision,parameter:: tgsave=T_GSAVE,tcsave=T_CSAVE
+double precision,parameter:: tGridSave=T_GSAVE,tContSave=T_CSAVE
 ! ng     : number of  latitudinal grid points (using a half grid)
 ! nt     : number of longitudinal grid points (always equal to 2*ng)
 ! ncont  : number of PV jumps used to represent f = 2*Omega*sin(lat)

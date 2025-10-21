@@ -15,23 +15,23 @@ use constants
  ! Import spectral module:
 use spectral
 
-double precision:: hh(ng,nt),dd(ng,nt),zz(ng,nt)
-double precision:: uu(ng,nt),vv(ng,nt),qq(ng,nt)
-double precision:: uds(ng,nt),vds(ng,nt)
-double precision:: wka(ng,nt),wkb(ng,nt),wkc(ng,nt)
-double precision:: zuu(ng),zhh(ng),zek(ng),zqq(ng),zvq(ng),phi(ng),zwk(ng)
+double precision:: hh(nLatGridPts,nLongGridPts),dd(nLatGridPts,nLongGridPts),zz(nLatGridPts,nLongGridPts)
+double precision:: uu(nLatGridPts,nLongGridPts),vv(nLatGridPts,nLongGridPts),qq(nLatGridPts,nLongGridPts)
+double precision:: uds(nLatGridPts,nLongGridPts),vds(nLatGridPts,nLongGridPts)
+double precision:: wka(nLatGridPts,nLongGridPts),wkb(nLatGridPts,nLongGridPts),wkc(nLatGridPts,nLongGridPts)
+double precision:: zuu(nLatGridPts),zhh(nLatGridPts),zek(nLatGridPts),zqq(nLatGridPts),zvq(nLatGridPts),phi(nLatGridPts),zwk(nLatGridPts)
 double precision:: zuumax,zhhmax,zekmax,zqqmax,t
 double precision:: ekin,epot,etot,angm
 double precision:: zfac
-real:: qqr4(ng,nt),tr4
+real:: qqr4(nLatGridPts,nLongGridPts),tr4
 integer:: i,j,loop,iread,m
 
 !---------------------------------------------------------------
  !Initialise inversion constants and arrays:
 call init_spectral
 
-zfac=one/dble(nt)
-do j=1,ng
+zfac=one/dble(nLongGridPts)
+do j=1,nLatGridPts
   phi(j)=(dble(j)-f12)*dl-hpi
 enddo
 
@@ -71,23 +71,23 @@ do
 
    !Compute velocity field:
   wkc=dd
-  call forfft(ng,nt,wkc,trig,factors)
+  call forfft(nLatGridPts,nLongGridPts,wkc,trig,factors)
   call laplinv(wkc,wka,vds)
-  call deriv(ng,nt,rk,wka,uds) 
+  call deriv(nLatGridPts,nLongGridPts,rk,wka,uds) 
   wkc=zz
-  call forfft(ng,nt,wkc,trig,factors)
+  call forfft(nLatGridPts,nLongGridPts,wkc,trig,factors)
   call laplinv(wkc,wka,wkb)
-  call deriv(ng,nt,rk,wka,wkc)
-  do m=1,nt
+  call deriv(nLatGridPts,nLongGridPts,rk,wka,wkc)
+  do m=1,nLongGridPts
     uu(:,m)=clati*uds(:,m)-wkb(:,m)
     vv(:,m)=vds(:,m)+clati*wkc(:,m)
   enddo
-  call revfft(ng,nt,uu,trig,factors) 
-  call revfft(ng,nt,vv,trig,factors) 
+  call revfft(nLatGridPts,nLongGridPts,uu,trig,factors) 
+  call revfft(nLatGridPts,nLongGridPts,vv,trig,factors) 
 
    !Define PV:
-  do i=1,nt
-    qq(:,i)=(cof+zz(:,i))/(one+hh(:,i))
+  do i=1,nLongGridPts
+    qq(:,i)=(corFreq+zz(:,i))/(one+hh(:,i))
   enddo
   
    !Compute zonal averages:
@@ -97,7 +97,7 @@ do
   zqq=zero
   zvq=zero
 
-  do j=1,ng
+  do j=1,nLatGridPts
     zuu(j)=zuu(j)+zfac*sum(uu(j,:))
     zhh(j)=zhh(j)+zfac*sum(hh(j,:))
     zqq(j)=zqq(j)+zfac*sum(qq(j,:))
@@ -105,34 +105,34 @@ do
 
    !Compute energy components and angular momentum:
   zwk=clat*(one+zhh)*zuu**2
-  ekin=twopi*rsumi*(f1112*(zwk(1)+zwk(ng))+sum(zwk(2:ngm1)))
+  ekin=twopi*rsumi*(f1112*(zwk(1)+zwk(nLatGridPts))+sum(zwk(2:nLatGridPtsMin1)))
    !Assume here that zbb = 0 (bb not saved to compute its average):
   zwk=clat*zhh**2
-  epot=twopi*csq*rsumi*(f1112*(zwk(1)+zwk(ng))+sum(zwk(2:ngm1)))
+  epot=twopi*csq*rsumi*(f1112*(zwk(1)+zwk(nLatGridPts))+sum(zwk(2:nLatGridPtsMin1)))
   etot=ekin+epot
   zwk=clat*(clat*((one+zhh)*zuu+omega*clat*zhh))
-  angm=fourpi*rsumi*(f1112*(zwk(1)+zwk(ng))+sum(zwk(2:ngm1)))
+  angm=fourpi*rsumi*(f1112*(zwk(1)+zwk(nLatGridPts))+sum(zwk(2:nLatGridPtsMin1)))
 
    !Write energies & angular momentum to zecomp.asc:
   write(15,'(f13.6,4(1x,f16.9))') t,ekin,epot,etot,angm
 
-  do i=1,nt
+  do i=1,nLongGridPts
     wka(:,i)=f12*(one+hh(:,i))*((uu(:,i)-zuu)**2+vv(:,i)**2)
     wkb(:,i)=vv(:,i)*(qq(:,i)-zqq)
   enddo
   
-  do j=1,ng
+  do j=1,nLatGridPts
     zek(j)=zek(j)+zfac*sum(wka(j,:))
     zvq(j)=zvq(j)+zfac*sum(wkb(j,:))
   enddo
 
    !Write diagnostic data for this time:
-  write(51,'(f13.6,1x,i5)') t,ng
-  write(52,'(f13.6,1x,i5)') t,ng
-  write(53,'(f13.6,1x,i5)') t,ng
-  write(54,'(f13.6,1x,i5)') t,ng
-  write(55,'(f13.6,1x,i5)') t,ng
-  do j=1,ng
+  write(51,'(f13.6,1x,i5)') t,nLatGridPts
+  write(52,'(f13.6,1x,i5)') t,nLatGridPts
+  write(53,'(f13.6,1x,i5)') t,nLatGridPts
+  write(54,'(f13.6,1x,i5)') t,nLatGridPts
+  write(55,'(f13.6,1x,i5)') t,nLatGridPts
+  do j=1,nLatGridPts
     write(51,'(2(1x,f12.8))') zuu(j),phi(j)
     write(52,'(2(1x,f12.8))') zhh(j),phi(j)
     write(53,'(2(1x,f12.8))') zek(j),phi(j)

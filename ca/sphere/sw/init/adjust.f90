@@ -10,8 +10,8 @@ use spectral
  !Declarations:
 implicit none
 
-double precision:: wka(ng,nt),wkb(ng,nt),wkc(ng,nt),wkd(ng,nt)
-double precision:: var(ng,nt)
+double precision:: wka(nLatGridPts,nLongGridPts),wkb(nLatGridPts,nLongGridPts),wkc(nLatGridPts,nLongGridPts),wkd(nLatGridPts,nLongGridPts)
+double precision:: var(nLatGridPts,nLongGridPts)
 double precision:: eps,rksri,fac,hmax,ahmax,r
 
 integer, dimension(:), allocatable :: seed
@@ -45,13 +45,13 @@ enddo
 
  !Initialize squared wavenumber arrays used below:
 rksri=one/dble(ksr)
-do m=1,nt
-  do j=1,ng
+do m=1,nLongGridPts
+  do j=1,nLatGridPts
     plon(j,m)=(rksri*wave(m)*clati(j))**2
     glon(j,m)=exp(-plon(j,m))
   enddo
 enddo
-do k=1,nt
+do k=1,nLongGridPts
   plat(k)=(rksri*wave(k))**2
   glat(k)=exp(-plat(k))
 enddo
@@ -62,49 +62,49 @@ call random_number(wkc)
 wkc=two*wkc-one
 
  !Create great circles:
-do i=1,ng
-  ic=i+ng
-  do j=1,ng
+do i=1,nLatGridPts
+  ic=i+nLatGridPts
+  do j=1,nLatGridPts
     wka(i,j)     =wkc(j,i)
-    wka(i,ntp1-j)=wkc(j,ic)
+    wka(i,nLongGridPtsPlusOne-j)=wkc(j,ic)
   enddo
 enddo
 
  !FFT in latitude:
-call forfft(ng,nt,wka,trig,factors)
+call forfft(nLatGridPts,nLongGridPts,wka,trig,factors)
 
  !Apply latitudinal spectrum:
-do k=1,nt
-  do i=1,ng
+do k=1,nLongGridPts
+  do i=1,nLatGridPts
     wka(i,k)=wka(i,k)*glat(k)
     wkb(i,k)=wka(i,k)*plat(k)
   enddo
 enddo
 
  !Inverse FFT in latitude:
-call revfft(ng,nt,wka,trig,factors)
-call revfft(ng,nt,wkb,trig,factors)
+call revfft(nLatGridPts,nLongGridPts,wka,trig,factors)
+call revfft(nLatGridPts,nLongGridPts,wkb,trig,factors)
 
  !Unpack arrays:
-do i=1,ng
-  ic=i+ng
-  do j=1,ng
+do i=1,nLatGridPts
+  ic=i+nLatGridPts
+  do j=1,nLatGridPts
     wkc(j,i) =wka(i,j)
-    wkc(j,ic)=wka(i,ntp1-j)
+    wkc(j,ic)=wka(i,nLongGridPtsPlusOne-j)
     wkd(j,i) =wkb(i,j)
-    wkd(j,ic)=wkb(i,ntp1-j)
+    wkd(j,ic)=wkb(i,nLongGridPtsPlusOne-j)
   enddo
 enddo
 
  !FFT in longitude:
-call forfft(ng,nt,wkc,trig,factors)
-call forfft(ng,nt,wkd,trig,factors)
+call forfft(nLatGridPts,nLongGridPts,wkc,trig,factors)
+call forfft(nLatGridPts,nLongGridPts,wkd,trig,factors)
 
  !Apply longitudinal spectrum and define var:
 var=glon*(plon*wkc+wkd)
 
  !Return var to physical space:
-call revfft(ng,nt,var,trig,factors)
+call revfft(nLatGridPts,nLongGridPts,var,trig,factors)
 
  !Remove global mean:
 call zeroavg(var)
@@ -121,8 +121,8 @@ write(20,rec=1) zero,var
 close(20)
 
  !Define PV for a rest state:
-do i=1,nt
-  do j=1,ng
+do i=1,nLongGridPts
+  do j=1,nLatGridPts
     var(j,i)=fpole*slat(j)/(one+var(j,i))
   enddo
 enddo

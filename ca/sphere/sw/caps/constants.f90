@@ -10,24 +10,24 @@ use parameters
 integer,parameter:: dbleint=selected_int_kind(16)
 integer,parameter:: halfint=selected_int_kind(-1)
 
-integer,parameter:: ngm1=ng-1, ngp1=ng+1, ngp2=ng+2
-integer,parameter:: ntm2=nt-2, ntm1=nt-1, ntp1=nt+1, ntp2=nt+2
+integer,parameter:: nLatGridPtsMin1=nLatGridPts-1, nLatGridPtsPlus1=nLatGridPts+1, numLatGridPtsPlus2=nLatGridPts+2
+integer,parameter:: nLongGridPtsMin2=nLongGridPts-2, nLongGridPtsMin1=nLongGridPts-1, nLongGridPtsPlusOne=nLongGridPts+1, nLongGridPtsPlusTwo=nLongGridPts+2
 
-integer,parameter:: ngridp=ng*nt,nbytes=4*(ngridp+1)
+integer,parameter:: totGridPts=nLatGridPts*nLongGridPts,nbytes=4*(totGridPts+1)
 
-integer,parameter:: kda1=ngp1-ng/3, kda2=ngp1+ng/3
+integer,parameter:: kda1=nLatGridPtsPlus1-nLatGridPts/3, kda2=nLatGridPtsPlus1+nLatGridPts/3
 !      Wavenumbers between kda1 and kda2 are removed for de-aliasing;
 !      this is done in longitude and in latitude (using great circles)
 
-integer,parameter:: mgf=4, ngf=ng*mgf, ntf=nt*mgf
+integer,parameter:: mgf=4, nLatFGridPts=nLatGridPts*mgf, nLongFGridPts=nLongGridPts*mgf
 !      mgf:      Fine conversion grid ratio
 !      ntf,ngf:  number of grid boxes in the x & y directions (fine grid)
-integer,parameter:: mgu=16,ntu=mgu*nt, ngu=mgu*ng
+integer,parameter:: mgu=16,nLongUFGridPts=mgu*nLongGridPts, nLatUFGridPts=mgu*nLatGridPts
 !      mgu:      Ultra-fine conversion grid ratio (used in module congen.f90)
 !      ntu,ngu:  number of grid boxes in the x & y directions (ultra-fine grid)
 
  !Maximum number of contour node points:
-integer,parameter:: npm=200*ngridp
+integer,parameter:: npm=200*totGridPts
  !Maximum number of contours:
 integer,parameter:: nm=npm/20+npm/200
  !Maximum number of nodes on any single contour:
@@ -47,10 +47,10 @@ double precision,parameter:: small=1.d-12, small3=small*small*small
 double precision,parameter:: hlx=pi, hlxi=one/(pi+small), oms=one-small
 ! The x range is  -pi  <= x <=  pi   (longitude)
 ! The y range is -pi/2 <= y <= pi/2  (latitude)
-double precision,parameter:: glxu=twopi/dble(ntu), glyu=pi/dble(ngu)
+double precision,parameter:: glxu=twopi/dble(nLongUFGridPts), glyu=pi/dble(nLatUFGridPts)
 
  !Basic constants:
-double precision,parameter:: dl=twopi/dble(nt), dli=dble(nt)/(twopi+small)
+double precision,parameter:: dl=twopi/dble(nLongGridPts), dli=dble(nLongGridPts)/(twopi+small)
 double precision,parameter:: dlsq=dl**2, hpidl=(pi+dl)/two
 
 ! Time step related parameters:
@@ -80,7 +80,8 @@ double precision,parameter:: dmi=two/dm, d4small=small*dl**4
 logical,parameter:: eqbarot=(Rocp .lt. 0.99999d0)
  !Rocp = R/c_p =  1  for traditional SW case;
  !Rocp = R/c_p = 2/7 typically for the equivalent barotropic case
-logical,parameter:: forcing=(tb .ge. zero)
+
+logical,parameter:: isTopoForcing=(tb .gt. zero)
 logical,parameter:: thermal=(rth .gt. zero)
 logical,parameter:: friction=(rek .gt. zero)
 

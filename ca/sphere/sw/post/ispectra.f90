@@ -17,16 +17,16 @@ use spectral
 implicit none
 
  !Physical arrays:
-double precision::  hh(ng,nt), zz(ng,nt), dd(ng,nt), gg(ng,nt)
-double precision:: bhh(ng,nt),bzz(ng,nt),bdd(ng,nt),bgg(ng,nt)
-double precision::  aa(ng,nt)
+double precision::  hh(nLatGridPts,nLongGridPts), zz(nLatGridPts,nLongGridPts), dd(nLatGridPts,nLongGridPts), gg(nLatGridPts,nLongGridPts)
+double precision:: bhh(nLatGridPts,nLongGridPts),bzz(nLatGridPts,nLongGridPts),bdd(nLatGridPts,nLongGridPts),bgg(nLatGridPts,nLongGridPts)
+double precision::  aa(nLatGridPts,nLongGridPts)
 
  !Spectral arrays:
-double precision:: wka(ng,nt)
+double precision:: wka(nLatGridPts,nLongGridPts)
 
  !Other local variables:
-double precision:: spec(ng),rms,rmsb,rmsi,t
-real:: qqr4(ng,nt),tr4
+double precision:: spec(nLatGridPts),rms,rmsb,rmsi,t
+real:: qqr4(nLatGridPts,nLongGridPts),tr4
 integer:: loop,iread,m
 
 !----------------------------------------------------------------------
@@ -100,38 +100,38 @@ do
 
    !Compute 1d longitudinal power spectra of the balanced fields:
   aa=bzz
-  call forfft(ng,nt,aa,trig,factors)
+  call forfft(nLatGridPts,nLongGridPts,aa,trig,factors)
   call longspec(aa,spec)
   spec=log10(spec+1.d-32)
-  write(51,'(f13.6,1x,i5)') t,ng
-  do m=1,ng
+  write(51,'(f13.6,1x,i5)') t,nLatGridPts
+  do m=1,nLatGridPts
     write(51,'(2(1x,f12.8))') alm(m),spec(m)
   enddo
 
   aa=bdd
-  call forfft(ng,nt,aa,trig,factors)
+  call forfft(nLatGridPts,nLongGridPts,aa,trig,factors)
   call longspec(aa,spec)
   spec=log10(spec+1.d-32)
-  write(52,'(f13.6,1x,i5)') t,ng
-  do m=1,ng
+  write(52,'(f13.6,1x,i5)') t,nLatGridPts
+  do m=1,nLatGridPts
     write(52,'(2(1x,f12.8))') alm(m),spec(m)
   enddo
 
   aa=bgg
-  call forfft(ng,nt,aa,trig,factors)
+  call forfft(nLatGridPts,nLongGridPts,aa,trig,factors)
   call longspec(aa,spec)
   spec=log10(spec+1.d-32)
-  write(53,'(f13.6,1x,i5)') t,ng
-  do m=1,ng
+  write(53,'(f13.6,1x,i5)') t,nLatGridPts
+  do m=1,nLatGridPts
     write(53,'(2(1x,f12.8))') alm(m),spec(m)
   enddo
 
   aa=bhh
-  call forfft(ng,nt,aa,trig,factors)
+  call forfft(nLatGridPts,nLongGridPts,aa,trig,factors)
   call longspec(aa,spec)
   spec=log10(spec+1.d-32)
-  write(54,'(f13.6,1x,i5)') t,ng
-  do m=1,ng
+  write(54,'(f13.6,1x,i5)') t,nLatGridPts
+  do m=1,nLatGridPts
     write(54,'(2(1x,f12.8))') alm(m),spec(m)
   enddo
 
@@ -141,11 +141,11 @@ do
   call getrms(bzz,rmsb)
   call getrms(aa, rmsi)
   write(71,'(f9.2,3(1x,e14.7))') t,rms,rmsb,rmsi
-  call forfft(ng,nt,aa,trig,factors)
+  call forfft(nLatGridPts,nLongGridPts,aa,trig,factors)
   call longspec(aa,spec)
   spec=log10(spec+1.d-32)
-  write(61,'(f13.6,1x,i5)') t,ng
-  do m=1,ng
+  write(61,'(f13.6,1x,i5)') t,nLatGridPts
+  do m=1,nLatGridPts
     write(61,'(2(1x,f12.8))') alm(m),spec(m)
   enddo
 
@@ -154,11 +154,11 @@ do
   call getrms(bdd,rmsb)
   call getrms(aa, rmsi)
   write(72,'(f9.2,3(1x,e14.7))') t,rms,rmsb,rmsi
-  call forfft(ng,nt,aa,trig,factors)
+  call forfft(nLatGridPts,nLongGridPts,aa,trig,factors)
   call longspec(aa,spec)
   spec=log10(spec+1.d-32)
-  write(62,'(f13.6,1x,i5)') t,ng
-  do m=1,ng
+  write(62,'(f13.6,1x,i5)') t,nLatGridPts
+  do m=1,nLatGridPts
     write(62,'(2(1x,f12.8))') alm(m),spec(m)
   enddo
 
@@ -167,11 +167,11 @@ do
   call getrms(bgg,rmsb)
   call getrms(aa, rmsi)
   write(73,'(f9.2,3(1x,e14.7))') t,rms,rmsb,rmsi
-  call forfft(ng,nt,aa,trig,factors)
+  call forfft(nLatGridPts,nLongGridPts,aa,trig,factors)
   call longspec(aa,spec)
   spec=log10(spec+1.d-32)
-  write(63,'(f13.6,1x,i5)') t,ng
-  do m=1,ng
+  write(63,'(f13.6,1x,i5)') t,nLatGridPts
+  do m=1,nLatGridPts
     write(63,'(2(1x,f12.8))') alm(m),spec(m)
   enddo
 
@@ -180,11 +180,11 @@ do
   call getrms(bhh,rmsb)
   call getrms(aa, rmsi)
   write(74,'(f9.2,3(1x,e14.7))') t,rms,rmsb,rmsi
-  call forfft(ng,nt,aa,trig,factors)
+  call forfft(nLatGridPts,nLongGridPts,aa,trig,factors)
   call longspec(aa,spec)
   spec=log10(spec+1.d-32)
-  write(64,'(f13.6,1x,i5)') t,ng
-  do m=1,ng
+  write(64,'(f13.6,1x,i5)') t,nLatGridPts
+  do m=1,nLatGridPts
     write(64,'(2(1x,f12.8))') alm(m),spec(m)
   enddo
 

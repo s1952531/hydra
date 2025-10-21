@@ -29,8 +29,8 @@ use spherical
 implicit none
 
  !Global variables:
-double precision:: poly(ng,ntot), wave(ntot)
-double precision:: sinphi(ng), cosphi(ng), lambda(nt)
+double precision:: poly(nLatGridPts,ntot), wave(ntot)
+double precision:: sinphi(nLatGridPts), cosphi(nLatGridPts), lambda(nLongGridPts)
 double precision:: rmsfac
 
 contains
@@ -45,14 +45,14 @@ implicit none
 double precision:: norm(nbeg:nend)
 
  !Local variables:
-double precision:: p(ng), pfac
+double precision:: p(nLatGridPts), pfac
 
 integer, dimension(:), allocatable :: seed
 integer:: i, j, k, m, n
 
 !-----------------------------------------------------------------
  !Define half-grid values of sinphi = sin(latitude):
-do j = 1, ng
+do j = 1, nLatGridPts
   sinphi(j) = sin(dl*(dble(j)-0.5d0)-hpi)
 enddo
 
@@ -60,10 +60,10 @@ enddo
 cosphi = sqrt(1.d0-sinphi**2)
 
  !Needed to compute field r.m.s. value in generate_forcing:
-rmsfac=1.d0/((f1112*(cosphi(1)+cosphi(ng))+sum(cosphi(2:ng-1)))*dble(nt))
+rmsfac=1.d0/((f1112*(cosphi(1)+cosphi(nLatGridPts))+sum(cosphi(2:nLatGridPts-1)))*dble(nLongGridPts))
 
  !Define longitudes:
-do i = 1, nt
+do i = 1, nLongGridPts
   lambda(i) = dl*dble(i-1)-pi
 enddo
 
@@ -85,7 +85,7 @@ do n = nbeg, nend
    !m = 0; include a factor of 1/2 (usual cosine series weight):
   k = k+1                         ! Index to store the polynomials
   wave(k) = 0.d0                  ! Stores azimuthal wavenumber
-  call generate_spherical(sinphi,ng,n,0,p)
+  call generate_spherical(sinphi,nLatGridPts,n,0,p)
    !p = normalised Y_n^0 without the azimuthal dependence
   poly(:,k) = 0.5d0*pfac*p        ! Stores re-scaled polynomial
 
@@ -93,7 +93,7 @@ do n = nbeg, nend
   do m = 1, n
     k = k+1
     wave(k) = dble(m)
-    call generate_spherical(sinphi,ng,n,m,p)
+    call generate_spherical(sinphi,nLatGridPts,n,m,p)
      !p = normalised Y_n^m without the azimuthal dependence
     poly(:,k) = pfac*p
   enddo
@@ -112,10 +112,10 @@ subroutine generate_forcing(ff, frms)
 implicit none
 
  !Passed variables:
-double precision:: ff(ng,nt), frms
+double precision:: ff(nLatGridPts,nLongGridPts), frms
 
  !Local variables:
-double precision:: wka(ng,nt), cosfac(nt)
+double precision:: wka(nLatGridPts,nLongGridPts), cosfac(nLongGridPts)
 double precision:: theta, sfac
 integer:: i, k
 
@@ -131,7 +131,7 @@ do k = 1,ntot
   cosfac = cos(wave(k)*lambda+theta)
 
    !Sum poly*cosfac into ff:
-  do i = 1,nt
+  do i = 1,nLongGridPts
      ff(:,i) = ff(:,i)+poly(:,k)*cosfac(i)
   enddo
 enddo
@@ -154,21 +154,21 @@ implicit none
 double precision:: rmsval
 
  !Passed variable:
-double precision:: var(ng,nt)
+double precision:: var(nLatGridPts,nLongGridPts)
 
  !Local variables:
-double precision:: wka(ng,nt)
+double precision:: wka(nLatGridPts,nLongGridPts)
 integer:: i
 
  !-------------------------------------------------
-do i = 1,nt
+do i = 1,nLongGridPts
   wka(:,i) = cosphi*var(:,i)**2
 enddo
  !cosphi is cos(latitude) here: the area weight.
 
 rmsval = 0.d0
-do i = 1,nt
-  rmsval = rmsval+f1112*(wka(1,i)+wka(ng,i))+sum(wka(2:ng-1,i))
+do i = 1,nLongGridPts
+  rmsval = rmsval+f1112*(wka(1,i)+wka(nLatGridPts,i))+sum(wka(2:nLatGridPts-1,i))
 enddo
 rmsval = sqrt(rmsfac*rmsval)
  !See subroutine init_forcing above for rmsval

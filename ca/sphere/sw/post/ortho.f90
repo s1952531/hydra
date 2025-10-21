@@ -59,7 +59,7 @@ read(*,*) rlatc,rlonc
 
 !write(*,*) ' Width (in pixels) of output image?'
 !read(*,*) ny
-ny=ng !need this to be compatible with the odv viewing script [could use ny=nt]
+ny=nLatGridPts !need this to be compatible with the odv viewing script [could use ny=nt]
 nz=ny
 
  !Define output record length (in bytes):
@@ -104,8 +104,8 @@ integer:: ny,nz
 integer:: i,j,loop,iread,iopt
 integer:: iy,iz,ic,ip1,jp1
 
-real:: qq(0:ngp1,nt),qqop(nz,ny)
-real:: yg(ny),zg(nz),cof(ng)
+real:: qq(0:nLatGridPtsPlus1,nLongGridPts),qqop(nz,ny)
+real:: yg(ny),zg(nz),cof(nLatGridPts)
 real:: qqbg,t,dy,dz,det
 real:: rlatc,clatc,slatc,rlonc,clonc,slonc
 real:: xp,yp,zp,xm,xt,yt,zt,ri,rj,aa,bb,cc,dd,qqt
@@ -132,7 +132,7 @@ clonc=cos(rlonc*pi/180.)
 slonc=sin(rlonc*pi/180.)
 
 if (iopt .eq. 2) then
-  do j=1,ng
+  do j=1,nLatGridPts
     cof(j)=fpole*sin((dble(j)-f12)*dl-hpi)
   enddo
 endif
@@ -143,24 +143,24 @@ loop=0
 do
   loop=loop+1
    !Read each frame of the data:
-  read(11,rec=loop,iostat=iread) t,qq(1:ng,1:nt)
+  read(11,rec=loop,iostat=iread) t,qq(1:nLatGridPts,1:nLongGridPts)
   if (iread .ne. 0) exit 
 
   if (iopt .eq. 2) then
      !Subtract f (Coriolis frequency):
-    do i=1,nt
-      qq(1:ng,i)=qq(1:ng,i)-cof(1:ng)
+    do i=1,nLongGridPts
+      qq(1:nLatGridPts,i)=qq(1:nLatGridPts,i)-cof(1:nLatGridPts)
     enddo
   endif
     
    !Copy latitudes adjacent to poles (j = 1 and ng) with a pi
    !shift in longitude to simplify interpolation below:
-  do i=1,ng
-    ic=i+ng
+  do i=1,nLatGridPts
+    ic=i+nLatGridPts
     qq(0,i)=qq(1,ic)
     qq(0,ic)=qq(1,i)
-    qq(ngp1,i)=qq(ng,ic)
-    qq(ngp1,ic)=qq(ng,i)
+    qq(nLatGridPtsPlus1,i)=qq(nLatGridPts,ic)
+    qq(nLatGridPtsPlus1,ic)=qq(nLatGridPts,i)
   enddo
 
    !Do interpolation in chosen perspective:
@@ -180,7 +180,7 @@ do
          !Find longitude & latitude then bi-linearly interpolate qq:
         ri=dli*(pi+atan2(yt,xt))
         i=1+int(ri)
-        ip1=1+mod(i,nt)
+        ip1=1+mod(i,nLongGridPts)
         bb=float(i)-ri
         aa=one-bb
 

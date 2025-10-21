@@ -7,7 +7,7 @@ program genfg
 use constants
 implicit none
 
-integer,parameter:: mgv=16,ntv=mgv*nt, ngv=mgv*ng
+integer,parameter:: mgv=16,ntv=mgv*nLongGridPts, ngv=mgv*nLatGridPts
  !mgv:       Ultra-fine conversion grid ratio
  !ntv,ngv:   number of grid boxes in the x & y directions
 
@@ -17,8 +17,8 @@ integer:: ixf,ix0,ix1,ix2,ix1u,ix2u,ixu
 integer:: iyf,iy0,iy1,iy2,iy1u,iy2u,iyu
 integer:: nxu,nyu,ixo,iyo,inc,iopt
 
-double precision:: qq0(0:ng,nt),qd(ng,nt)
-double precision:: xtd(nt),utd(nt),etd(nt),htd(nt),ptd(nt),xndeno
+double precision:: qq0(0:nLatGridPts,nLongGridPts),qd(nLatGridPts,nLongGridPts)
+double precision:: xtd(nLongGridPts),utd(nLongGridPts),etd(nLongGridPts),htd(nLongGridPts),ptd(nLongGridPts),xndeno
 double precision:: rhs(ngv),etdu(ngv),htdu(ngv)
 
 double precision:: w00(mgv,mgv),w10(mgv,mgv)
@@ -31,7 +31,7 @@ double precision:: xend,fac,pxu,pxc,pyu,pyc
 double precision:: t,qsp,qdsp,qdnp,qinc
 
 double precision:: qa(0:ngv+1,ntv+1)
-real:: tin,qin(ng,nt),rqa(ngv,ntv),rrqa(ngv/2,ntv/2)
+real:: tin,qin(nLatGridPts,nLongGridPts),rqa(ngv,ntv),rrqa(ngv/2,ntv/2)
 character(len=3):: pind
 
 !---------------------------------------------------------------
@@ -55,7 +55,7 @@ enddo
 do ix=1,ntv
   ixx=(ix-1)/mgv
   ix0w(ix)=1+ixx
-  ix1w(ix)=2+ixx-nt*(ix0w(ix)/nt)
+  ix1w(ix)=2+ixx-nLongGridPts*(ix0w(ix)/nLongGridPts)
   ixfw(ix)=ix-mgv*ixx
 enddo
 
@@ -80,18 +80,18 @@ htd(1)=one
 ptd(1)=-f16*htd(1)
 etd(1)=ptd(1)
 
-do j=2,nt
+do j=2,nLongGridPts
   htd(j)=one/(one+f16*etd(j-1))
   ptd(j)=-f16*ptd(j-1)*htd(j)
   etd(j)=-f16*htd(j)
 enddo
 
-ptd(ntm1)=etd(ntm1)+ptd(ntm1)
-do j=ntm2,1,-1
+ptd(nLongGridPtsMin1)=etd(nLongGridPtsMin1)+ptd(nLongGridPtsMin1)
+do j=nLongGridPtsMin2,1,-1
   ptd(j)=etd(j)*ptd(j+1)+ptd(j)
 enddo
 
-xndeno=one/(one-etd(nt)*ptd(1)-ptd(nt))
+xndeno=one/(one-etd(nLongGridPts)*ptd(1)-ptd(nLongGridPts))
 
 !------------------------------------------------------------
 write(*,*)
@@ -108,8 +108,8 @@ open(40,file='evolution/qq.r4',form='unformatted',access='direct', &
 read(40,rec=loop) tin,qin
 close(40)
  !qin is single precision; convert to double:
-do i=1,nt
-  do j=1,ng
+do i=1,nLongGridPts
+  do j=1,nLatGridPts
     qq0(j,i)=dble(qin(j,i))
   enddo
 enddo
@@ -117,35 +117,35 @@ enddo
 qsp=zero
  !Form great circles to carry out half grid -> full grid
  !interpolation of qq0:
-do ix=1,ng
-  ic=ix+ng
+do ix=1,nLatGridPts
+  ic=ix+nLatGridPts
 
    !Source vector:
   utd(1)=f23*(qq0(1,ix)+qq0(1,ic))
-  do j=2,ng
+  do j=2,nLatGridPts
     utd(j)=f23*(qq0(j,ix)+qq0(j-1,ix))
   enddo
-  utd(ngp1)=f23*(qq0(ng,ic)+qq0(ng,ix))
-  do j=ngp2,nt
-    utd(j)=f23*(qq0(ntp2-j,ic)+qq0(ntp1-j,ic))
+  utd(nLatGridPtsPlus1)=f23*(qq0(nLatGridPts,ic)+qq0(nLatGridPts,ix))
+  do j=numLatGridPtsPlus2,nLongGridPts
+    utd(j)=f23*(qq0(nLongGridPtsPlusTwo-j,ic)+qq0(nLongGridPtsPlusOne-j,ic))
   enddo
 
    !Interpolate qq0 by 4th-order method (periodic):
   xtd(1)=utd(1)*htd(1)
-  do j=2,nt
+  do j=2,nLongGridPts
     xtd(j)=(utd(j)-f16*xtd(j-1))*htd(j)
   enddo
-  do j=ntm2,1,-1
+  do j=nLongGridPtsMin2,1,-1
     xtd(j)=etd(j)*xtd(j+1)+xtd(j)
   enddo
-  xtd(nt)=(etd(nt)*xtd(1)+xtd(nt))*xndeno
+  xtd(nLongGridPts)=(etd(nLongGridPts)*xtd(1)+xtd(nLongGridPts))*xndeno
   
    !Increment south pole PV value (averaged below):
-  qsp=qsp+ptd(1)*xtd(nt)+xtd(1)
+  qsp=qsp+ptd(1)*xtd(nLongGridPts)+xtd(1)
 enddo
 
  !Obtain average qsp:
-qsp=qsp/dble(ng)
+qsp=qsp/dble(nLatGridPts)
 
 !----------------------------------------------------------------
  !Read residual PV (qd) and convert to full grid as qq0:
@@ -157,41 +157,41 @@ close(40)
 
  !Form great circles to carry out half grid -> full grid
  !interpolation of qd:
-do ix=1,ng
-  ic=ix+ng
+do ix=1,nLatGridPts
+  ic=ix+nLatGridPts
 
    !Source vector:
   utd(1)=f23*(qd(1,ix)+qd(1,ic))
-  do j=2,ng
+  do j=2,nLatGridPts
     utd(j)=f23*(qd(j,ix)+qd(j-1,ix))
   enddo
-  utd(ngp1)=f23*(qd(ng,ic)+qd(ng,ix))
-  do j=ngp2,nt
-    utd(j)=f23*(qd(ntp2-j,ic)+qd(ntp1-j,ic))
+  utd(nLatGridPtsPlus1)=f23*(qd(nLatGridPts,ic)+qd(nLatGridPts,ix))
+  do j=numLatGridPtsPlus2,nLongGridPts
+    utd(j)=f23*(qd(nLongGridPtsPlusTwo-j,ic)+qd(nLongGridPtsPlusOne-j,ic))
   enddo
 
    !Interpolate qd by 4th-order method (periodic):
   xtd(1)=utd(1)*htd(1)
-  do j=2,nt
+  do j=2,nLongGridPts
     xtd(j)=(utd(j)-f16*xtd(j-1))*htd(j)
   enddo
-  do j=ntm2,1,-1
+  do j=nLongGridPtsMin2,1,-1
     xtd(j)=etd(j)*xtd(j+1)+xtd(j)
   enddo
-  xtd(nt)=(etd(nt)*xtd(1)+xtd(nt))*xndeno
-  xend=xtd(nt)
+  xtd(nLongGridPts)=(etd(nLongGridPts)*xtd(1)+xtd(nLongGridPts))*xndeno
+  xend=xtd(nLongGridPts)
 
-  do j=1,ntm1
+  do j=1,nLongGridPtsMin1
     xtd(j)=ptd(j)*xend+xtd(j)
   enddo
 
    !Copy back into full grid array (qq0):
-  do j=0,ng
+  do j=0,nLatGridPts
     qq0(j,ix)=xtd(j+1)
   enddo
   qq0(0,ic)=xtd(1)
-  do j=1,ng
-    qq0(j,ic)=xtd(ntp1-j)
+  do j=1,nLatGridPts
+    qq0(j,ic)=xtd(nLongGridPtsPlusOne-j)
   enddo
 
 enddo
@@ -200,15 +200,15 @@ enddo
  !Obtain unique polar values of qd for use below:
 qdsp=zero
 qdnp=zero
-do ix=1,nt
+do ix=1,nLongGridPts
   qdsp=qdsp+qq0(0 ,ix)
-  qdnp=qdnp+qq0(ng,ix)
+  qdnp=qdnp+qq0(nLatGridPts,ix)
 enddo
-qdsp=qdsp/dble(nt)
-qdnp=qdnp/dble(nt)
-do ix=1,nt
+qdsp=qdsp/dble(nLongGridPts)
+qdnp=qdnp/dble(nLongGridPts)
+do ix=1,nLongGridPts
   qq0(0 ,ix)=qdsp
-  qq0(ng,ix)=qdnp
+  qq0(nLatGridPts,ix)=qdnp
 enddo
 
 !----------------------------------------------------------------
@@ -302,7 +302,7 @@ else if (iopt .eq. 2) then
   enddo
   write(44) real(t),rrqa(1:nyu,1:nxu)
 else
-  write(*,'(a,i5,a)') ' There are ',nt,' longitudes.'
+  write(*,'(a,i5,a)') ' There are ',nLongGridPts,' longitudes.'
   write(*,*) ' Range of longitude grid points (i1,i2) on original grid?'
   write(*,*) ' (Periodic wrapping is allowed => i2 > i1)'
   read(*,*) ix1,ix2
@@ -310,7 +310,7 @@ else
   ix2u=ix2*mgv
    !Allow periodic wrapping:
   nxu=mod(ix2u-ix1u+ntv,ntv)+1
-  write(*,'(a,i5,a)') ' There are ',ng,' latitudes.'
+  write(*,'(a,i5,a)') ' There are ',nLatGridPts,' latitudes.'
   write(*,*) ' Range of latitude grid points (j1,j2) on original grid?'
   read(*,*) iy1,iy2
   iy1u=(iy1-1)*mgv+1

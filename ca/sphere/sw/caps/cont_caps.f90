@@ -75,8 +75,8 @@ subroutine initialise
 implicit none
 
 ! Local variables:
-double precision:: qt(ng,nt),td,tf
-real:: qqr4(ng,nt),tr4
+double precision:: qt(nLatGridPts,nLongGridPts),td,tf
+real:: qqr4(nLatGridPts,nLongGridPts),tr4
 integer:: irec,m,i,j
 character(len=3):: pind
 
@@ -99,7 +99,7 @@ write(*,'(a,f12.5)') ' Re-starting from t = ',t
 write(*,*)
 
  !Read contours at this time:
-irec=nint(t/tcsave)+1
+irec=nint(t/tContSave)+1
 write(pind(1:3),'(i3.3)') irec
 
 open(81,file='contours/qqindex'//pind,form='unformatted',status='old')
@@ -172,11 +172,11 @@ else
   td=zero
   do
     read(51,*) td
-    if (tf .gt. tf-tgsave) exit 
+    if (tf .gt. tf-gridSaveTRate) exit 
     read(52,*) td
     read(53,*) td
     read(54,*) td
-    do m=1,ng
+    do m=1,nLatGridPts
       read(51,*)
       read(52,*)
       read(53,*)
@@ -198,50 +198,50 @@ open(34,file='evolution/hh.r4',form='unformatted',access='direct', &
 open(35,file='evolution/zz.r4',form='unformatted',access='direct', &
                              status='old',recl=nbytes)
  !Read current state:
-irec=nint(t/tgsave)+1
+irec=nint(t/gridSaveTRate)+1
 read(31,rec=irec) tr4,qqr4
-qq=dble(qqr4)
+qAnomFull=dble(qqr4)
 read(32,rec=irec) tr4,qqr4
-ds=dble(qqr4)
+velDiv=dble(qqr4)
 read(33,rec=irec) tr4,qqr4
-gs=dble(qqr4)
+accelDiv=dble(qqr4)
 read(34,rec=irec) tr4,qqr4
-hh=dble(qqr4)
+heightAnom=dble(qqr4)
 read(35,rec=irec) tr4,qqr4
-zz=dble(qqr4)
+relVort=dble(qqr4)
 
-if (forcing) then
+if (isTopoForcing) then
    !Topographic forcing:
   open(36,file='evolution/bb.r4',form='unformatted',access='direct', &
                                status='old',recl=nbytes)
    !Read current state:
   read(36,rec=irec) tr4,qqr4
-  bb=dble(qqr4)
+  bTopog=dble(qqr4)
 endif
 
  !Define quantities needed by evolve after leaving this subroutine:
-qs=qq
+qSpec=qAnomFull
  !Convert ds to semi-spectral space:
-call forfft(ng,nt,ds,trig,factors) 
+call forfft(nLatGridPts,nLongGridPts,velDiv,trig,factors) 
  !Convert gs to semi-spectral space:
-call forfft(ng,nt,gs,trig,factors) 
+call forfft(nLatGridPts,nLongGridPts,accelDiv,trig,factors) 
 
 !Define PV anomaly (qt) needed for inversion below:
-do i=1,nt
-  qt(:,i)=qq(:,i)-cof
+do i=1,nLongGridPts
+  qt(:,i)=qAnomFull(:,i)-corFreq
 enddo
 
  !Convert qt to semi-spectral space:
-call forfft(ng,nt,qt,trig,factors) 
+call forfft(nLatGridPts,nLongGridPts,qt,trig,factors) 
 
-call main_invert(qt,ds,gs,hh,uu,vv,qq,zz)
+call main_invert(qt,velDiv,accelDiv,heightAnom,uVel,vVel,qAnomFull,relVort)
  !Note: qt, ds & gs are in semi-spectral space while 
  !      hh, uu, vv, qq and zz are in physical space.
 
 !----------------------------------------------------------------------
  !Define number of time steps between grid and contour saves:
-ngsave=nint(tgsave/dt)
-ncsave=nint(tcsave/dt)
+nDTGridSave=nint(gridSaveTRate/dt)
+contSaveStepRate=nint(tContSave/dt)
  !*** WARNING: tgsave and tcsave should be an integer multiple of dt
 
 return
@@ -295,7 +295,7 @@ close(32)
 close(33)
 close(34)
 close(35)
-if (forcing) close(36)
+if (isTopoForcing) close(36)
 close(51)
 close(52)
 close(53)

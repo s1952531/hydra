@@ -10,7 +10,7 @@ use spectral
  !Declarations:
 implicit none
 
-double precision:: qq(ng,nt)
+double precision:: qq(nLatGridPts,nLongGridPts)
 integer:: i
 
 !------------------------------------------------------------
@@ -18,7 +18,7 @@ integer:: i
 call init_spectral
 
  !Define PV for a rest state:
-do i=1,nt
+do i=1,nLongGridPts
   qq(:,i)=fpole*slat
 enddo
 
@@ -29,7 +29,7 @@ write(20,rec=1) zero,qq
 close(20)
 
  ! If topographic forcing is present, generate and save initial topography:
-if (forcing) then
+if (isTopoForcing) then
   call generate_forcing(qq,brms)
   open(11,file='bb_init.r8',form='unformatted', &
         access='direct',status='replace',recl=2*nbytes)

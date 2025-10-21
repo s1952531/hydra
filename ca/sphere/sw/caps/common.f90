@@ -13,21 +13,21 @@ use force
 !-----------------------------------------------------------------------
 
  !PV anomaly (full and residual for recontouring) and relative vorticity:
-double precision:: qq(ng,nt),qr(ng,nt),zz(ng,nt)
+double precision:: qAnomFull(nLatGridPts,nLongGridPts),qAnomResid(nLatGridPts,nLongGridPts),relVort(nLatGridPts,nLongGridPts)
 
  !Velocity field and dimensionless height anomaly in physical space:
-double precision:: uu(ng,nt),vv(ng,nt),hh(ng,nt)
+double precision:: uVel(nLatGridPts,nLongGridPts),vVel(nLatGridPts,nLongGridPts),heightAnom(nLatGridPts,nLongGridPts)
 
  !Spectral prognostic fields:
-double precision:: qs(ng,nt),ds(ng,nt),gs(ng,nt)
+double precision:: qSpec(nLatGridPts,nLongGridPts),velDiv(nLatGridPts,nLongGridPts),accelDiv(nLatGridPts,nLongGridPts)
 
  !Bottom topography at current time (if used):
-double precision:: bb(ng,nt)
+double precision:: bTopog(nLatGridPts,nLongGridPts)
 
  !Time and twist variable:
 double precision:: t,twist
 
  !Number of time steps between grid and contour saves:
-double precision:: ngsave,ncsave
+double precision:: nDTGridSave,nDTContSave
 
 end module

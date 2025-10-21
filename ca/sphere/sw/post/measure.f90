@@ -7,14 +7,14 @@ program measure
 use constants
 implicit none
 
-real:: qq(ng,nt),dar(ng),area(0:ng)
+real:: qq(nLatGridPts,nLongGridPts),dar(nLatGridPts),area(0:nLatGridPts)
 real:: t,qqmin,qqmax,db,dbi
 integer:: i,j,loop,iread,k
 
 !---------------------------------------------------------------
 !Define cell-centred area / 2*pi of each grid cell:
 db=dl/twopi
-do j=1,ng
+do j=1,nLatGridPts
   dar(j)=db*(sin(float(j)*dl-hpi)-sin(float(j-1)*dl-hpi))
 enddo
 
@@ -40,25 +40,25 @@ do
    !Work out min/max values of field and divide into bins:
   qqmax=maxval(qq)
   qqmin=minval(qq)
-  db=(qqmax-qqmin)/float(ng)
+  db=(qqmax-qqmin)/float(nLatGridPts)
   dbi=1./db
 
    !Initialise area of each bin:
   area=0.
 
    !Accumulate areas:
-  do i=1,nt
-    do j=1,ng
-      k=min(ng,int((qq(j,i)-qqmin)*dbi)+1)
+  do i=1,nLongGridPts
+    do j=1,nLatGridPts
+      k=min(nLatGridPts,int((qq(j,i)-qqmin)*dbi)+1)
       area(k)=area(k)+dar(j)
     enddo
   enddo
 
    !Output as equivalent latitude:
-  write(41,'(f13.6,1x,i5)') t,ng
+  write(41,'(f13.6,1x,i5)') t,nLatGridPts
   write(41,'(2(1x,f12.8))') qqmin,-hpi
   area(0)=-1.
-  do k=1,ng
+  do k=1,nLatGridPts
     area(k)=area(k)+area(k-1)
     write(41,'(2(1x,f12.8))') qqmin+db*float(k),asin(area(k))
   enddo

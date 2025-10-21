@@ -8,8 +8,8 @@ implicit none
 
 double precision,parameter:: frms=1.d0, frac=0.1d0
 double precision,parameter:: f1112=11.d0/12.d0
-double precision:: zuu(ng), phi(ng), clat(ng)
-double precision:: tmp(ng), pj(ng)
+double precision:: zuu(nLatGridPts), phi(nLatGridPts), clat(nLatGridPts)
+double precision:: tmp(nLatGridPts), pj(nLatGridPts)
 double precision:: tc, t, oma, um, adpj, dpj, dpjm, anj, rsum, rsumi
 integer:: iread, j, nj, jm, na
 
@@ -26,13 +26,13 @@ write(*,*)
 anj=0.d0
 na=0
 read(51,*) t
-do j=1,ng
+do j=1,nLatGridPts
   read(51,*) zuu(j),phi(j)
 enddo
 rewind(51)
 ! Needed only once to define um below:
 clat=cos(phi)
-rsum=f1112*(clat(1)+clat(ng))+sum(clat(2:ng-1))
+rsum=f1112*(clat(1)+clat(nLatGridPts))+sum(clat(2:nLatGridPts-1))
 rsumi=1.d0/rsum
   
 ! Read data and process:
@@ -41,22 +41,22 @@ do
   read(51,*,iostat=iread) t
   if (iread .ne. 0) exit 
   ! Read zonal-average zonal velocity, zuu:
-  do j=1,ng
+  do j=1,nLatGridPts
     read(51,*) zuu(j)
   enddo
 
   ! Define minimum u_bar to be a jet:
-  oma=(f1112*(zuu(1)+zuu(ng))+sum(zuu(2:ng-1)))*rsumi
+  oma=(f1112*(zuu(1)+zuu(nLatGridPts))+sum(zuu(2:nLatGridPts-1)))*rsumi
   ! oma above is the mean angular velocity
   zuu=zuu-oma*clat
   ! We subtract oma*cos(phi) above to define residual zuu
   tmp=clat*zuu**2
   ! Compute rms value of zuu and multiply be frms (see parameters above):
-  um=frms*sqrt((f1112*(tmp(1)+tmp(ng))+sum(tmp(2:ng-1)))*rsumi)+1.d-8
+  um=frms*sqrt((f1112*(tmp(1)+tmp(nLatGridPts))+sum(tmp(2:nLatGridPts-1)))*rsumi)+1.d-8
 
   ! Count jets:
   nj=0
-  do j=2,ng-1
+  do j=2,nLatGridPts-1
     if ((zuu(j)-zuu(j-1) > 0) .and. (zuu(j)-zuu(j+1) > 0)) then
       ! zuu(j) is a local maximum
       if (zuu(j) > um) then
