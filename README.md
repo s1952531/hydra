@@ -13,7 +13,7 @@ The following steps should help to install and run this code library on practica
 
 1) Clone the hydra repository into your home directory, e.g. via
 
-   ```git clone git@github.com:HennesHajduk/hydra.git```
+   ```git clone git@github.com:daviddritschel/hydra.git```
 
 2) Use of csh-shells is recommended for working with hydra. To do so, add ```~/hydra/scripts``` as well as the current directory to your search paths. In the file ```~/.cshrc```, this can be done as follows:
 

@@ -51,6 +51,9 @@ double precision:: fsi1(ng,nt),fsi2(ng,nt)
 double precision:: tlat(ng),slat(ng),clat(ng),clati(ng)
 double precision:: cof(ng),bet(ng),fsq(ng),dfb(ng)
 
+! Weights for evolving the topographic forcing (if used):
+double precision:: wold,wnew
+
 contains
 
 !=======================================================================
@@ -181,6 +184,10 @@ if (forcing) then
 
    !Initialise forcing module (and spherical module):
   call init_forcing(norm)
+
+   !Weights needed to have time-correlated forcing:
+  wold=one-dt/tb
+  wnew=sqrt(one-wold**2)
 
 endif
 
