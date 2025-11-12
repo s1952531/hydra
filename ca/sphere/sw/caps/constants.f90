@@ -81,7 +81,7 @@ logical,parameter:: eqbarot=(Rocp .lt. 0.99999d0)
  !Rocp = R/c_p =  1  for traditional SW case;
  !Rocp = R/c_p = 2/7 typically for the equivalent barotropic case
 
-logical,parameter:: isTopoForcing=(tb .gt. zero)
+logical,parameter:: isTopoForcing=(tb .ge. zero)
 logical,parameter:: thermal=(rth .gt. zero)
 logical,parameter:: friction=(rek .gt. zero)
 

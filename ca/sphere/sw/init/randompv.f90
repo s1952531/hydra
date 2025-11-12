@@ -12,7 +12,7 @@ use force
  !Declarations:
 implicit none
 
-double precision:: qq(ng,nt),qp(ng)
+double precision:: qq(nLatGridPts,nLongGridPts),qp(nLatGridPts)
 double precision:: norm(nbeg:nend),kbi,wrat
 integer:: order,i,j
 
@@ -47,11 +47,11 @@ call init_forcing(norm)
 call generate_forcing(qq,brms)
 
 !Add resting-state PV, 2*Omega*sin(latitude):
-do j=1,ng
+do j=1,nLatGridPts
   qp(j)=fpole*sin((dble(j)-f12)*dl-hpi)
 enddo
 
-do i=1,nt
+do i=1,nLongGridPts
    qq(:,i)=qq(:,i)+qp
 enddo
 

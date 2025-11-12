@@ -571,7 +571,7 @@ do i=1,nLongGridPts
 enddo
 
  !Define total dimensionless height:
-htot=one+hh
+htot=one+hh !Recall qr = (zz-f)/(1+hh)
 
 !-------------------------------------------------------
  !Iteratively solve for hh, uu & vv:
@@ -580,7 +580,7 @@ htot=one+hh
 hnorm=f12
 do while (hnorm .gt. tolh)
    !Correct average PV by enforcing zero average vorticity:
-  wka=qq*htot
+  wka=qq*htot !wka is zz-f
   qq=qq-average(wka)
 
    !Compute relative vorticity (now guaranteed to have zero average):

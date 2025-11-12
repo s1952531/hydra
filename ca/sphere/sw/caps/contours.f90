@@ -17,11 +17,11 @@ integer:: next(0:npm),n,npt
 
  !Contour -> Grid conversion arrays:
 double precision:: clonf(nLongFGridPts),slonf(nLongFGridPts)
-double precision:: dlf,dlfi
+double precision:: dLongF,dLongFInv
 
  !Contour -> Ultra-fine Grid arrays:
-double precision:: clonu(nLongUFGridPts),slonu(nLongUFGridPts)
-double precision:: dlu,dlui
+double precision:: cosLongUF(nLongUFGridPts),sinLongUF(nLongUFGridPts)
+double precision:: dLongUf,dLongUFInv
 
  !Weight arrays for grid to ultra-fine grid interpolation:
 double precision:: w00(mgu,mgu),w10(mgu,mgu)
@@ -95,20 +95,23 @@ qoff=dq*dble(nlevm)
 !       contour interval, dq.  The multiple should exceed 
 !       the maximum expected number of contour levels.
 
+! centered contour levels from -qoff + dq/2  to  qoff - dq/2
 do lev=1,2*nlevm
   qlev(lev)=(dble(lev)-f12)*dq-qoff
 enddo
 
  !Constants used in pvcgc:
-dlu =twopi/dble(nLongUFGridPts)
-dlui=dble(nLongUFGridPts)/(twopi+small)
+dLongUf =twopi/dble(nLongUFGridPts) !this is equal to glxu
+dLongUFInv=dble(nLongUFGridPts)/(twopi+small)
 
-do i=1,nLongUFGridPts
-  rlonu=dlu*dble(i-1)-pi
-  clonu(i)=cos(rlonu)
-  slonu(i)=sin(rlonu)
+do i=1,nLongUFGridPts !this pre-computes cos and sin of longitudes
+  rlonu=dLongUf*dble(i-1)-pi !centered longitudes at -pi to pi
+  cosLongUF(i)=cos(rlonu) 
+  sinLongUF(i)=sin(rlonu)
 enddo
 
+ !Recall: ! -pi  <= x <=  pi (longitude); -pi/2 <= y <= pi/2 (latitude)
+ !So the coordinates below are in these ranges in steps of glxu, glyu
  !Coordinates of grid lines (longitudes and latitudes):
 do ix=1,nLongUFGridPts+1
   xgu(ix)=glxu*dble(ix-1)-pi
@@ -118,23 +121,24 @@ do iy=0,nLatUFGridPts
 enddo
 
  !Grid box reference indices:
-ngulong=nLatUFGridPts
+ !column 0 accessed for inc = 0: qa >= qtmp=qlev(lev) i.e. grid point >= contour level
+ !column 1 accessed for inc = 1: qa < qtmp=qlev(lev)  i.e. grid point < contour level
 do ix=1,nLongUFGridPts
-  ibx(ix,1)=ngulong*(ix-1)
+  ibx(ix,1)=nLatUFGridPts*(ix-1)
 enddo
 do ix=2,nLongUFGridPts
   ibx(ix,0)=ibx(ix-1,1)
 enddo
-ibx(1,0)=ibx(nLongUFGridPts,1)
+ibx(1,0)=ibx(nLongUFGridPts,1) !periodic wrap-around
 
 !-----------------------------------------------
  !Constants used in pvcgc:
-dlf =twopi/dble(nLongFGridPts)
-dlfi=dble(nLongFGridPts)/(twopi+small)
+dLongF =twopi/dble(nLongFGridPts)
+dLongFInv=dble(nLongFGridPts)/(twopi+small)
 
 do i=1,nLongFGridPts
-  rlonf=dlf*dble(i-1)-pi
-  clonf(i)=cos(rlonf)
+  rlonf=dLongF*dble(i-1)-pi !centered longitudes at -pi to pi
+  clonf(i)=cos(rlonf)       
   slonf(i)=sin(rlonf)
 enddo
 
@@ -177,6 +181,7 @@ subroutine renode(xd,yd,zd,npd,xr,yr,zr,npr)
 ! Note: a closed contour closes on itself
 
 ! If npr = 0, the contour is too small and should be removed
+!actually if theres lt 3
 
 implicit double precision(a-h,o-z)
 implicit integer(i-n)
@@ -192,9 +197,11 @@ logical:: corner(npd)
 !------------------------------------------------------------------
  !Define the node following a node:
 do i=0,npd-1
-  nextr(i)=i+1
+   (i)=i+1
 enddo
-nextr(npd)=1
+nextr(npd)=1 
+!why is there a i=0 when the final next goes to 1? 
+!doesn't look like this is used anywhere
 
  !Compute the contour increments:
 do i=1,npd
@@ -204,6 +211,7 @@ do i=1,npd
   dz(i)=zd(ia)-zd(i)
 enddo
 
+! sqrt(dx**2 + dy**2 + dz**2) is the straight-line distance between nodes
 do i=1,npd
   dsa(i)=dx(i)**2+dy(i)**2+dz(i)**2
   e(i)=sqrt(dsa(i))
@@ -211,7 +219,7 @@ enddo
 
 do ib=1,npd
   i=nextr(ib)
-  dsb(i)=dsa(ib)
+  dsb(i)=dsa(ib) !squared distance 
   a(i)=-dx(ib)
   b(i)=-dy(ib)
   c(i)=-dz(ib)
@@ -536,25 +544,51 @@ double precision:: sq(npt)
 
 !----------------------------------------------------------------
  !Initialise crossing information:
+
+!Get longitudinal grid indices of contour nodes
 do k=1,npt
-  ilm1(k)=int(dlfi*(pi+atan2(y(k),x(k))))
+  !atan2(y,x) gives longitude angle in range -pi to pi; +pi to shift to 0 to 2pi
+  !dLongFInv = nLongFGridPts/(2pi)
+  !so longitudinalAngle*dLongFInv is in range 0 to nLongFGridPts
+  !int truncates to give longitudinal grid index
+  ilm1(k)=int(dLongFInv*(pi+atan2(y(k),x(k)))) 
 enddo
 
+!get great circle normal vector c=k x ka
+!and the longitudinal fine grid distance between nodes k and ka
 do k=1,npt
   ka=next(k)
-  cx(k)=z(k)*y(ka)-y(k)*z(ka)
-  cy(k)=x(k)*z(ka)-z(k)*x(ka)
-  cz(k)=x(k)*y(ka)-y(k)*x(ka)
-  ntc(k)=ilm1(ka)-ilm1(k)
+  cx(k)=z(k)*y(ka)-y(k)*z(ka) ! Cross product x-component
+  cy(k)=x(k)*z(ka)-z(k)*x(ka) ! Cross product y-component
+  cz(k)=x(k)*y(ka)-y(k)*x(ka) ! Cross product z-component
+  ntc(k)=ilm1(ka)-ilm1(k)     ! ntc is number of longitudinal fine grid indices
+                              ! crossed between node k and the next node, ka
+                              ! ntc ranges from -nLongFGridPts to +nLongFGridPts
 enddo
 
 do k=1,npt
-  sig=sign(one,cz(k))
-  sq(k)=dq*sig
+  sig=sign(one,cz(k)) !sign of cross product z-component
+                      !   positive => k to ka is east
+                      !   negative => k to ka is west
+  sq(k)=dq*sig        !signed PV jump across contour segment, I think this crosses inward
+                      !   The inside of Ck is to the left of the direction from k to ka
+
+  !adjust (wrap) ntc to be in range -nLongFGridPts/2 to +nLongFGridPts/2
+  !   note the integer division 
+  !   2*ntc(k)/nLongFGridPts is...
+  !   0 if abs(ntc(k)) < nLongFGridPts/2
+  !   +1 if ntc(k) >= nLongFGridPts/2 i.e. nLongFGridPts/2 <= ntc(k) <= nLongFGridPts
+  !   -1 if ntc(k) <= -nLongFGridPts/2 i.e. -nLongFGridPts <= ntc(k) <= -nLongFGridPts/2
   ntc(k)=ntc(k)-nLongFGridPts*((2*ntc(k))/nLongFGridPts)
-  if (sig*dble(ntc(k)) .lt. zero) ntc(k)=-ntc(k)
+
+  !make sure ntc has same sign as cz(k) after the wrapping (potential sign flip above)
+  !why not just *-1? 
+  if (sig*dble(ntc(k)) .lt. zero) ntc(k)=-ntc(k) 
+
+  !if there is an east-west direction to the contour section  
   if (abs(cz(k)) .gt. zero) then
-    cx(k)=cx(k)/cz(k)
+    !slope components of the contour segment in lon-lat space
+    cx(k)=cx(k)/cz(k)  
     cy(k)=cy(k)/cz(k)
   endif
 enddo
@@ -563,23 +597,34 @@ enddo
  !Initialise PV jump array:
 do i=1,nLongFGridPts
   do j=0,nLatFGridPts+1
-    qa(j,i)=zero
+    qa(j,i)=zero      !qa(j,i) stands for the PV at latitude j-1/2
   enddo
 enddo
 
  !Determine crossing indices:
 do k=1,npt
-  if (ntc(k) .ne. 0) then
+  if (ntc(k) .ne. 0) then !if there is a longitudinal crossing
     jump=sign(1,ntc(k))
-    ioff=nLongFGridPts+ilm1(k)+(1+jump)/2
+    ioff=nLongFGridPts+ilm1(k)+(1+jump)/2 
+    !nLongFGridPts+ilm1(k) shifts ilm1 to (0, 2nLongFGridPts)
+    !(1+jump)/2 0 if eastward, 1 if westward crossing
+
     ncr=0
-    do while (ncr .ne. ntc(k))
-      i=1+mod(ioff+ncr,nLongFGridPts)
-      rlatc=dlfi*(hpi+atan(cx(k)*clonf(i)+cy(k)*slonf(i)))
-      j=int(rlatc)+1
+    do while (ncr .ne. ntc(k)) !loop through the latitudes crossed
+
+      !get longitudinal fine grid index of crossing
+      i=1+mod(ioff+ncr,nLongFGridPts) 
+      
+      !get the latitude of crossing
+      !recall slonf = sin( dLongF*dble(i-1)-pi ) !centered longitudes at -pi to pi
+      rlatc=dLongFInv*(hpi+atan(cx(k)*clonf(i)+cy(k)*slonf(i))) 
+
+      j=int(rlatc)+1 !round up
       p=rlatc-dble(j-1)
+
       qa(j,i)=  qa(j,i)+(one-p)*sq(k)
       qa(j+1,i)=qa(j+1,i)+    p*sq(k)
+
       ncr=ncr+jump
     enddo
   endif
