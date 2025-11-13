@@ -25,8 +25,8 @@ skylake_flags = -O3 -mcmodel=medium -march=skylake-server
 f90=gfortran
 #f90=ifort
 
-#flags=$(norm_flags)
-flags=$(gprof_flags)
+flags=$(norm_flags)
+#flags=$(gprof_flags)
 
 #----------------------------------------------------------------------
  # Rules:
