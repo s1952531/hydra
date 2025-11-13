@@ -16,30 +16,30 @@ integer:: i1(nm),i2(nm),np(nm),ind(nm)
 integer:: next(0:npm),n,npt
 
  !Contour -> Grid conversion arrays:
-double precision:: clonf(nLongFGridPts),slonf(nLongFGridPts)
-double precision:: dLongF,dLongFInv
+double precision:: clonf(ntf),slonf(ntf)
+double precision:: dlf,dlfi
 
  !Contour -> Ultra-fine Grid arrays:
-double precision:: cosLongUF(nLongUFGridPts),sinLongUF(nLongUFGridPts)
-double precision:: dLongUf,dLongUFInv
+double precision:: clonu(ntu),slonu(ntu)
+double precision:: dlu,dlui
 
  !Weight arrays for grid to ultra-fine grid interpolation:
 double precision:: w00(mgu,mgu),w10(mgu,mgu)
 double precision:: w01(mgu,mgu),w11(mgu,mgu)
-integer:: ixfw(nLongUFGridPts),iyfw(nLatUFGridPts)
-integer:: ix0w(nLongUFGridPts),iy0w(nLatUFGridPts)
-integer:: ix1w(nLongUFGridPts),iy1w(nLatUFGridPts)
+integer:: ixfw(ntu),iyfw(ngu)
+integer:: ix0w(ntu),iy0w(ngu)
+integer:: ix1w(ntu),iy1w(ngu)
 
  !Grid -> Contour arrays:
-double precision:: xgu(nLongUFGridPts+1),ygu(0:nLatUFGridPts)
+double precision:: xgu(ntu+1),ygu(0:ngu)
 double precision:: qlev(2*nlevm)
-integer(kind=dbleint):: ibx(nLongUFGridPts,0:1)
+integer(kind=dbleint):: ibx(ntu,0:1)
 
  !Half-grid -> Full-grid tri-diagonal arrays:
-double precision:: etd(nLongGridPts),hTriDiag(nLongGridPts),ptd(nLongGridPts),xndeno
+double precision:: etd(nt),htd(nt),ptd(nt),xndeno
 
  !Coriolis frequency:
-double precision:: corFreq(nLatGridPts)
+double precision:: fcor(ng)
 
 !Basic parameters:
 double precision:: qoff
@@ -74,14 +74,14 @@ do ixu=1,mgu
 enddo
 
  !modulo values to access above weights:
-do ix=1,nLongUFGridPts
+do ix=1,ntu
   ixx=(ix-1)/mgu
   ix0w(ix)=1+ixx
-  ix1w(ix)=2+ixx-nLongGridPts*(ix0w(ix)/nLongGridPts)
+  ix1w(ix)=2+ixx-nt*(ix0w(ix)/nt)
   ixfw(ix)=ix-mgu*ixx
 enddo
 
-do iy=1,nLatUFGridPts-1
+do iy=1,ngu-1
   iyy=iy/mgu
   iy0w(iy)=iyy
   iy1w(iy)=1+iyy
@@ -95,56 +95,52 @@ qoff=dq*dble(nlevm)
 !       contour interval, dq.  The multiple should exceed 
 !       the maximum expected number of contour levels.
 
-! centered contour levels from -qoff + dq/2  to  qoff - dq/2
 do lev=1,2*nlevm
   qlev(lev)=(dble(lev)-f12)*dq-qoff
 enddo
 
  !Constants used in pvcgc:
-dLongUf =twopi/dble(nLongUFGridPts) !this is equal to glxu
-dLongUFInv=dble(nLongUFGridPts)/(twopi+small)
+dlu =twopi/dble(ntu)
+dlui=dble(ntu)/(twopi+small)
 
-do i=1,nLongUFGridPts !this pre-computes cos and sin of longitudes
-  rlonu=dLongUf*dble(i-1)-pi !centered longitudes at -pi to pi
-  cosLongUF(i)=cos(rlonu) 
-  sinLongUF(i)=sin(rlonu)
+do i=1,ntu
+  rlonu=dlu*dble(i-1)-pi
+  clonu(i)=cos(rlonu)
+  slonu(i)=sin(rlonu)
 enddo
 
- !Recall: ! -pi  <= x <=  pi (longitude); -pi/2 <= y <= pi/2 (latitude)
- !So the coordinates below are in these ranges in steps of glxu, glyu
  !Coordinates of grid lines (longitudes and latitudes):
-do ix=1,nLongUFGridPts+1
+do ix=1,ntu+1
   xgu(ix)=glxu*dble(ix-1)-pi
 enddo
-do iy=0,nLatUFGridPts
+do iy=0,ngu
   ygu(iy)=glyu*dble(iy)-hpi
 enddo
 
  !Grid box reference indices:
- !column 0 accessed for inc = 0: qa >= qtmp=qlev(lev) i.e. grid point >= contour level
- !column 1 accessed for inc = 1: qa < qtmp=qlev(lev)  i.e. grid point < contour level
-do ix=1,nLongUFGridPts
-  ibx(ix,1)=nLatUFGridPts*(ix-1)
+ngulong=ngu
+do ix=1,ntu
+  ibx(ix,1)=ngulong*(ix-1)
 enddo
-do ix=2,nLongUFGridPts
+do ix=2,ntu
   ibx(ix,0)=ibx(ix-1,1)
 enddo
-ibx(1,0)=ibx(nLongUFGridPts,1) !periodic wrap-around
+ibx(1,0)=ibx(ntu,1)
 
 !-----------------------------------------------
  !Constants used in pvcgc:
-dLongF =twopi/dble(nLongFGridPts)
-dLongFInv=dble(nLongFGridPts)/(twopi+small)
+dlf =twopi/dble(ntf)
+dlfi=dble(ntf)/(twopi+small)
 
-do i=1,nLongFGridPts
-  rlonf=dLongF*dble(i-1)-pi !centered longitudes at -pi to pi
-  clonf(i)=cos(rlonf)       
+do i=1,ntf
+  rlonf=dlf*dble(i-1)-pi
+  clonf(i)=cos(rlonf)
   slonf(i)=sin(rlonf)
 enddo
 
  !Coriolis frequency (f):
-do j=1,nLatGridPts
-  corFreq(j)=fpole*sin((dble(j)-f12)*dl-hpi)
+do j=1,ng
+  fcor(j)=fpole*sin((dble(j)-f12)*dl-hpi)
 enddo
 
 !----------------------------------------------------------------------
@@ -152,22 +148,22 @@ enddo
  !interpolation of qd (used in congen.f90)
 
  !Initialise periodic tridiagonal problem:
-hTriDiag(1)=one
-ptd(1)=-f16*hTriDiag(1)
+htd(1)=one
+ptd(1)=-f16*htd(1)
 etd(1)=ptd(1)
 
-do j=2,nLongGridPts
-  hTriDiag(j)=one/(one+f16*etd(j-1))
-  ptd(j)=-f16*ptd(j-1)*hTriDiag(j)
-  etd(j)=-f16*hTriDiag(j)
+do j=2,nt
+  htd(j)=one/(one+f16*etd(j-1))
+  ptd(j)=-f16*ptd(j-1)*htd(j)
+  etd(j)=-f16*htd(j)
 enddo
 
-ptd(nLongGridPtsMin1)=etd(nLongGridPtsMin1)+ptd(nLongGridPtsMin1)
-do j=nLongGridPtsMin2,1,-1
+ptd(ntm1)=etd(ntm1)+ptd(ntm1)
+do j=ntm2,1,-1
   ptd(j)=etd(j)*ptd(j+1)+ptd(j)
 enddo
 
-xndeno=one/(one-etd(nLongGridPts)*ptd(1)-ptd(nLongGridPts))
+xndeno=one/(one-etd(nt)*ptd(1)-ptd(nt))
 
 return
 end subroutine
@@ -181,7 +177,6 @@ subroutine renode(xd,yd,zd,npd,xr,yr,zr,npr)
 ! Note: a closed contour closes on itself
 
 ! If npr = 0, the contour is too small and should be removed
-!actually if theres lt 3
 
 implicit double precision(a-h,o-z)
 implicit integer(i-n)
@@ -197,11 +192,9 @@ logical:: corner(npd)
 !------------------------------------------------------------------
  !Define the node following a node:
 do i=0,npd-1
-   (i)=i+1
+  nextr(i)=i+1
 enddo
-nextr(npd)=1 
-!why is there a i=0 when the final next goes to 1? 
-!doesn't look like this is used anywhere
+nextr(npd)=1
 
  !Compute the contour increments:
 do i=1,npd
@@ -211,7 +204,6 @@ do i=1,npd
   dz(i)=zd(ia)-zd(i)
 enddo
 
-! sqrt(dx**2 + dy**2 + dz**2) is the straight-line distance between nodes
 do i=1,npd
   dsa(i)=dx(i)**2+dy(i)**2+dz(i)**2
   e(i)=sqrt(dsa(i))
@@ -219,7 +211,7 @@ enddo
 
 do ib=1,npd
   i=nextr(ib)
-  dsb(i)=dsa(ib) !squared distance 
+  dsb(i)=dsa(ib)
   a(i)=-dx(ib)
   b(i)=-dy(ib)
   c(i)=-dz(ib)
@@ -474,33 +466,33 @@ implicit double precision(a-h,o-z)
 implicit integer(i-n)
 
  !Passed arrays:
-double precision:: uu(nLatGridPts,nLongGridPts),vv(nLatGridPts,nLongGridPts)
+double precision:: uu(ng,nt),vv(ng,nt)
 double precision:: u(npt),v(npt),w(npt)
 
  !Local arrays:
-double precision:: ue(0:nLatGridPts+1,nLongGridPts),ve(0:nLatGridPts+1,nLongGridPts)
+double precision:: ue(0:ng+1,nt),ve(0:ng+1,nt)
 
  !Extend velocity adjacent to poles (j = 1 and ng) with a pi
  !shift in longitude to simplify interpolation below:
-ue(1:nLatGridPts,:)=uu(:,:)
-ve(1:nLatGridPts,:)=vv(:,:)
-do i=1,nLatGridPts
-  ic=i+nLatGridPts
+ue(1:ng,:)=uu(:,:)
+ve(1:ng,:)=vv(:,:)
+do i=1,ng
+  ic=i+ng
   ue(0,i)=-uu(1,ic)
   ve(0,i)=-vv(1,ic)
   ue(0,ic)=-uu(1,i)
   ve(0,ic)=-vv(1,i)
-  ue(nLatGridPtsPlus1,i)=-uu(nLatGridPts,ic)
-  ve(nLatGridPtsPlus1,i)=-vv(nLatGridPts,ic)
-  ue(nLatGridPtsPlus1,ic)=-uu(nLatGridPts,i)
-  ve(nLatGridPtsPlus1,ic)=-vv(nLatGridPts,i)
+  ue(ngp1,i)=-uu(ng,ic)
+  ve(ngp1,i)=-vv(ng,ic)
+  ue(ngp1,ic)=-uu(ng,i)
+  ve(ngp1,ic)=-vv(ng,i)
 enddo
 
  !Next bi-linearly velocity field at the contour nodes (x,y,z):
 do k=1,npt
   ri=dli*(pi+atan2(y(k),x(k)))
   i=1+int(ri)
-  ip1=1+mod(i,nLongGridPts)
+  ip1=1+mod(i,nt)
   bbl=dble(i)-ri
   abl=one-bbl
 
@@ -534,10 +526,10 @@ implicit double precision(a-h,o-z)
 implicit integer(i-n)
 
  !Passed arrays:
-double precision:: qc(nLatGridPts,nLongGridPts)
+double precision:: qc(ng,nt)
  !Local arrays:
-double precision:: qa(0:nLatFGridPts+1,nLongFGridPts)
-double precision:: qaend(nLatFGridPts/2)
+double precision:: qa(0:ngf+1,ntf)
+double precision:: qaend(ngf/2)
 integer:: ilm1(npt),ntc(npt)
 double precision:: cx(npt),cy(npt),cz(npt)
 double precision:: sq(npt)
@@ -546,95 +538,58 @@ double precision:: sq(npt)
 call writeCGCInputs
 !----------------------------------------------------------------
  !Initialise crossing information:
-
-!Get longitudinal grid indices of contour nodes
 do k=1,npt
-  !atan2(y,x) gives longitude angle in range -pi to pi; +pi to shift to 0 to 2pi
-  !dLongFInv = nLongFGridPts/(2pi)
-  !so longitudinalAngle*dLongFInv is in range 0 to nLongFGridPts
-  !int truncates to give longitudinal grid index
-  ilm1(k)=int(dLongFInv*(pi+atan2(y(k),x(k)))) 
+  ilm1(k)=int(dlfi*(pi+atan2(y(k),x(k))))
 enddo
 
-!get great circle normal vector c=k x ka
-!and the longitudinal fine grid distance between nodes k and ka
 do k=1,npt
   ka=next(k)
-  cx(k)=z(k)*y(ka)-y(k)*z(ka) ! Cross product x-component
-  cy(k)=x(k)*z(ka)-z(k)*x(ka) ! Cross product y-component
-  cz(k)=x(k)*y(ka)-y(k)*x(ka) ! Cross product z-component
-  ntc(k)=ilm1(ka)-ilm1(k)     ! ntc is number of longitudinal fine grid indices
-                              ! crossed between node k and the next node, ka
-                              ! ntc ranges from -nLongFGridPts to +nLongFGridPts
+  cx(k)=z(k)*y(ka)-y(k)*z(ka)
+  cy(k)=x(k)*z(ka)-z(k)*x(ka)
+  cz(k)=x(k)*y(ka)-y(k)*x(ka)
+  ntc(k)=ilm1(ka)-ilm1(k)
+enddo
 
-  !previously split here
-
-  sig=sign(one,cz(k)) !sign of cross product z-component
-                      !   positive => k to ka is east
-                      !   negative => k to ka is west
-  sq(k)=dq*sig        !signed PV jump across contour segment, I think this crosses inward
-                      !   The inside of Ck is to the left of the direction from k to ka
-
-  !adjust (wrap) ntc to be in range -nLongFGridPts/2 to +nLongFGridPts/2
-  !   note the integer division 
-  !   2*ntc(k)/nLongFGridPts is...
-  !   0 if abs(ntc(k)) < nLongFGridPts/2
-  !   +1 if ntc(k) >= nLongFGridPts/2 i.e. nLongFGridPts/2 <= ntc(k) <= nLongFGridPts
-  !   -1 if ntc(k) <= -nLongFGridPts/2 i.e. -nLongFGridPts <= ntc(k) <= -nLongFGridPts/2
-  ntc(k)=ntc(k)-nLongFGridPts*((2*ntc(k))/nLongFGridPts)
-
-  !make sure ntc has same sign as cz(k) after the wrapping (potential sign flip above)
-  !why not just *-1? 
-  if (sig*dble(ntc(k)) .lt. zero) ntc(k)=-ntc(k) 
-
-  !if there is an east-west direction to the contour section  
+do k=1,npt
+  sig=sign(one,cz(k))
+  sq(k)=dq*sig
+  ntc(k)=ntc(k)-ntf*((2*ntc(k))/ntf)
+  if (sig*dble(ntc(k)) .lt. zero) ntc(k)=-ntc(k)
   if (abs(cz(k)) .gt. zero) then
-    !slope components of the contour segment in lon-lat space
-    cx(k)=cx(k)/cz(k)  
+    cx(k)=cx(k)/cz(k)
     cy(k)=cy(k)/cz(k)
   endif
 enddo
 
 !----------------------------------------------------------------------
  !Initialise PV jump array:
-do i=1,nLongFGridPts
-  do j=0,nLatFGridPts+1
-    qa(j,i)=zero      !qa(j,i) stands for the PV at latitude j-1/2
+do i=1,ntf
+  do j=0,ngf+1
+    qa(j,i)=zero
   enddo
 enddo
 
  !Determine crossing indices:
 do k=1,npt
-  if (ntc(k) .ne. 0) then !if there is a longitudinal crossing
+  if (ntc(k) .ne. 0) then
     jump=sign(1,ntc(k))
-    ioff=nLongFGridPts+ilm1(k)+(1+jump)/2 
-    !nLongFGridPts+ilm1(k) shifts ilm1 to (0, 2nLongFGridPts)
-    !(1+jump)/2 0 if eastward, 1 if westward crossing
-
+    ioff=ntf+ilm1(k)+(1+jump)/2
     ncr=0
-    do while (ncr .ne. ntc(k)) !loop through the latitudes crossed
-
-      !get longitudinal fine grid index of crossing
-      i=1+mod(ioff+ncr,nLongFGridPts) 
-      
-      !get the latitude of crossing
-      !recall slonf = sin( dLongF*dble(i-1)-pi ) !centered longitudes at -pi to pi
-      rlatc=dLongFInv*(hpi+atan(cx(k)*clonf(i)+cy(k)*slonf(i))) 
-
-      j=int(rlatc)+1 !round up
+    do while (ncr .ne. ntc(k))
+      i=1+mod(ioff+ncr,ntf)
+      rlatc=dlfi*(hpi+atan(cx(k)*clonf(i)+cy(k)*slonf(i)))
+      j=int(rlatc)+1
       p=rlatc-dble(j-1)
-
       qa(j,i)=  qa(j,i)+(one-p)*sq(k)
       qa(j+1,i)=qa(j+1,i)+    p*sq(k)
-
       ncr=ncr+jump
     enddo
   endif
 enddo
 
  !Get PV values, at half latitudes, by sweeping through latitudes:
-do i=1,nLongFGridPts
-  do j=2,nLatFGridPts
+do i=1,ntf
+  do j=2,ngf
     qa(j,i)=qa(j,i)+qa(j-1,i)
   enddo
 enddo
@@ -644,10 +599,10 @@ enddo
 !----------------------------------------------------------------------
  !Average PV values on the fine grid to get corresponding 
  !values on the inversion grid (ng,nt):
-ngh=nLatFGridPts
-nth=nLongFGridPts
+ngh=ngf
+nth=ntf
 
-do while (ngh .gt. nLatGridPts)
+do while (ngh .gt. ng)
    !Pre-store PV adjacent to poles at complementary longitudes (+pi):
   nthh=nth/2
   nghp1=ngh+1
@@ -712,21 +667,21 @@ do while (ngh .gt. nLatGridPts)
 enddo
 
  !Finalise and take away f to define PV anomaly:
-do i=1,nLongGridPts
-  do j=1,nLatGridPts
-    qc(j,i)=qa(j,i)-corFreq(j)
+do i=1,nt
+  do j=1,ng
+    qc(j,i)=qa(j,i)-fcor(j)
   enddo
 enddo
-
 !----------------------------------------------------------------
 call writeCGCOutputs
 !----------------------------------------------------------------
 
 return
 end subroutine
+
 !========================================================================
 subroutine writeCGCInputs
-  open(100, file="cgc_inputs.dat", status='append', form='unformatted')
+  open(100, file="cgc_inputs.dat", status='unknown', position='append', action='write', access='stream', form='unformatted')
   write(100) x
   write(100) y
   write(100) z
@@ -737,7 +692,7 @@ end subroutine
 
 !========================================================================
 subroutine writeCGCOutputs
-  open(101, file="cgc_outputs.dat", status='append', form='unformatted')
+  open(101, file="cgc_outputs.dat",  status='unknown', position='append', action='write', access='stream', form='unformatted')
   write(101) x
   write(101) y
   write(101) z
@@ -763,7 +718,7 @@ implicit double precision(a-h,o-z)
 implicit integer(i-n)
 
  !Local arrays and parameters:
-integer,parameter:: ngbs=nLongGridPts*nLatGridPts+1
+integer,parameter:: ngbs=nt*ng+1
 ! nlevm: max number of distinct vorticity levels
 ! ngbs:  (+1) max number of boxes used in surgery below
 integer,parameter:: nsegm=npm
@@ -865,9 +820,9 @@ do lev=1,nlev
    !take a = 1.2, i.e. nb = 1.2*sqrt(nptq), as an approximation:
   fnbl=1.2d0*sqrt(fnq*pi)
   fnbz=fnbl/pi
-  nbl=max(min(nint(fnbl),nLongGridPts),1)
+  nbl=max(min(nint(fnbl),nt),1)
    !nbl: number of boxes in longitude (lambda); nbl <= nt.
-  nbz=max(min(nint(fnbz),nLatGridPts),1)
+  nbz=max(min(nint(fnbz),ng),1)
    !nbz: number of boxes in sine(latitude) (z); nbz <= ng.
   nblm1=nbl-1
   nbzp1=nbz+1
