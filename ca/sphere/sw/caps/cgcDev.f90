@@ -1,14 +1,51 @@
 program cgcDev
-    use constants   
     implicit none
+
+    !constants for the default test case
+    !twopi, dlfi, pi, dq, ngf, ntf, hpi, clonf, slonf, f12, f14
+    double precision,parameter:: one=1.d0, two=2.d0, four=4.d0
+    double precision,parameter:: pi=3.141592653589793238462643383279502884197169399375105820974944592307816d0
+    double precision,parameter:: hpi=pi/two, twopi=two*pi
+    double precision,parameter:: f12=one/two, f14=one/four
+    double precision,parameter:: small=1.d-12
+    double precision,parameter:: fpole=two*6.2831853071 !set in flow-setup as fpole=twopi usin shorter pi and 10 dps (see line 191)
+    integer,parameter:: ncont=80 !default as 80 in line 430 of flow-setup
+    double precision,parameter:: dq=two*fpole/dble(ncont)
+    integer,parameter:: ng=128, nt=2*ng !ng set in line 105 of flow-setup
+    integer,parameter:: mgf=4, ngf=ng*mgf, ntf=nt*mgf
+    double precision:: clonf(ntf),slonf(ntf)
+    integer:: i
+    double precision:: rlonf
+    double precision:: dlf,dlfi
+    integer,parameter:: ngridp=ng*nt
+    integer,parameter:: npm=200*ngridp
+    !end of vars/constants outside of contours
+
+    !defined in contours
     double precision:: x(npm),y(npm),z(npm)
-    integer:: next(0:npm),npt
-    double precision:: qc(ng,nt)
+    integer:: next(0:npm),npt, callCount
+    double precision:: qc(ng,nt), qcDiffs(23810) !there are 23810 calls for the default test case
 
+    dlf =twopi/dble(ntf)
 
-    call readInput
-    call con2grid(qc)
-    call compare_qcs
+    do i=1,ntf
+        rlonf=dlf*dble(i-1)-pi
+        clonf(i)=cos(rlonf)
+        slonf(i)=sin(rlonf)
+    enddo
+
+    dlfi=dble(ntf)/(twopi+small)
+
+    !!!!!!!!
+
+    do callCount = 1, 23810
+        call readInput
+        call con2grid(qc)
+        call compare_qcs
+    end do
+
+    !print the max of the qcDiffs
+    print *, 'Max difference in qc: ', maxval(qcDiffs)
 
     contains
 
@@ -47,9 +84,6 @@ program cgcDev
         double precision:: cx(npt),cy(npt),cz(npt)
         double precision:: sq(npt)
 
-        !----------------------------------------------------------------
-        call writeCGCInputs
-        !----------------------------------------------------------------
         !Initialise crossing information:
         do k=1,npt
         ilm1(k)=int(dlfi*(pi+atan2(y(k),x(k))))
@@ -198,7 +232,7 @@ program cgcDev
         open(102, file="cgc_qc_reference.dat", status='old', action='read', access='stream', form='unformatted')
         read(102) qc_file
         close(102)
-        
+
         max_diff = 0.0d0
         do j=1,nt
             do i=1,ng
@@ -207,7 +241,9 @@ program cgcDev
                     max_diff = abs(qc(i,j) - qc_file(i,j))
             enddo
         enddo
-        print *, "Maximum difference between computed qc and reference qc: ", max_diff
+
+        qcDiffs(callCount) = max_diff
+
         return
     end subroutine
 
