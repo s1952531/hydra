@@ -692,6 +692,8 @@ end subroutine
 
 !========================================================================
 subroutine writeCGCOutputs(qc)
+   !Passed arrays:
+  double precision:: qc(ng,nt)
   open(101, file="cgc_outputs.dat",  status='unknown', position='append', action='write', access='stream', form='unformatted')
   write(101) qc
   close(101)
