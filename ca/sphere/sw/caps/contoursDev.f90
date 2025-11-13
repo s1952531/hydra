@@ -673,7 +673,7 @@ do i=1,nt
   enddo
 enddo
 !----------------------------------------------------------------
-call writeCGCOutputs
+call writeCGCOutputs(qc)
 !----------------------------------------------------------------
 
 return
@@ -691,7 +691,7 @@ subroutine writeCGCInputs
 end subroutine
 
 !========================================================================
-subroutine writeCGCOutputs
+subroutine writeCGCOutputs(qc)
   open(101, file="cgc_outputs.dat",  status='unknown', position='append', action='write', access='stream', form='unformatted')
   write(101) qc
   close(101)
