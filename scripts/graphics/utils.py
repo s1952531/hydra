@@ -4,6 +4,7 @@ import os
 homedir=os.getenv('HOME')
 rootdir=os.path.join(homedir,'hydra','scripts')
 graphicsdir=os.path.join(rootdir,'graphics')
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.colors as clrs
 
@@ -17,7 +18,8 @@ def get_colourmap():
         ele = (float(a),float(b),float(c))
         cmap_list.append(ele)
     stamap = clrs.LinearSegmentedColormap.from_list('amap',cmap_list,N=n)
-    plt.register_cmap(cmap=stamap)
+    #plt.register_cmap(cmap=stamap)
+    mpl.colormaps.get_cmap(stamap)
 
     cmap_file = open(os.path.join(graphicsdir,'wbgyr'),'r')
     cmap_list = []    
@@ -27,7 +29,8 @@ def get_colourmap():
         ele = (float(a),float(b),float(c))
         cmap_list.append(ele)
     wbgyr = clrs.LinearSegmentedColormap.from_list('wbgyr',cmap_list,N=n)
-    plt.register_cmap(cmap=wbgyr)
+    #plt.register_cmap(cmap=wbgyr)
+    mpl.colormaps.get_cmap(wbgyr)
     return {'stamap':stamap,'wbgyr':wbgyr,'jet':plt.cm.jet,'seismic':plt.cm.seismic,'rjet':plt.cm.jet_r,
             'rseismic':plt.cm.seismic_r,'autumn':plt.cm.autumn,'winter':plt.cm.winter,'spring':plt.cm.spring,
             'summer':plt.cm.summer,'hot':plt.cm.hot,'bone':plt.cm.bone,'rbone':plt.cm.bone_r,'cool':plt.cm.cool,

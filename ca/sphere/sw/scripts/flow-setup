@@ -84,7 +84,7 @@ echo ' on                                  ' $host >> job_info
 
 #==========================================================================
 # Get the data generation routine to be used:
-set dataopt="5"
+set dataopt="1"
 echo
 echo ' Choose one of the following flow initialisation methods:'
 echo '    (1) an initially random PV anomaly field,'
@@ -101,11 +101,11 @@ if ($dataopt == "1") then
    set datagen = "randompv"
    set forcing = "n"
    set damping = "n"
-   set kd = "12"
-   set ng = "256"
-   set t_gsave = "2.0"
-   set t_csave = "20.0"
-   set t_sim = "200.0"
+   set kd = "8"
+   set ng = "128"
+   set t_gsave = "1.0"
+   set t_csave = "10.0"
+   set t_sim = "100.0"
 
 else if ($dataopt == "2") then 
    set datagen = "rossby"
@@ -337,7 +337,7 @@ if ($forcing == "y") then
 
 else
    set brms = "0.0" 
-   set tb = "1.0"
+   set tb = "-1.0" #Ensures no forcing
    set nbeg = "0"
    set nend = "0"
 endif
@@ -355,7 +355,7 @@ if ($dataopt == "1") then
    if ($var != "") set iopt=$var
    echo
 
-   set kb = 32
+   set kb = 8
    echo -n ' Central wavenumber, k_b (integer, default' $kb')? '
    set var=$<
    if ($var != "") set kb=$var
@@ -384,7 +384,7 @@ if ($dataopt == "1") then
       echo ' S(n) = a*exp(-a) where a = (n/kb)^3 and kb = ' $kb >> job_info
    endif
 
-   set bopt=2
+   set bopt=3
    echo
    echo ' Choose from one of the following PV-based Rossby numbers (rms):'
    echo '    (1) Ro = 0.25'
@@ -405,7 +405,7 @@ if ($dataopt == "1") then
       set brms=$<
    endif
 
-   set tb = "1.0"
+   set tb = "-1.0" #Ensures no forcing
 endif
 
 #==========================================================================

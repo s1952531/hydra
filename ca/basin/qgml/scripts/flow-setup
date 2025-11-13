@@ -156,7 +156,7 @@ echo ' Width of the domain in y, L_y:      ' $elly >> job_info
 #==========================================================================
 # Choose horizontal resolution and number of PV levels:
 
-set nx = "16"      # Default inversion grid resolution in x (east - west)
+set nx = "256"      # Default inversion grid resolution in x (east - west)
 echo
 echo -n ' Grid resolution in x (default' $nx')? '
 set var=$<
@@ -532,7 +532,7 @@ endif
 # Choose optional parameters to monitor running-mean total energy:
 
 echo
-set monrme = "y"
+set monrme = "n"
 echo
 echo ' Optionally, we can stop the simulation when the running-mean total'
 echo ' energy varies by less than a fraction F of its previous value'

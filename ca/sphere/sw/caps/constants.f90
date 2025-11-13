@@ -67,8 +67,6 @@ double precision,parameter:: dqi=one/dq
 ! 1/kappa = c_p/R and 1/(1 + kappa) (see parameters.f90):
 double precision,parameter:: Rocpi=one/Rocp, pefac=two/(one+Rocp)
 
-! Weights for evolving the topographic forcing (if used):
-double precision,parameter:: wold=one-dt/tb, wnew=sqrt(one-wold**2)
 ! Total number of spherical harmonics needed for the forcing:
 integer,parameter:: ntot=nend+1-nbeg+(nend*(nend+1)-nbeg*(nbeg-1))/2
 
@@ -82,7 +80,7 @@ double precision,parameter:: dmi=two/dm, d4small=small*dl**4
 logical,parameter:: eqbarot=(Rocp .lt. 0.99999d0)
  !Rocp = R/c_p =  1  for traditional SW case;
  !Rocp = R/c_p = 2/7 typically for the equivalent barotropic case
-logical,parameter:: forcing=(brms .gt. zero)
+logical,parameter:: forcing=(tb .ge. zero)
 logical,parameter:: thermal=(rth .gt. zero)
 logical,parameter:: friction=(rek .gt. zero)
 
