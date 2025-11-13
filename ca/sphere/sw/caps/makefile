@@ -16,10 +16,17 @@ fft_lib = ~/hydra/lib/stafft/stafft.f90 ~/hydra/lib/stafft/deriv1d.f90
  # Set flag options: 
 norm_flags = -O3 -mcmodel=medium #Compiler flags
 test_flags = -O3 -mcmodel=medium -fbounds-check -fbacktrace  #Compiler flags
+gprof_flags = -O3 -mcmodel=medium -pg
+gprof_noinline_flags = -O3 -mcmodel=medium -pg -fno-inline -fno-inline-functions
+gprof_noOpt_flags = -mcmodel=medium -pg 
+skylake_flags = -O3 -mcmodel=medium -march=skylake-server
 
  # Set compiler and flag used:
 f90=gfortran
-flags=$(norm_flags)
+#f90=ifort
+
+#flags=$(norm_flags)
+flags=$(gprof_flags)
 
 #----------------------------------------------------------------------
  # Rules:
