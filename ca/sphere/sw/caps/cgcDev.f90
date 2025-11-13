@@ -14,16 +14,19 @@ program cgcDev
     integer,parameter:: ng=128, nt=2*ng !ng set in line 105 of flow-setup
     integer,parameter:: mgf=4, ngf=ng*mgf, ntf=nt*mgf
     double precision:: clonf(ntf),slonf(ntf)
-    integer:: i
+    integer:: i, j
     double precision:: rlonf
     double precision:: dlf,dlfi
     integer,parameter:: ngridp=ng*nt
     integer,parameter:: npm=200*ngridp
+    double precision,parameter:: dl=twopi/dble(nt)
     !end of vars/constants outside of contours
 
     !defined in contours
     double precision:: x(npm),y(npm),z(npm)
     integer:: next(0:npm),npt, callCount
+    double precision:: fcor(ng)
+
     double precision:: qc(ng,nt), qcDiffs(23810) !there are 23810 calls for the default test case
 
     dlf =twopi/dble(ntf)
@@ -32,6 +35,10 @@ program cgcDev
         rlonf=dlf*dble(i-1)-pi
         clonf(i)=cos(rlonf)
         slonf(i)=sin(rlonf)
+    enddo
+
+    do j=1,ng
+        fcor(j)=fpole*sin((dble(j)-f12)*dl-hpi)
     enddo
 
     dlfi=dble(ntf)/(twopi+small)
@@ -236,9 +243,9 @@ program cgcDev
         max_diff = 0.0d0
         do j=1,nt
             do i=1,ng
-                if (abs(qc(i,j) - qc_file(i,j)) > max_diff)
-
+                if (abs(qc(i,j) - qc_file(i,j)) > max_diff) then
                     max_diff = abs(qc(i,j) - qc_file(i,j))
+                endif
             enddo
         enddo
 
