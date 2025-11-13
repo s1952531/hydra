@@ -693,11 +693,7 @@ end subroutine
 !========================================================================
 subroutine writeCGCOutputs
   open(101, file="cgc_outputs.dat",  status='unknown', position='append', action='write', access='stream', form='unformatted')
-  write(101) x
-  write(101) y
-  write(101) z
-  write(101) next
-  write(101) npt
+  write(101) qc
   close(101)
 end subroutine
 
