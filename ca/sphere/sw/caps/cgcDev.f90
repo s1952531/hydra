@@ -33,16 +33,36 @@ program cgcDev
 
     double precision:: qc(ng,nt), qcDiffs(totReads) !there are 23810 calls for the default test case
 
+    double precision:: x_arr(npm, numInputs)
+    double precision:: y_arr(npm, numInputs)
+    double precision:: z_arr(npm, numInputs)
+    integer:: next_arr(0:npm, numInputs)
+    integer:: npt_arr(numInputs)
+
+    double precision:: qc_arr(ng,nt, numInputs)
+
     call initVars
 
+    call initFiles
+
+    do callCount = 1, numInputs
+        call readInput
+        call readOutputs
+    end do
+
+    call closeFiles
+    
+
     do iterCount=1,numIters
-        call initFiles
         do callCount = 1, numInputs
-            call readInput
+            x = x_arr(:, callCount)
+            y = y_arr(:, callCount)
+            z = z_arr(:, callCount)
+            next = next_arr(:, callCount)
+            npt = npt_arr(callCount)
             call con2grid(qc)
             call compare_qcs
         end do
-        call closeFiles
     end do
 
     !print the max of the qcDiffs
@@ -85,12 +105,11 @@ program cgcDev
         implicit double precision(a-h,o-z)
         implicit integer(i-n)
 
-        read(100) x
-        read(100) y
-        read(100) z
-        read(100) next
-        read(100) npt
-
+        read(100) x_arr(:, callCount)
+        read(100) y_arr(:, callCount)
+        read(100) z_arr(:, callCount)
+        read(100) next_arr(:, callCount)
+        read(100) npt_arr(callCount)
         return
     end subroutine
 
@@ -248,6 +267,11 @@ program cgcDev
         return
     end subroutine
 
+    subroutine readOutputs
+        read(102) qc_arr(:,:, callCount)
+        return
+    end subroutine
+
     subroutine compare_qcs
         ! ensure that qc computed matches qc from file
         implicit double precision(a-h,o-z)
@@ -255,8 +279,9 @@ program cgcDev
         double precision:: qc_file(ng,nt)
         double precision:: max_diff
         integer:: i,j
-        read(102) qc_file
-
+        
+        qc_file = qc_arr(:,:, callCount)
+        
         max_diff = 0.0d0
         do j=1,nt
             do i=1,ng
