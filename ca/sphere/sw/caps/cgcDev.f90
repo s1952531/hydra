@@ -132,30 +132,30 @@ program cgcDev
         !Initialise crossing information:
 
         !$OMP PARALLEL
-        !$OMP DO DEFAULT(NONE), SCHEDULE(STATIC)
-        do k=1,npt
-        ilm1(k)=int(dlfi*(pi+atan2(y(k),x(k))))
-        enddo
-        !$OMP END DO
+            !$OMP DO DEFAULT(NONE), SCHEDULE(STATIC), SHARED(ilm1,npt,dlfi,x,y)
+                do k=1,npt
+                ilm1(k)=int(dlfi*(pi+atan2(y(k),x(k))))
+                enddo
+            !$OMP END DO
 
-        !$OMP DO DEFAULT(NONE), SCHEDULE(STATIC)
-        do k=1,npt
-        ka=next(k)
-        cx(k)=z(k)*y(ka)-y(k)*z(ka)
-        cy(k)=x(k)*z(ka)-z(k)*x(ka)
-        cz(k)=x(k)*y(ka)-y(k)*x(ka)
-        ntc(k)=ilm1(ka)-ilm1(k)
- 
-        sig=sign(one,cz(k))
-        sq(k)=dq*sig
-        ntc(k)=ntc(k)-ntf*((2*ntc(k))/ntf)
-        if (sig*dble(ntc(k)) .lt. zero) ntc(k)=-ntc(k)
-            if (abs(cz(k)) .gt. zero) then
-                cx(k)=cx(k)/cz(k)
-                cy(k)=cy(k)/cz(k)
-            endif
-        enddo
-        !$OMP END DO
+            !$OMP DO DEFAULT(NONE), SCHEDULE(STATIC), SHARED(ilm1,npt,dlfi,x,y,z,next)
+                do k=1,npt
+                ka=next(k)
+                cx(k)=z(k)*y(ka)-y(k)*z(ka)
+                cy(k)=x(k)*z(ka)-z(k)*x(ka)
+                cz(k)=x(k)*y(ka)-y(k)*x(ka)
+                ntc(k)=ilm1(ka)-ilm1(k)
+        
+                sig=sign(one,cz(k))
+                sq(k)=dq*sig
+                ntc(k)=ntc(k)-ntf*((2*ntc(k))/ntf)
+                if (sig*dble(ntc(k)) .lt. zero) ntc(k)=-ntc(k)
+                    if (abs(cz(k)) .gt. zero) then
+                        cx(k)=cx(k)/cz(k)
+                        cy(k)=cy(k)/cz(k)
+                    endif
+                enddo
+            !$OMP END DO
         !$OMP END PARALLEL
 
         !----------------------------------------------------------------------
