@@ -28,7 +28,7 @@ program cgcDev
     double precision:: fcor(ng)
 
     integer, parameter:: numInputs=100
-    integer, parameter:: numIters=238
+    integer, parameter:: numIters=5 !238
     integer, parameter:: totReads=numInputs*numIters
 
     double precision:: qc(ng,nt), qcDiffs(totReads) !there are 23810 calls for the default test case
@@ -132,9 +132,7 @@ program cgcDev
         !Initialise crossing information:
         do k=1,npt
         ilm1(k)=int(dlfi*(pi+atan2(y(k),x(k))))
-        enddo
 
-        do k=1,npt
         ka=next(k)
         cx(k)=z(k)*y(ka)-y(k)*z(ka)
         cy(k)=x(k)*z(ka)-z(k)*x(ka)
