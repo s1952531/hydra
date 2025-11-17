@@ -14,7 +14,7 @@ program cgcDev
     integer,parameter:: ng=128, nt=2*ng !ng set in line 105 of flow-setup
     integer,parameter:: mgf=4, ngf=ng*mgf, ntf=nt*mgf
     double precision:: clonf(ntf),slonf(ntf)
-    integer:: i, j
+    integer:: i, j, k
     double precision:: rlonf
     double precision:: dlf,dlfi
     integer,parameter:: ngridp=ng*nt
@@ -27,28 +27,22 @@ program cgcDev
     integer:: next(0:npm),npt, callCount
     double precision:: fcor(ng)
 
-    double precision:: qc(ng,nt), qcDiffs(23810) !there are 23810 calls for the default test case
+    integer, parameter:: numInputs=100
+    integer, parameter:: numIters=238
+    integer, parameter:: totReads=numInputs*numIters
 
-    dlf =twopi/dble(ntf)
+    double precision:: qc(ng,nt), qcDiffs(totReads) !there are 23810 calls for the default test case
 
-    do i=1,ntf
-        rlonf=dlf*dble(i-1)-pi
-        clonf(i)=cos(rlonf)
-        slonf(i)=sin(rlonf)
-    enddo
+    call initVars
 
-    do j=1,ng
-        fcor(j)=fpole*sin((dble(j)-f12)*dl-hpi)
-    enddo
-
-    dlfi=dble(ntf)/(twopi+small)
-
-    !!!!!!!!
-
-    do callCount = 1, 100
-        call readInput
-        call con2grid(qc)
-        call compare_qcs
+    do k=1,numIters
+        call initFiles
+        do callCount = 1, numInputs
+            call readInput
+            call con2grid(qc)
+            call compare_qcs
+        end do
+        call closeFiles
     end do
 
     !print the max of the qcDiffs
@@ -56,18 +50,46 @@ program cgcDev
 
     contains
 
+    subroutine initVars  
+        dlf =twopi/dble(ntf)
+
+        do i=1,ntf
+            rlonf=dlf*dble(i-1)-pi
+            clonf(i)=cos(rlonf)
+            slonf(i)=sin(rlonf)
+        enddo
+
+        do j=1,ng
+            fcor(j)=fpole*sin((dble(j)-f12)*dl-hpi)
+        enddo
+
+        dlfi=dble(ntf)/(twopi+small)
+        return
+    end subroutine
+
+    subroutine initFiles
+        open(100, file="cgc_inputs_100.dat", status='old', action='read', access='stream', form='unformatted')
+        open(102, file="cgc_outputs_100.dat", status='old', action='read', access='stream', form='unformatted')
+        return
+    end subroutine
+
+    subroutine closeFiles
+        close(100)
+        close(102)
+        return
+    end subroutine
+
+
     subroutine readInput
         ! Reads in the contour data from a file "cgc_inputs.dat"
         implicit double precision(a-h,o-z)
         implicit integer(i-n)
 
-        open(100, file="cgc_inputs_100.dat", status='old', action='read', access='stream', form='unformatted')
         read(100) x
         read(100) y
         read(100) z
         read(100) next
         read(100) npt
-        close(100)
 
         return
     end subroutine
@@ -233,9 +255,7 @@ program cgcDev
         double precision:: qc_file(ng,nt)
         double precision:: max_diff
         integer:: i,j
-        open(102, file="cgc_outputs_100.dat", status='old', action='read', access='stream', form='unformatted')
         read(102) qc_file
-        close(102)
 
         max_diff = 0.0d0
         do j=1,nt
