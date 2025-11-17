@@ -131,14 +131,14 @@ program cgcDev
 
         !Initialise crossing information:
 
-        !$OMP PARALLEL
-            !$OMP DO DEFAULT(NONE), SCHEDULE(STATIC), SHARED(ilm1,npt,dlfi,x,y), PRIVATE(k)
+        !$OMP PARALLEL DEFAULT(NONE) SHARED(npt,dlfi,x,y,z,next,ilm1,cx,cy,cz,ntc,sq, zero) PRIVATE(k,ka,sig)
+            !$OMP DO SCHEDULE(STATIC)
                 do k=1,npt
                 ilm1(k)=int(dlfi*(pi+atan2(y(k),x(k))))
                 enddo
             !$OMP END DO
 
-            !$OMP DO DEFAULT(NONE), SCHEDULE(STATIC), SHARED(ilm1,npt,dlfi,x,y,z,next), PRIVATE(k,ka,sig)
+            !$OMP DO SCHEDULE(STATIC)
                 do k=1,npt
                 ka=next(k)
                 cx(k)=z(k)*y(ka)-y(k)*z(ka)
