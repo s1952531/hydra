@@ -291,7 +291,7 @@ program cgcDev
             enddo
         enddo
 
-        qcDiffs(callCount) = max_diff
+        qcDiffs((iterCount-1)*numInputs + callCount) = max_diff
 
         return
     end subroutine
