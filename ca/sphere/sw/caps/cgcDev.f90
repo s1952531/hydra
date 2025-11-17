@@ -130,10 +130,15 @@ program cgcDev
         double precision:: sq(npt)
 
         !Initialise crossing information:
+
+        !$OMP PARALLEL
+        !$OMP DO DEFAULT(NONE), SCHEDULE(STATIC)
         do k=1,npt
         ilm1(k)=int(dlfi*(pi+atan2(y(k),x(k))))
         enddo
+        !$OMP END DO
 
+        !$OMP DO DEFAULT(NONE), SCHEDULE(STATIC)
         do k=1,npt
         ka=next(k)
         cx(k)=z(k)*y(ka)-y(k)*z(ka)
@@ -150,6 +155,8 @@ program cgcDev
                 cy(k)=cy(k)/cz(k)
             endif
         enddo
+        !$OMP END DO
+        !$OMP END PARALLEL
 
         !----------------------------------------------------------------------
         !Initialise PV jump array:
