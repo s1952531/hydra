@@ -14,7 +14,7 @@ program cgcDev
     integer,parameter:: ng=128, nt=2*ng !ng set in line 105 of flow-setup
     integer,parameter:: mgf=4, ngf=ng*mgf, ntf=nt*mgf
     double precision:: clonf(ntf),slonf(ntf)
-    integer:: i, j, k
+    integer:: i, j, iterCount
     double precision:: rlonf
     double precision:: dlf,dlfi
     integer,parameter:: ngridp=ng*nt
@@ -35,7 +35,7 @@ program cgcDev
 
     call initVars
 
-    do k=1,numIters
+    do iterCount=1,numIters
         call initFiles
         do callCount = 1, numInputs
             call readInput
