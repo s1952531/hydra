@@ -132,15 +132,15 @@ program cgcDev
         !Initialise crossing information:
         do k=1,npt
         ilm1(k)=int(dlfi*(pi+atan2(y(k),x(k))))
+        enddo
 
+        do k=1,npt
         ka=next(k)
         cx(k)=z(k)*y(ka)-y(k)*z(ka)
         cy(k)=x(k)*z(ka)-z(k)*x(ka)
         cz(k)=x(k)*y(ka)-y(k)*x(ka)
         ntc(k)=ilm1(ka)-ilm1(k)
-        enddo
-
-        do k=1,npt
+ 
         sig=sign(one,cz(k))
         sq(k)=dq*sig
         ntc(k)=ntc(k)-ntf*((2*ntc(k))/ntf)
