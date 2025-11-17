@@ -45,7 +45,7 @@ program cgcDev
 
     !!!!!!!!
 
-    do callCount = 1, 23810
+    do callCount = 1, 100
         call readInput
         call con2grid(qc)
         call compare_qcs
