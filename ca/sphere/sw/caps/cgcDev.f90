@@ -61,10 +61,7 @@ program cgcDev
         implicit double precision(a-h,o-z)
         implicit integer(i-n)
 
-        !Local variables:
-        integer:: i
-
-        open(100, file="cgc_inputs.dat", status='old', action='read', access='stream', form='unformatted')
+        open(100, file="cgc_inputs_100.dat", status='old', action='read', access='stream', form='unformatted')
         read(100) x
         read(100) y
         read(100) z
@@ -236,7 +233,7 @@ program cgcDev
         double precision:: qc_file(ng,nt)
         double precision:: max_diff
         integer:: i,j
-        open(102, file="cgc_qc_reference.dat", status='old', action='read', access='stream', form='unformatted')
+        open(102, file="cgc_outputs_100.dat", status='old', action='read', access='stream', form='unformatted')
         read(102) qc_file
         close(102)
 
