@@ -4,7 +4,6 @@ module contours
 ! spe suite of f90 codes.
 
 use constants
-use common
 
 implicit none
 
@@ -519,7 +518,7 @@ end subroutine
 
 !==========================================================================
 
-subroutine con2grid(qc)
+subroutine con2grid(qc, t)
 ! Calculates the PV anomaly field (stored in qc) from the PV 
 ! contours (x,y,z).  Takes away Coriolis frequency (fcor).
 
