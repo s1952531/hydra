@@ -115,7 +115,7 @@ program cgcDev
     subroutine getNumWrites
         !determine how many writes are in cgc_* files
         !inputs and outputs written same number of times, easier to calc size of cgc_outputs.dat since only qc written
-        integer:: qcSize=storage_size(qc)/8 !div by 8 to get bytes
+        integer:: qcSize=size(qc) * storage_size(qc)/8 !div by 8 to get bytes
         integer :: filesize
         
         inquire(unit=102, size=filesize)
