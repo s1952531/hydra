@@ -527,15 +527,33 @@ implicit integer(i-n)
 
  !Passed arrays:
 double precision:: qc(ng,nt)
+
  !Local arrays:
 double precision:: qa(0:ngf+1,ntf)
 double precision:: qaend(ngf/2)
 integer:: ilm1(npt),ntc(npt)
 double precision:: cx(npt),cy(npt),cz(npt)
 double precision:: sq(npt)
+integer:: dt_curr
+integer:: numSteps
+integer:: saveStepSpace
+logical:: saveTime
 
+numSteps = tsim / dt
+dt_curr = t / dt
+saveStepSpace = nint(numSteps / 100)
+if dt_curr == 1 then
+  print *, 'Writing CGC every ', saveStepSpace, ' steps. There are ', numSteps, ' steps in total.'
+end if
+if (mod(dt_curr, saveStepSpace) == 0) then
+   saveTime = .true.
+else
+   saveTime = .false.
+endif
 !----------------------------------------------------------------
-call writeCGCInputs
+if (saveTime) then
+  call writeCGCInputs
+endif
 !----------------------------------------------------------------
  !Initialise crossing information:
 do k=1,npt
@@ -673,7 +691,9 @@ do i=1,nt
   enddo
 enddo
 !----------------------------------------------------------------
-call writeCGCOutputs(qc)
+if (saveTime) then
+  call writeCGCOutputs(qc)
+endif
 !----------------------------------------------------------------
 
 return
