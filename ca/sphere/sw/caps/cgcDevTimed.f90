@@ -410,6 +410,7 @@ program cgcDev
 
         endTime = omp_get_wtime()
         totalTime = endTime - startTime
+        print *, 'call', callCount, ' of con2grid took ', totalTime, ' seconds.'
 
         call accumulateTimes(totalTime, &
                               l1Time, l2Time, l3Time, l4Time, l5Time, &
@@ -431,11 +432,8 @@ program cgcDev
         double precision:: l6Time, l7Time, l8Time, l9Time, l10Time
         double precision:: l11Time, l12Time, l13Time, l14Time, l15Time
 
-        double precision:: tmp
-
         !accumulate times into total timers
         con2gridToTTime = con2gridToTTime + totalTime
-        tmp = l1TotTime
         l1TotTime = l1TotTime + l1Time
         l2TotTime = l2TotTime + l2Time
         l3TotTime = l3TotTime + l3Time
