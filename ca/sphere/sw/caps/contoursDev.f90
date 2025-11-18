@@ -531,6 +531,7 @@ subroutine con2grid(qc, t)
 
  !Passed arrays:
 double precision:: qc(ng,nt)
+double precision:: t
 
  !Local arrays:
 double precision:: qa(0:ngf+1,ntf)
