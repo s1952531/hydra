@@ -539,6 +539,10 @@ integer:: numSteps
 integer:: saveStepSpace
 logical:: saveTime
 
+print *, 'tsim=', tsim
+print *, 't=', t
+print *, 'dt=', dt
+
 numSteps = tsim / dt
 dt_curr = t / dt
 print *, 'Current time step: ', dt_curr
