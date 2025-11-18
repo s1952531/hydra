@@ -27,32 +27,25 @@ program cgcDev
     integer:: next(0:npm),npt, callCount
     double precision:: fcor(ng)
 
-    integer, parameter:: numInputs=100
-    integer, parameter:: numIters=5 !238
-    integer, parameter:: totReads=numInputs*numIters
+    integer:: numInputs
+    integer, parameter:: numIters=1 !238
+    integer:: totReads
 
-    double precision:: qc(ng,nt), qcDiffs(totReads) !there are 23810 calls for the default test case
+    double precision:: qc(ng,nt)
+    double precision, allocatable:: qcDiffs(:) !of shape (totReads)
+                                               !according to gprof there are 23810 calls for the default test case
 
-    double precision:: x_arr(npm, numInputs)
-    double precision:: y_arr(npm, numInputs)
-    double precision:: z_arr(npm, numInputs)
-    integer:: next_arr(0:npm, numInputs)
-    integer:: npt_arr(numInputs)
+    double precision, allocatable:: x_arr(:, :) !of shape (npm, numInputs)
+    double precision, allocatable:: y_arr(:, :) !of shape (npm, numInputs)
+    double precision, allocatable:: z_arr(:, :) !of shape (npm, numInputs)
+    integer, allocatable:: next_arr(:, :) !of shape (0:npm, numInputs)
+    integer, allocatable:: npt_arr(:) !of shape (numInputs)
 
-    double precision:: qc_arr(ng,nt, numInputs)
+    double precision, allocatable:: qc_arr(:,:,:) !of shape (ng,nt, numInputs)
 
-    call initVars
-
-    call initFiles
-
-    do callCount = 1, numInputs
-        call readInput
-        call readOutputs
-    end do
-
-    call closeFiles
+    call init
     
-
+    !main loop
     do iterCount=1,numIters
         do callCount = 1, numInputs
             x = x_arr(:, callCount)
@@ -68,7 +61,21 @@ program cgcDev
     !print the max of the qcDiffs
     print *, 'Max difference in qc: ', maxval(qcDiffs)
 
+    call finish
+
     contains
+
+    subroutine init
+        call openFiles
+        call initVars
+        
+        do callCount = 1, numInputs
+            call readInput
+            call readOutputs
+        end do
+        call closeFiles
+    end subroutine
+
 
     subroutine initVars  
         dlf =twopi/dble(ntf)
@@ -84,12 +91,46 @@ program cgcDev
         enddo
 
         dlfi=dble(ntf)/(twopi+small)
+
+        call getNumWrites
+
+        totReads=numInputs*numIters
+
+        call allocateVars
+
         return
     end subroutine
 
-    subroutine initFiles
-        open(100, file="cgc_inputs_100.dat", status='old', action='read', access='stream', form='unformatted')
-        open(102, file="cgc_outputs_100.dat", status='old', action='read', access='stream', form='unformatted')
+    subroutine allocateVars
+        allocate(x_arr(npm, numInputs))
+        allocate(y_arr(npm, numInputs))
+        allocate(z_arr(npm, numInputs))
+        allocate(next_arr(0:npm, numInputs))
+        allocate(npt_arr(numInputs))
+        allocate(qc_arr(ng,nt, numInputs))
+        allocate(qcDiffs(totReads))
+        return
+    end subroutine
+
+    subroutine getNumWrites
+        !determine how many writes are in cgc_* files
+        !inputs and outputs written same number of times, easier to calc size of cgc_outputs.dat since only qc written
+        integer:: qcSize=storage_size(qc)/8 !div by 8 to get bytes
+        integer :: filesize
+        
+        inquire(unit=101, size=filesize)
+        print *, 'File size of cgc_outputs.dat: ', filesize
+        print *, 'Size of one qc array: ', qcSize
+        numInputs=filesize/qcSize
+        print *, 'Number of inputs/outputs in files: ', numInputs
+
+        return
+    end subroutine
+
+
+    subroutine openFiles
+        open(100, file="cgc_inputs.dat", status='old', action='read', access='stream', form='unformatted')
+        open(102, file="cgc_outputs.dat", status='old', action='read', access='stream', form='unformatted')
         return
     end subroutine
 
@@ -298,6 +339,17 @@ program cgcDev
 
         qcDiffs((iterCount-1)*numInputs + callCount) = max_diff
 
+        return
+    end subroutine
+
+    subroutine finish
+        deallocate(qcDiffs)
+        deallocate(x_arr)
+        deallocate(y_arr)
+        deallocate(z_arr)
+        deallocate(next_arr)
+        deallocate(npt_arr)
+        deallocate(qc_arr)
         return
     end subroutine
 
