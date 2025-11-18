@@ -43,6 +43,12 @@ program cgcDev
 
     double precision, allocatable:: qc_arr(:,:,:) !of shape (ng,nt, numInputs)
 
+    !Timers
+    double precision:: con2gridToTTime=0.0d0
+    double precision:: l1TotTime=0.0d0, l2TotTime=0.0d0, l3TotTime=0.0d0, l4TotTime=0.0d0, l5TotTime=0.0d0
+    double precision:: l6TotTime=0.0d0, l7TotTime=0.0d0, l8TotTime=0.0d0, l9TotTime=0.0d0, l10TotTime=0.0d0
+    double precision:: l11TotTime=0.0d0, l12TotTime=0.0d0, l13TotTime=0.0d0, l14TotTime=0.0d0, l15TotTime=0.0d0
+
     call init
     
     !main loop
@@ -170,16 +176,46 @@ program cgcDev
         double precision:: cx(npt),cy(npt),cz(npt)
         double precision:: sq(npt)
 
+        !timers (overall and one for each loop)
+        double precision:: startTime, endTime, totalTime
+        double precision:: l1Start, l1End, l1Time
+        double precision:: l2Start, l2End, l2Time
+        double precision:: l3Start, l3End, l3Time
+        double precision:: l4Start, l4End, l4Time
+        double precision:: l5Start, l5End, l5Time
+        double precision:: l6Start, l6End, l6Time
+
+        !in while loop so accumulate
+        double precision:: l7Start, l7End, l7Time=0.0d0
+        double precision:: l8Start, l8End, l8Time=0.0d0
+        double precision:: l9Start, l9End, l9Time=0.0d0
+        double precision:: l10Start, l10End, l10Time=0.0d0
+        double precision:: l11Start, l11End, l11Time=0.0d0
+        double precision:: l12Start, l12End, l12Time=0.0d0
+        double precision:: l13Start, l13End, l13Time=0.0d0
+        double precision:: l14Start, l14End, l14Time=0.0d0
+        !
+
+        double precision:: l15Start, l15End, l15Time
+
+        startTime = omp_get_wtime()
+
         !Initialise crossing information:
 
         !!$OMP PARALLEL DEFAULT(NONE) SHARED(npt,dlfi,x,y,z,next,ilm1,cx,cy,cz,ntc,sq, zero) PRIVATE(k,ka,sig)
             !!$OMP DO SCHEDULE(STATIC)
+                !LOOP 1
+                l1Start = omp_get_wtime()
                 do k=1,npt
                     ilm1(k)=int(dlfi*(pi+atan2(y(k),x(k))))
                 enddo
+                l1End = omp_get_wtime()
+                l1Time = l1End - l1Start
             !!$OMP END DO
 
-            !$OMP DO SCHEDULE(STATIC)
+            !!$OMP DO SCHEDULE(STATIC)
+                !LOOP 2
+                l2Start = omp_get_wtime()
                 do k=1,npt
                     ka=next(k)
                     cx(k)=z(k)*y(ka)-y(k)*z(ka)
@@ -187,7 +223,11 @@ program cgcDev
                     cz(k)=x(k)*y(ka)-y(k)*x(ka)
                     ntc(k)=ilm1(ka)-ilm1(k)
                 enddo    
+                l2End = omp_get_wtime()
+                l2Time = l2End - l2Start
                 
+                !LOOP 3
+                l3Start = omp_get_wtime()
                 do k=1,npt
                     sig=sign(one,cz(k))
                     sq(k)=dq*sig
@@ -198,18 +238,26 @@ program cgcDev
                             cy(k)=cy(k)/cz(k)
                         endif
                 enddo
+                l3End = omp_get_wtime()
+                l3Time = l3End - l3Start
             !!$OMP END DO
         !!$OMP END PARALLEL
 
         !----------------------------------------------------------------------
         !Initialise PV jump array:
+        !LOOP 4
+        l4Start = omp_get_wtime()        
         do i=1,ntf
             do j=0,ngf+1
                 qa(j,i)=zero
             enddo
         enddo
+        l4End = omp_get_wtime()
+        l4Time = l4End - l4Start
 
         !Determine crossing indices:
+        !LOOP 5
+        l5Start = omp_get_wtime()
         do k=1,npt
             if (ntc(k) .ne. 0) then
                 jump=sign(1,ntc(k))
@@ -226,13 +274,19 @@ program cgcDev
                 enddo
             endif
         enddo
+        l5End = omp_get_wtime()
+        l5Time = l5End - l5Start
 
         !Get PV values, at half latitudes, by sweeping through latitudes:
+        !LOOP 6
+        l6Start = omp_get_wtime()
         do i=1,ntf
             do j=2,ngf
                 qa(j,i)=qa(j,i)+qa(j-1,i)
             enddo
         enddo
+        l6End = omp_get_wtime()
+        l6Time = l6End - l6Start
         !Here, qa(j,i) stands for the PV at latitude j-1/2,
         !from j = 1, ..., ngf.
 
@@ -242,76 +296,161 @@ program cgcDev
         ngh=ngf
         nth=ntf
 
-        do while (ngh .gt. ng)
-        !Pre-store PV adjacent to poles at complementary longitudes (+pi):
-        nthh=nth/2
-        nghp1=ngh+1
-        do i=1,nthh
-            ic=i+nthh
-            qa(0,i)=qa(1,ic)
-            qa(0,ic)=qa(1,i)
-            qa(nghp1,i)=qa(ngh,ic)
-            qa(nghp1,ic)=qa(ngh,i)
-        enddo
-
-        !Work from SP to NP to define PV at full latitudes from averages
-        !at adjacent half latitudes:
-        do i=1,nth
-            do j=0,ngh
-            qa(j,i)=f12*(qa(j+1,i)+qa(j,i))
+        do while (ngh .gt. ng) !need to precalc number of iters if want to parallelise with OMP
+            !Pre-store PV adjacent to poles at complementary longitudes (+pi):
+            nthh=nth/2
+            nghp1=ngh+1
+            !LOOP 7
+            l7Start = omp_get_wtime()
+            do i=1,nthh
+                ic=i+nthh
+                qa(0,i)=qa(1,ic)
+                qa(0,ic)=qa(1,i)
+                qa(nghp1,i)=qa(ngh,ic)
+                qa(nghp1,ic)=qa(ngh,i)
             enddo
-        enddo
+            l7End = omp_get_wtime()
+            l7Time = l7Time + l7End - l7Start
 
-        !Now qa(j,i) is the PV at latitude j*(pi/ngh)-pi/2
+            !Work from SP to NP to define PV at full latitudes from averages
+            !at adjacent half latitudes:
+            !LOOP 8
+            l8Start = omp_get_wtime()
+            do i=1,nth
+                do j=0,ngh
+                qa(j,i)=f12*(qa(j+1,i)+qa(j,i))
+                enddo
+            enddo
+            l8End = omp_get_wtime()
+            l8Time = l8Time + l8End - l8Start
 
-        !Next 1-2-1 average these values to define PV at half latitudes
-        !on a grid twice as coarse:
-        nghh=ngh/2
-        do i=1,nth
+            !Now qa(j,i) is the PV at latitude j*(pi/ngh)-pi/2
+
+            !Next 1-2-1 average these values to define PV at half latitudes
+            !on a grid twice as coarse:
+            nghh=ngh/2
+            !LOOP 9
+            l9Start = omp_get_wtime()
+            do i=1,nth
+                do j=1,nghh
+                je=2*j
+                qa(j,i)=f12*qa(je-1,i)+f14*(qa(je-2,i)+qa(je,i))
+                enddo
+            enddo
+            l9End = omp_get_wtime()
+            l9Time = l9Time + l9End - l9Start
+
+            !Now perform analogous longitudinal 1-2-1 average:
+            !LOOP 10
+            l10Start = omp_get_wtime()
             do j=1,nghh
-            je=2*j
-            qa(j,i)=f12*qa(je-1,i)+f14*(qa(je-2,i)+qa(je,i))
+                qaend(j)=f12*(qa(j,nth)+qa(j,1))
             enddo
-        enddo
+            l10End = omp_get_wtime()
+            l10Time = l10Time + l10End - l10Start
 
-        !Now perform analogous longitudinal 1-2-1 average:
-        do j=1,nghh
-            qaend(j)=f12*(qa(j,nth)+qa(j,1))
-        enddo
-        do i=1,nth-1
-            ip1=i+1
+            !LOOP 11
+            l11Start = omp_get_wtime()
+            do i=1,nth-1
+                ip1=i+1
+                do j=1,nghh
+                qa(j,i)=f12*(qa(j,i)+qa(j,ip1))
+                enddo
+            enddo
+            l11End = omp_get_wtime()
+            l11Time = l11Time + l11End - l11Start
+
+            !LOOP 12
+            l12Start = omp_get_wtime()
             do j=1,nghh
-            qa(j,i)=f12*(qa(j,i)+qa(j,ip1))
+                qa(j,nth)=qaend(j)
             enddo
-        enddo
-        do j=1,nghh
-            qa(j,nth)=qaend(j)
-        enddo
-        !Now qa(j,i) gives the PV at the half-longitudes i + 1/2.
+            l12End = omp_get_wtime()
+            l12Time = l12Time + l12End - l12Start
+            !Now qa(j,i) gives the PV at the half-longitudes i + 1/2.
 
-        !Average these on the twice coarser grid:
-        do j=1,nghh
-            qa(j,1)=f12*(qa(j,nth)+qa(j,1))
-        enddo
-        do i=2,nthh
-            io=2*i-1
-            ie=io-1
+            !Average these on the twice coarser grid:
+            nthh=nth/2
+
+            !LOOP 13
+            l13Start = omp_get_wtime()
             do j=1,nghh
-            qa(j,i)=f12*(qa(j,ie)+qa(j,io))
+                qa(j,1)=f12*(qa(j,nth)+qa(j,1))
             enddo
-        enddo
+            l13End = omp_get_wtime()
+            l13Time = l13Time + l13End - l13Start
 
-        ngh=nghh
-        nth=nthh
+            !LOOP 14
+            l14Start = omp_get_wtime()
+            do i=2,nthh
+                io=2*i-1
+                ie=io-1
+                do j=1,nghh
+                qa(j,i)=f12*(qa(j,ie)+qa(j,io))
+                enddo
+            enddo
+            l14End = omp_get_wtime()
+            l14Time = l14Time + l14End - l14Start
+
+            ngh=nghh
+            nth=nthh
 
         enddo
 
         !Finalise and take away f to define PV anomaly:
+        !LOOP 15
+        l15Start = omp_get_wtime()
         do i=1,nt
             do j=1,ng
                 qc(j,i)=qa(j,i)-fcor(j)
             enddo
         enddo
+        l15End = omp_get_wtime()
+        l15Time = l15End - l15Start
+
+        endTime = omp_get_wtime()
+        totalTime = endTime - startTime
+
+        call accumulateTimes(totalTime, &
+                              l1Time, l2Time, l3Time, l4Time, l5Time, &
+                              l6Time, l7Time, l8Time, l9Time, l10Time, &
+                              l11Time, l12Time, l13Time, l14Time, l15Time)
+        
+        return
+        
+    end subroutine 
+
+    subroutine accumulateTimes(totalTime, &
+                              l1Time, l2Time, l3Time, l4Time, l5Time, &
+                              l6Time, l7Time, l8Time, l9Time, l10Time, &
+                              l11Time, l12Time, l13Time, l14Time, l15Time)
+
+        !passed args
+        double precision:: totalTime
+        double precision:: l1Time, l2Time, l3Time, l4Time, l5Time
+        double precision:: l6Time, l7Time, l8Time, l9Time, l10Time
+        double precision:: l11Time, l12Time, l13Time, l14Time, l15Time
+
+        double precision:: tmp
+
+        !accumulate times into total timers
+        con2gridToTTime = con2gridToTTime + totalTime
+        tmp = l1TotTime
+        l1TotTime = l1TotTime + l1Time
+        l2TotTime = l2TotTime + l2Time
+        l3TotTime = l3TotTime + l3Time
+        l4TotTime = l4TotTime + l4Time
+        l5TotTime = l5TotTime + l5Time
+        l6TotTime = l6TotTime + l6Time
+        l7TotTime = l7TotTime + l7Time
+        l8TotTime = l8TotTime + l8Time
+        l9TotTime = l9TotTime + l9Time
+        l10TotTime = l10TotTime + l10Time
+        l11TotTime = l11TotTime + l11Time
+        l12TotTime = l12TotTime + l12Time
+        l13TotTime = l13TotTime + l13Time
+        l14TotTime = l14TotTime + l14Time
+        l15TotTime = l15TotTime + l15Time
         return
     end subroutine
 
@@ -345,7 +484,32 @@ program cgcDev
     end subroutine
 
     subroutine finish
-        deallocate(qcDiffs)
+        call printTimes
+        call deallocateVars
+        return
+    end subroutine
+
+    subroutine printTimes
+        print *, 'Total con2grid time: ', con2gridToTTime
+        print *, 'Loop 1 total time: ', l1TotTime
+        print *, 'Loop 2 total time: ', l2TotTime
+        print *, 'Loop 3 total time: ', l3TotTime
+        print *, 'Loop 4 total time: ', l4TotTime
+        print *, 'Loop 5 total time: ', l5TotTime
+        print *, 'Loop 6 total time: ', l6TotTime
+        print *, 'Loop 7 total time: ', l7TotTime
+        print *, 'Loop 8 total time: ', l8TotTime
+        print *, 'Loop 9 total time: ', l9TotTime
+        print *, 'Loop 10 total time: ', l10TotTime
+        print *, 'Loop 11 total time: ', l11TotTime
+        print *, 'Loop 12 total time: ', l12TotTime
+        print *, 'Loop 13 total time: ', l13TotTime
+        print *, 'Loop 14 total time: ', l14TotTime
+        print *, 'Loop 15 total time: ', l15TotTime
+        return
+    end subroutine
+
+    subroutine deallocateVars
         deallocate(x_arr)
         deallocate(y_arr)
         deallocate(z_arr)
