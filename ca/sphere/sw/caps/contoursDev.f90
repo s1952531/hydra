@@ -541,6 +541,7 @@ logical:: saveTime
 
 numSteps = tsim / dt
 dt_curr = t / dt
+print *, 'Current time step: ', dt_curr
 saveStepSpace = numSteps / 100
 if (dt_curr .eq. 1) then
   print *, 'Writing CGC every ', saveStepSpace, ' steps. There are ', numSteps, ' steps in total.'
