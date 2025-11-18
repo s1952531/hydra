@@ -544,13 +544,13 @@ integer:: numSteps
 integer:: saveStepSpace
 logical:: saveTime
 
-print *, 'tsim=', tsim
-print *, 't=', t
-print *, 'dt=', dt
+! print *, 'tsim=', tsim
+! print *, 't=', t
+! print *, 'dt=', dt
 
 numSteps = tsim / dt
 dt_curr = t / dt
-print *, 'Current time step: ', dt_curr
+! print *, 'Current time step: ', dt_curr
 saveStepSpace = numSteps / 100
 if (dt_curr .eq. 1) then
   print *, 'Writing CGC every ', saveStepSpace, ' steps. There are ', numSteps, ' steps in total.'
