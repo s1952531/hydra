@@ -522,8 +522,12 @@ subroutine con2grid(qc)
 ! Calculates the PV anomaly field (stored in qc) from the PV 
 ! contours (x,y,z).  Takes away Coriolis frequency (fcor).
 
-implicit double precision(a-h,o-z)
-implicit integer(i-n)
+!implicit double precision(a-h,o-z)
+!implicit integer(i-n)
+
+!previously implicit:
+  integer:: i, j, k, ka, jump, ioff, ncr, ngh, nth, nthh, nghp1, ic, nghh, je, ip1, io, ie
+  double precision:: sig, rlatc, p
 
  !Passed arrays:
 double precision:: qc(ng,nt)
