@@ -541,8 +541,8 @@ logical:: saveTime
 
 numSteps = tsim / dt
 dt_curr = t / dt
-saveStepSpace = nint(numSteps / 100)
-if dt_curr == 1 then
+saveStepSpace = numSteps / 100
+if (dt_curr .eq. 1) then
   print *, 'Writing CGC every ', saveStepSpace, ' steps. There are ', numSteps, ' steps in total.'
 end if
 if (mod(dt_curr, saveStepSpace) == 0) then
