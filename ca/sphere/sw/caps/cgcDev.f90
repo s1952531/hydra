@@ -206,14 +206,11 @@ program cgcDev
             !!$OMP DO SCHEDULE(STATIC)
                 !LOOP 1
                 l1Start = omp_get_wtime()
-                print *, 'l1Start=', l1Start
                 do k=1,npt
                     ilm1(k)=int(dlfi*(pi+atan2(y(k),x(k))))
                 enddo
                 l1End = omp_get_wtime()
-                print *, 'l1End=', l1End
                 l1Time = l1End - l1Start
-                print *, 'l1Time=', l1Time
             !!$OMP END DO
 
             !!$OMP DO SCHEDULE(STATIC)
@@ -410,7 +407,6 @@ program cgcDev
         enddo
         l15End = omp_get_wtime()
         l15Time = l15End - l15Start
-        return
 
         endTime = omp_get_wtime()
         totalTime = endTime - startTime
@@ -419,6 +415,9 @@ program cgcDev
                               l1Time, l2Time, l3Time, l4Time, l5Time, &
                               l6Time, l7Time, l8Time, l9Time, l10Time, &
                               l11Time, l12Time, l13Time, l14Time, l15Time)
+        
+        return
+        
     end subroutine 
 
     subroutine accumulateTimes(totalTime, &
@@ -438,7 +437,6 @@ program cgcDev
         con2gridToTTime = con2gridToTTime + totalTime
         tmp = l1TotTime
         l1TotTime = l1TotTime + l1Time
-        print *, ' l1TotTime=', tmp, ' + ', l1Time, ' = ', l1TotTime
         l2TotTime = l2TotTime + l2Time
         l3TotTime = l3TotTime + l3Time
         l4TotTime = l4TotTime + l4Time
