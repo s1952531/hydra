@@ -118,7 +118,7 @@ program cgcDev
         integer:: qcSize=storage_size(qc)/8 !div by 8 to get bytes
         integer :: filesize
         
-        inquire(unit=101, size=filesize)
+        inquire(unit=102, size=filesize)
         print *, 'File size of cgc_outputs.dat: ', filesize
         print *, 'Size of one qc array: ', qcSize
         numInputs=filesize/qcSize
