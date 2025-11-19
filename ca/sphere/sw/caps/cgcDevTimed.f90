@@ -239,9 +239,11 @@ program cgcDev
             !!$OMP DO SCHEDULE(STATIC)
                 !LOOP 1
                 l1Start = omp_get_wtime()
+                !$OMP PARALLEL DO SCHEDULE(GUIDED)
                 do k=1,npt
                     ilm1(k)=int(dlfi*(pi+atan2(y(k),x(k))))
                 enddo
+                !$OMP END PARALLEL DO
                 l1End = omp_get_wtime()
                 l1Time = l1End - l1Start
             !!$OMP END DO
@@ -291,7 +293,7 @@ program cgcDev
         !Determine crossing indices:
         !LOOP 5
         l5Start = omp_get_wtime()
-        !$OMP PARALLEL DO SCHEDULE(GUIDED)
+        !!$OMP PARALLEL DO SCHEDULE(GUIDED)
         do k=1,npt
             if (ntc(k) .ne. 0) then
                 jump=sign(1,ntc(k))
@@ -302,15 +304,15 @@ program cgcDev
                     rlatc=dlfi*(hpi+atan(cx(k)*clonf(i)+cy(k)*slonf(i)))
                     j=int(rlatc)+1
                     p=rlatc-dble(j-1)
-                    !$OMP ATOMIC
+                    !!$OMP ATOMIC
                     qa(j,i)=  qa(j,i)+(one-p)*sq(k)
-                    !$OMP ATOMIC
+                    !!$OMP ATOMIC
                     qa(j+1,i)=qa(j+1,i)+    p*sq(k)
                     ncr=ncr+jump
                 enddo
             endif
         enddo
-        !$OMP END PARALLEL DO
+        !!$OMP END PARALLEL DO
         l5End = omp_get_wtime()
         l5Time = l5End - l5Start
 
