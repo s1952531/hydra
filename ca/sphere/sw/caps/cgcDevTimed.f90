@@ -182,6 +182,8 @@ program cgcDev
 
         pos = filesize - int(input_block_size*callCount, kind=8)
 
+        print *, 'Reading input at position: ', pos
+
         read(100, pos=pos) x_arr(:, callCount)
         read(100) y_arr(:, callCount)
         read(100) z_arr(:, callCount)
