@@ -238,11 +238,11 @@ program cgcDev
             !!$OMP DO SCHEDULE(STATIC)
                 !LOOP 1
                 l1Start = omp_get_wtime()
-                !!$OMP PARALLEL DO SCHEDULE(GUIDED)
+                !$OMP PARALLEL DO SCHEDULE(GUIDED)
                 do k=1,npt
                     ilm1(k)=int(dlfi*(pi+atan2(y(k),x(k))))
                 enddo
-                !!$OMP END PARALLEL DO
+                !$OMP END PARALLEL DO
                 l1End = omp_get_wtime()
                 l1Time = l1End - l1Start
             !!$OMP END DO
