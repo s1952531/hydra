@@ -303,6 +303,7 @@ program cgcDev
         !Determine crossing indices:
         !LOOP 5
         l5Start = omp_get_wtime()
+        !$OMP PARALLEL DO
         do k=1,npt
             if (ntc(k) .ne. 0) then
                 jump=sign(1,ntc(k))
@@ -319,6 +320,7 @@ program cgcDev
                 enddo
             endif
         enddo
+        !$OMP END PARALLEL DO
         l5End = omp_get_wtime()
         l5Time = l5End - l5Start
 
