@@ -24,7 +24,8 @@ program cgcDev
 
     !defined in contours
     double precision:: x(npm),y(npm),z(npm)
-    integer:: next(0:npm),npt, callCount
+    integer:: next(0:npm),npt
+    integer(kind=8):: callCount !as used in calc of pos for large file
     double precision:: fcor(ng)
 
     integer:: numInputs
@@ -44,7 +45,7 @@ program cgcDev
     double precision, allocatable:: qc_arr(:,:,:) !of shape (ng,nt, numInputs)
 
     integer:: qcSize=size(qc) * storage_size(qc)/8 !div by 8 to get bytes
-    integer:: input_block_size= storage_size(x)/8 * size(x) + &
+    integer(kind=8):: input_block_size= storage_size(x)/8 * size(x) + &
                                 storage_size(y)/8 * size(y) + &
                                 storage_size(z)/8 * size(z) + &
                                 storage_size(next)/8 * size(next) + &
