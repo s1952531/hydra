@@ -440,7 +440,7 @@ program cgcDev
         
     end subroutine 
 
-    subroutine accumulateTimes(totalTime, &
+    subroutine accumulateTimes(totalTime, preAvgTime, avgTime, &
                               l1Time, l2Time, l3Time, l4Time, l5Time, &
                               l6Time, l7Time, l8Time, l9Time, l10Time, &
                               l11Time, l12Time, l13Time, l14Time, l15Time)
