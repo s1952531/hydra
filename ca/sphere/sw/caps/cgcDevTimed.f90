@@ -171,8 +171,8 @@ program cgcDev
         !Reads in the contour data from a file "cgc_inputs.dat" in reverse order
         !to test work balance
 
-        integer(kind=8) :: filesize !kind=8 to hold large file sizes
-        integer:: pos
+        integer(kind=8):: filesize !kind=8 to hold large file sizes
+        integer(kind=8):: pos
         
         inquire(unit=100, size=filesize)
 
