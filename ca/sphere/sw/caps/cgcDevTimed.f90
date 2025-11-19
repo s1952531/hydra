@@ -44,7 +44,7 @@ program cgcDev
     double precision, allocatable:: qc_arr(:,:,:) !of shape (ng,nt, numInputs)
 
     !Timers
-    double precision:: con2gridToTTime=0.0d0
+    double precision:: con2gridToTTime=0.0d0, preAvgTotTime=0.0d0, avgTotTime=0.0d0
     double precision:: l1TotTime=0.0d0, l2TotTime=0.0d0, l3TotTime=0.0d0, l4TotTime=0.0d0, l5TotTime=0.0d0
     double precision:: l6TotTime=0.0d0, l7TotTime=0.0d0, l8TotTime=0.0d0, l9TotTime=0.0d0, l10TotTime=0.0d0
     double precision:: l11TotTime=0.0d0, l12TotTime=0.0d0, l13TotTime=0.0d0, l14TotTime=0.0d0, l15TotTime=0.0d0
@@ -185,6 +185,9 @@ program cgcDev
         double precision:: l5Start, l5End, l5Time
         double precision:: l6Start, l6End, l6Time
 
+        double precision:: preAvgStart, preAvgEnd, preAvgTime
+        double precision:: avgStart, avgEnd, avgTime
+
         !in while loop so accumulate
         double precision:: l7Start, l7End, l7Time=0.0d0
         double precision:: l8Start, l8End, l8Time=0.0d0
@@ -197,8 +200,12 @@ program cgcDev
         !
 
         double precision:: l15Start, l15End, l15Time
+        ! %      cumulative self     calls    
+        ! 7.32    763.92    84.85    23810  __contours_MOD_con2grid
+        ! 1.83   1067.81    21.25    23810  __contours_MOD_con2grid_avg
 
         startTime = omp_get_wtime()
+        preAvgStart = startTime()
 
         !Initialise crossing information:
 
@@ -290,12 +297,21 @@ program cgcDev
         !Here, qa(j,i) stands for the PV at latitude j-1/2,
         !from j = 1, ..., ngf.
 
+        preAvgEnd = omp_get_wtime()
+        preAvgTime = preAvgStart - preAvgEnd
+    
         !----------------------------------------------------------------------
+        ! %      cumulative self     calls    
+        ! 7.32    763.92    84.85    23810  __contours_MOD_con2grid
+        ! 1.83   1067.81    21.25    23810  __contours_MOD_con2grid_avg
+
+        avgStart = omp_get_wtime()
+
         !Average PV values on the fine grid to get corresponding 
         !values on the inversion grid (ng,nt):
         ngh=ngf
         nth=ntf
-
+        
         do while (ngh .gt. ng) !need to precalc number of iters if want to parallelise with OMP
             !Pre-store PV adjacent to poles at complementary longitudes (+pi):
             nthh=nth/2
@@ -408,11 +424,14 @@ program cgcDev
         l15End = omp_get_wtime()
         l15Time = l15End - l15Start
 
+        avgEnd = omp_get_wtime()
+        avgTime = avgStart - avgEnd
+
         endTime = omp_get_wtime()
         totalTime = endTime - startTime
         print *, 'call', callCount, ' of con2grid took ', totalTime, ' seconds.'
 
-        call accumulateTimes(totalTime, &
+        call accumulateTimes(totalTime, preAvgTime, avgTime, &
                               l1Time, l2Time, l3Time, l4Time, l5Time, &
                               l6Time, l7Time, l8Time, l9Time, l10Time, &
                               l11Time, l12Time, l13Time, l14Time, l15Time)
@@ -427,13 +446,15 @@ program cgcDev
                               l11Time, l12Time, l13Time, l14Time, l15Time)
 
         !passed args
-        double precision:: totalTime
+        double precision:: totalTime, preAvgTime, avgTime
         double precision:: l1Time, l2Time, l3Time, l4Time, l5Time
         double precision:: l6Time, l7Time, l8Time, l9Time, l10Time
         double precision:: l11Time, l12Time, l13Time, l14Time, l15Time
 
         !accumulate times into total timers
         con2gridToTTime = con2gridToTTime + totalTime
+        preAvgTotTime = preAvgTotTime + preAvgTime
+        avgTotTime = avgTotTime + avgTime
         l1TotTime = l1TotTime + l1Time
         l2TotTime = l2TotTime + l2Time
         l3TotTime = l3TotTime + l3Time
