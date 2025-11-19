@@ -205,7 +205,7 @@ program cgcDev
         ! 1.83   1067.81    21.25    23810  __contours_MOD_con2grid_avg
 
         startTime = omp_get_wtime()
-        preAvgStart = startTime()
+        preAvgStart = startTime
 
         !Initialise crossing information:
 
