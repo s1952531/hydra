@@ -226,18 +226,6 @@ program cgcDev
         double precision:: preAvgStart, preAvgEnd, preAvgTime
         double precision:: avgStart, avgEnd, avgTime
 
-        !in while loop so accumulate
-        double precision:: l7Start, l7End, l7Time=0.0d0
-        double precision:: l8Start, l8End, l8Time=0.0d0
-        double precision:: l9Start, l9End, l9Time=0.0d0
-        double precision:: l10Start, l10End, l10Time=0.0d0
-        double precision:: l11Start, l11End, l11Time=0.0d0
-        double precision:: l12Start, l12End, l12Time=0.0d0
-        double precision:: l13Start, l13End, l13Time=0.0d0
-        double precision:: l14Start, l14End, l14Time=0.0d0
-        !
-
-        double precision:: l15Start, l15End, l15Time
         ! %      cumulative self     calls    
         ! 7.32    763.92    84.85    23810  __contours_MOD_con2grid
         ! 1.83   1067.81    21.25    23810  __contours_MOD_con2grid_avg
@@ -358,8 +346,6 @@ program cgcDev
             !Pre-store PV adjacent to poles at complementary longitudes (+pi):
             nthh=nth/2
             nghp1=ngh+1
-            !LOOP 7
-            l7Start = omp_get_wtime()
             do i=1,nthh
                 ic=i+nthh
                 qa(0,i)=qa(1,ic)
@@ -367,79 +353,51 @@ program cgcDev
                 qa(nghp1,i)=qa(ngh,ic)
                 qa(nghp1,ic)=qa(ngh,i)
             enddo
-            l7End = omp_get_wtime()
-            l7Time = l7Time + l7End - l7Start
 
             !Work from SP to NP to define PV at full latitudes from averages
             !at adjacent half latitudes:
-            !LOOP 8
-            l8Start = omp_get_wtime()
             do i=1,nth
                 do j=0,ngh
                 qa(j,i)=f12*(qa(j+1,i)+qa(j,i))
                 enddo
             enddo
-            l8End = omp_get_wtime()
-            l8Time = l8Time + l8End - l8Start
 
             !Now qa(j,i) is the PV at latitude j*(pi/ngh)-pi/2
 
             !Next 1-2-1 average these values to define PV at half latitudes
             !on a grid twice as coarse:
             nghh=ngh/2
-            !LOOP 9
-            l9Start = omp_get_wtime()
             do i=1,nth
                 do j=1,nghh
                 je=2*j
                 qa(j,i)=f12*qa(je-1,i)+f14*(qa(je-2,i)+qa(je,i))
                 enddo
             enddo
-            l9End = omp_get_wtime()
-            l9Time = l9Time + l9End - l9Start
 
             !Now perform analogous longitudinal 1-2-1 average:
-            !LOOP 10
-            l10Start = omp_get_wtime()
             do j=1,nghh
                 qaend(j)=f12*(qa(j,nth)+qa(j,1))
             enddo
-            l10End = omp_get_wtime()
-            l10Time = l10Time + l10End - l10Start
 
-            !LOOP 11
-            l11Start = omp_get_wtime()
             do i=1,nth-1
                 ip1=i+1
                 do j=1,nghh
                 qa(j,i)=f12*(qa(j,i)+qa(j,ip1))
                 enddo
             enddo
-            l11End = omp_get_wtime()
-            l11Time = l11Time + l11End - l11Start
 
-            !LOOP 12
-            l12Start = omp_get_wtime()
             do j=1,nghh
                 qa(j,nth)=qaend(j)
             enddo
-            l12End = omp_get_wtime()
-            l12Time = l12Time + l12End - l12Start
             !Now qa(j,i) gives the PV at the half-longitudes i + 1/2.
 
             !Average these on the twice coarser grid:
             nthh=nth/2
 
-            !LOOP 13
-            l13Start = omp_get_wtime()
             do j=1,nghh
                 qa(j,1)=f12*(qa(j,nth)+qa(j,1))
             enddo
-            l13End = omp_get_wtime()
-            l13Time = l13Time + l13End - l13Start
 
-            !LOOP 14
-            l14Start = omp_get_wtime()
             do i=2,nthh
                 io=2*i-1
                 ie=io-1
@@ -447,8 +405,6 @@ program cgcDev
                 qa(j,i)=f12*(qa(j,ie)+qa(j,io))
                 enddo
             enddo
-            l14End = omp_get_wtime()
-            l14Time = l14Time + l14End - l14Start
 
             ngh=nghh
             nth=nthh
@@ -456,15 +412,11 @@ program cgcDev
         enddo
 
         !Finalise and take away f to define PV anomaly:
-        !LOOP 15
-        l15Start = omp_get_wtime()
         do i=1,nt
             do j=1,ng
                 qc(j,i)=qa(j,i)-fcor(j)
             enddo
         enddo
-        l15End = omp_get_wtime()
-        l15Time = l15End - l15Start
 
         avgEnd = omp_get_wtime()
         avgTime = avgEnd - avgStart
@@ -475,8 +427,7 @@ program cgcDev
 
         call accumulateTimes(totalTime, preAvgTime, avgTime, &
                               l1Time, l2Time, l3Time, l4Time, l5Time, &
-                              l6Time, l7Time, l8Time, l9Time, l10Time, &
-                              l11Time, l12Time, l13Time, l14Time, l15Time)
+                              l6Time)
         
         return
         
@@ -484,8 +435,7 @@ program cgcDev
 
     subroutine accumulateTimes(totalTime, preAvgTime, avgTime, &
                               l1Time, l2Time, l3Time, l4Time, l5Time, &
-                              l6Time, l7Time, l8Time, l9Time, l10Time, &
-                              l11Time, l12Time, l13Time, l14Time, l15Time)
+                              l6Time)
 
         !passed args
         double precision:: totalTime, preAvgTime, avgTime
