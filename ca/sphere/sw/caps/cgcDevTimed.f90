@@ -85,10 +85,10 @@ program cgcDev
         call initVars
         
         do callCount = 1, numInputs
-            !call readInput
-            call readInputReversed
-            !call readOutputs
-            call readOutputsReversed
+            call readInput
+            !call readInputReversed
+            call readOutputs
+            !call readOutputsReversed
         end do
         call closeFiles
     end subroutine
@@ -159,6 +159,11 @@ program cgcDev
 
     subroutine readInput
         ! Reads in the contour data from a file "cgc_inputs.dat"
+
+        integer(kind=8) :: current_pos
+        inquire(unit=100, pos=current_pos)
+        print *, 'callCount: ', callCount
+        print *, 'Reading input at position: ', current_pos
 
         read(100) x_arr(:, callCount)
         read(100) y_arr(:, callCount)
@@ -511,6 +516,12 @@ program cgcDev
     end subroutine
 
     subroutine readOutputs
+
+        integer:: current_pos
+        inquire(unit=102, pos=current_pos)
+        print *, 'callCount: ', callCount
+        print *, 'Reading output at position: ', current_pos
+
         read(102) qc_arr(:,:, callCount)
         return
     end subroutine
