@@ -180,7 +180,7 @@ program cgcDev
         print *, 'Input block size: ', input_block_size
         print *, 'Call count: ', callCount
 
-        pos = filesize - input_block_size*callCount
+        pos = filesize - int(input_block_size*callCount, kind=8)
 
         read(100, pos=pos) x_arr(:, callCount)
         read(100) y_arr(:, callCount)
