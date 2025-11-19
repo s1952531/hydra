@@ -85,10 +85,10 @@ program cgcDev
         call initVars
         
         do callCount = 1, numInputs
-            !call readInput
-            call readInputReversed
-            !call readOutputs
-            call readOutputsReversed
+            call readInput
+            !call readInputReversed
+            call readOutputs
+            !call readOutputsReversed
         end do
         call closeFiles
     end subroutine
@@ -303,7 +303,7 @@ program cgcDev
         !Determine crossing indices:
         !LOOP 5
         l5Start = omp_get_wtime()
-        !$OMP PARALLEL DO
+        !$OMP PARALLEL DO SCHEDULE(GUIDED)
         do k=1,npt
             if (ntc(k) .ne. 0) then
                 jump=sign(1,ntc(k))
