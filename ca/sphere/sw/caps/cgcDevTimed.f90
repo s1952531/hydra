@@ -176,6 +176,10 @@ program cgcDev
         
         inquire(unit=100, size=filesize)
 
+        print *, 'File size of cgc_inputs.dat: ', filesize
+        print *, 'Input block size: ', input_block_size
+        print *, 'Call count: ', callCount
+
         pos = filesize - input_block_size*callCount
 
         read(100, pos=pos) x_arr(:, callCount)
@@ -510,6 +514,10 @@ program cgcDev
         
         inquire(unit=102, size=filesize)
         pos = filesize - qcSize*callCount
+
+        print *, 'File size of cgc_outputs.dat: ', filesize
+        print *, 'QC block size: ', qcSize
+        print *, 'Call count: ', callCount
 
         read(102, pos=pos) qc_arr(:,:, callCount)
 
