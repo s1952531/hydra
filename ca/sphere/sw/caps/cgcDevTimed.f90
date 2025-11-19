@@ -85,10 +85,10 @@ program cgcDev
         call initVars
         
         do callCount = 1, numInputs
-            call readInput
-            !call readInputReversed
-            call readOutputs
-            !call readOutputsReversed
+            !call readInput
+            call readInputReversed
+            !call readOutputs
+            call readOutputsReversed
         end do
         call closeFiles
     end subroutine
@@ -186,11 +186,7 @@ program cgcDev
         print *, 'Input block size: ', input_block_size
         print *, 'Call count: ', callCount
 
-        pos = filesize - int(input_block_size*callCount, kind=8)
-
-        if (callCount .eq. numInputs) then
-            pos = 1 !file start with stream access is position 1
-        end if
+        pos = 1_8 + filesize - int(input_block_size*callCount, kind=8)
 
         print *, 'Reading input at position: ', pos
 
@@ -531,15 +527,11 @@ program cgcDev
         integer:: pos
         
         inquire(unit=102, size=filesize)
-        pos = filesize - qcSize*callCount
+        pos = 1 + filesize - qcSize*callCount
 
         print *, 'File size of cgc_outputs.dat: ', filesize
         print *, 'QC block size: ', qcSize
         print *, 'Call count: ', callCount
-
-        if (callCount .eq. numInputs) then
-            pos = 1 !file start with stream access is position 1
-        end if
 
         read(102, pos=pos) qc_arr(:,:, callCount)
 
