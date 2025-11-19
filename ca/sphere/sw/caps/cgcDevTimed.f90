@@ -174,9 +174,9 @@ program cgcDev
         integer:: filesize
         integer:: pos
         
-        pos = filesize - input_block_size*callCount
-
         inquire(unit=100, size=filesize)
+
+        pos = filesize - input_block_size*callCount
 
         read(100, pos=pos) x_arr(:, callCount)
         read(100) y_arr(:, callCount)
