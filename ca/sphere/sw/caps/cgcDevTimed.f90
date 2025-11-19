@@ -43,6 +43,14 @@ program cgcDev
 
     double precision, allocatable:: qc_arr(:,:,:) !of shape (ng,nt, numInputs)
 
+    integer:: qcSize=size(qc) * storage_size(qc)/8 !div by 8 to get bytes
+    integer:: input_block_size= storage_size(x)/8 * size(x) + &
+                                storage_size(y)/8 * size(y) + &
+                                storage_size(z)/8 * size(z) + &
+                                storage_size(next)/8 * size(next) + &
+                                storage_size(npt)/8
+
+
     !Timers
     double precision:: con2gridToTTime=0.0d0, preAvgTotTime=0.0d0, avgTotTime=0.0d0
     double precision:: l1TotTime=0.0d0, l2TotTime=0.0d0, l3TotTime=0.0d0, l4TotTime=0.0d0, l5TotTime=0.0d0
@@ -76,8 +84,10 @@ program cgcDev
         call initVars
         
         do callCount = 1, numInputs
-            call readInput
-            call readOutputs
+            !call readInput
+            call readInputReversed
+            !call readOutputs
+            call readOutputsReversed
         end do
         call closeFiles
     end subroutine
@@ -121,7 +131,6 @@ program cgcDev
     subroutine getNumWrites
         !determine how many writes are in cgc_* files
         !inputs and outputs written same number of times, easier to calc size of cgc_outputs.dat since only qc written
-        integer:: qcSize=size(qc) * storage_size(qc)/8 !div by 8 to get bytes
         integer :: filesize
         
         inquire(unit=102, size=filesize)
@@ -149,8 +158,6 @@ program cgcDev
 
     subroutine readInput
         ! Reads in the contour data from a file "cgc_inputs.dat"
-        implicit double precision(a-h,o-z)
-        implicit integer(i-n)
 
         read(100) x_arr(:, callCount)
         read(100) y_arr(:, callCount)
@@ -158,6 +165,25 @@ program cgcDev
         read(100) next_arr(:, callCount)
         read(100) npt_arr(callCount)
         return
+    end subroutine
+
+    subroutine readInputReversed
+        !Reads in the contour data from a file "cgc_inputs.dat" in reverse order
+        !to test work balance
+
+        integer:: filesize
+        integer:: pos
+        
+        pos = filesize - input_block_size*callCount
+
+        inquire(unit=100, size=filesize)
+
+        read(100, pos=pos) x_arr(:, callCount)
+        read(100) y_arr(:, callCount)
+        read(100) z_arr(:, callCount)
+        read(100) next_arr(:, callCount)
+        read(100) npt_arr(callCount)
+
     end subroutine
 
     subroutine con2grid(qc)
@@ -475,6 +501,19 @@ program cgcDev
 
     subroutine readOutputs
         read(102) qc_arr(:,:, callCount)
+        return
+    end subroutine
+
+    subroutine readOutputsReversed
+        integer:: filesize
+        integer:: pos
+        
+        pos = filesize - qcSize*callCount
+
+        inquire(unit=102, size=filesize)
+
+        read(102, pos=pos) qc_arr(:,:, callCount)
+
         return
     end subroutine
 
