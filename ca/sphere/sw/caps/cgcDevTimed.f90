@@ -134,10 +134,10 @@ program cgcDev
         integer :: filesize
         
         inquire(unit=102, size=filesize)
-        print *, 'File size of cgc_outputs.dat: ', filesize
-        print *, 'Size of one qc array: ', qcSize
+        !print *, 'File size of cgc_outputs.dat: ', filesize
+        !print *, 'Size of one qc array: ', qcSize
         numInputs=filesize/qcSize
-        print *, 'Number of inputs/outputs in files: ', numInputs
+        !print *, 'Number of inputs/outputs in files: ', numInputs
 
         return
     end subroutine
@@ -161,8 +161,8 @@ program cgcDev
 
         integer(kind=8) :: current_pos
         inquire(unit=100, pos=current_pos)
-        print *, 'callCount: ', callCount
-        print *, 'Reading input at position: ', current_pos
+        !print *, 'callCount: ', callCount
+        !print *, 'Reading input at position: ', current_pos
 
         read(100) x_arr(:, callCount)
         read(100) y_arr(:, callCount)
@@ -181,13 +181,13 @@ program cgcDev
         
         inquire(unit=100, size=filesize)
 
-        print *, 'File size of cgc_inputs.dat: ', filesize
-        print *, 'Input block size: ', input_block_size
-        print *, 'Call count: ', callCount
+        !print *, 'File size of cgc_inputs.dat: ', filesize
+        !print *, 'Input block size: ', input_block_size
+        !print *, 'Call count: ', callCount
 
         pos = 1_8 + filesize - int(input_block_size*callCount, kind=8)
 
-        print *, 'Reading input at position: ', pos
+        !print *, 'Reading input at position: ', pos
 
         read(100, pos=pos) x_arr(:, callCount)
         read(100) y_arr(:, callCount)
@@ -460,8 +460,8 @@ program cgcDev
 
         integer:: current_pos
         inquire(unit=102, pos=current_pos)
-        print *, 'callCount: ', callCount
-        print *, 'Reading output at position: ', current_pos
+        !print *, 'callCount: ', callCount
+        !print *, 'Reading output at position: ', current_pos
 
         read(102) qc_arr(:,:, callCount)
         return
@@ -474,9 +474,9 @@ program cgcDev
         inquire(unit=102, size=filesize)
         pos = 1 + filesize - qcSize*callCount
 
-        print *, 'File size of cgc_outputs.dat: ', filesize
-        print *, 'QC block size: ', qcSize
-        print *, 'Call count: ', callCount
+        !print *, 'File size of cgc_outputs.dat: ', filesize
+        !print *, 'QC block size: ', qcSize
+        !print *, 'Call count: ', callCount
 
         read(102, pos=pos) qc_arr(:,:, callCount)
 
