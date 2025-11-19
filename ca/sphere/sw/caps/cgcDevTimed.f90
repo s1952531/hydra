@@ -510,6 +510,8 @@ program cgcDev
 
     subroutine printTimes
         print *, 'Total con2grid time: ', con2gridToTTime
+        print *, 'preAvg time', preAvgTotTime
+        print *, 'Avg time', avgTotTime
         print *, 'Loop 1 total time: ', l1TotTime
         print *, 'Loop 2 total time: ', l2TotTime
         print *, 'Loop 3 total time: ', l3TotTime
