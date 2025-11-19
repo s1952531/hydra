@@ -424,7 +424,7 @@ program cgcDev
 
         endTime = omp_get_wtime()
         totalTime = endTime - startTime
-        print *, 'call', callCount, ' of con2grid took ', totalTime, ' seconds.'
+        !print *, 'call', callCount, ' of con2grid took ', totalTime, ' seconds.'
 
         call accumulateTimes(totalTime, preAvgTime, avgTime, &
                               l1Time, l2Time, l3Time, l4Time, l5Time, &
