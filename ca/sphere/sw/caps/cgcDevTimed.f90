@@ -310,13 +310,15 @@ program cgcDev
                 ioff=ntf+ilm1(k)+(1+jump)/2
                 ncr=0
                 do while (ncr .ne. ntc(k))
-                i=1+mod(ioff+ncr,ntf)
-                rlatc=dlfi*(hpi+atan(cx(k)*clonf(i)+cy(k)*slonf(i)))
-                j=int(rlatc)+1
-                p=rlatc-dble(j-1)
-                qa(j,i)=  qa(j,i)+(one-p)*sq(k)
-                qa(j+1,i)=qa(j+1,i)+    p*sq(k)
-                ncr=ncr+jump
+                    i=1+mod(ioff+ncr,ntf)
+                    rlatc=dlfi*(hpi+atan(cx(k)*clonf(i)+cy(k)*slonf(i)))
+                    j=int(rlatc)+1
+                    p=rlatc-dble(j-1)
+                    !$OMP ATOMIC
+                    qa(j,i)=  qa(j,i)+(one-p)*sq(k)
+                    !$OMP ATOMIC
+                    qa(j+1,i)=qa(j+1,i)+    p*sq(k)
+                    ncr=ncr+jump
                 enddo
             endif
         enddo
