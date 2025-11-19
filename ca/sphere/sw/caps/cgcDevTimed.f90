@@ -441,8 +441,7 @@ program cgcDev
         !passed args
         double precision:: totalTime, preAvgTime, avgTime
         double precision:: l1Time, l2Time, l3Time, l4Time, l5Time
-        double precision:: l6Time, l7Time, l8Time, l9Time, l10Time
-        double precision:: l11Time, l12Time, l13Time, l14Time, l15Time
+        double precision:: l6Time
 
         !accumulate times into total timers
         con2gridToTTime = con2gridToTTime + totalTime
@@ -454,15 +453,6 @@ program cgcDev
         l4TotTime = l4TotTime + l4Time
         l5TotTime = l5TotTime + l5Time
         l6TotTime = l6TotTime + l6Time
-        l7TotTime = l7TotTime + l7Time
-        l8TotTime = l8TotTime + l8Time
-        l9TotTime = l9TotTime + l9Time
-        l10TotTime = l10TotTime + l10Time
-        l11TotTime = l11TotTime + l11Time
-        l12TotTime = l12TotTime + l12Time
-        l13TotTime = l13TotTime + l13Time
-        l14TotTime = l14TotTime + l14Time
-        l15TotTime = l15TotTime + l15Time
         return
     end subroutine
 
