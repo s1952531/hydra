@@ -508,9 +508,8 @@ program cgcDev
         integer:: filesize
         integer:: pos
         
-        pos = filesize - qcSize*callCount
-
         inquire(unit=102, size=filesize)
+        pos = filesize - qcSize*callCount
 
         read(102, pos=pos) qc_arr(:,:, callCount)
 
