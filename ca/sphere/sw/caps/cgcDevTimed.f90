@@ -298,7 +298,7 @@ program cgcDev
         !from j = 1, ..., ngf.
 
         preAvgEnd = omp_get_wtime()
-        preAvgTime = preAvgStart - preAvgEnd
+        preAvgTime = preAvgEnd - preAvgStart
     
         !----------------------------------------------------------------------
         ! %      cumulative self     calls    
@@ -425,7 +425,7 @@ program cgcDev
         l15Time = l15End - l15Start
 
         avgEnd = omp_get_wtime()
-        avgTime = avgStart - avgEnd
+        avgTime = avgEnd - avgStart
 
         endTime = omp_get_wtime()
         totalTime = endTime - startTime
