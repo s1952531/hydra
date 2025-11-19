@@ -183,6 +183,10 @@ program cgcDev
 
         pos = filesize - int(input_block_size*callCount, kind=8)
 
+        if (callCount .eq. numInputs) then
+            pos = 1 !file start with stream access is position 1
+        end if
+
         print *, 'Reading input at position: ', pos
 
         read(100, pos=pos) x_arr(:, callCount)
@@ -521,6 +525,10 @@ program cgcDev
         print *, 'File size of cgc_outputs.dat: ', filesize
         print *, 'QC block size: ', qcSize
         print *, 'Call count: ', callCount
+
+        if (callCount .eq. numInputs) then
+            pos = 1 !file start with stream access is position 1
+        end if
 
         read(102, pos=pos) qc_arr(:,:, callCount)
 
