@@ -55,8 +55,7 @@ program cgcDev
     !Timers
     double precision:: con2gridToTTime=0.0d0, preAvgTotTime=0.0d0, avgTotTime=0.0d0
     double precision:: l1TotTime=0.0d0, l2TotTime=0.0d0, l3TotTime=0.0d0, l4TotTime=0.0d0, l5TotTime=0.0d0
-    double precision:: l6TotTime=0.0d0, l7TotTime=0.0d0, l8TotTime=0.0d0, l9TotTime=0.0d0, l10TotTime=0.0d0
-    double precision:: l11TotTime=0.0d0, l12TotTime=0.0d0, l13TotTime=0.0d0, l14TotTime=0.0d0, l15TotTime=0.0d0
+    double precision:: l6TotTime=0.0d0
 
     call init
     
@@ -239,11 +238,11 @@ program cgcDev
             !!$OMP DO SCHEDULE(STATIC)
                 !LOOP 1
                 l1Start = omp_get_wtime()
-                !$OMP PARALLEL DO SCHEDULE(GUIDED)
+                !!$OMP PARALLEL DO SCHEDULE(GUIDED)
                 do k=1,npt
                     ilm1(k)=int(dlfi*(pi+atan2(y(k),x(k))))
                 enddo
-                !$OMP END PARALLEL DO
+                !!$OMP END PARALLEL DO
                 l1End = omp_get_wtime()
                 l1Time = l1End - l1Start
             !!$OMP END DO
@@ -534,15 +533,6 @@ program cgcDev
         print *, 'Loop 4 total time: ', l4TotTime
         print *, 'Loop 5 total time: ', l5TotTime
         print *, 'Loop 6 total time: ', l6TotTime
-        print *, 'Loop 7 total time: ', l7TotTime
-        print *, 'Loop 8 total time: ', l8TotTime
-        print *, 'Loop 9 total time: ', l9TotTime
-        print *, 'Loop 10 total time: ', l10TotTime
-        print *, 'Loop 11 total time: ', l11TotTime
-        print *, 'Loop 12 total time: ', l12TotTime
-        print *, 'Loop 13 total time: ', l13TotTime
-        print *, 'Loop 14 total time: ', l14TotTime
-        print *, 'Loop 15 total time: ', l15TotTime
         return
     end subroutine
 
