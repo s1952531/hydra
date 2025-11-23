@@ -308,6 +308,8 @@ program cgcDev
                     !!$OMP ATOMIC
                     qa(j+1,i)=qa(j+1,i)+    p*sq(k)
                     ncr=ncr+jump
+
+                    !print *, 'i,j', i, ',', j
                 enddo
             endif
         enddo
