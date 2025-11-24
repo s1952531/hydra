@@ -582,7 +582,7 @@ do k=1,npt
   ntc(k)=ntc(k)-nLongFGridPts*((2*ntc(k))/nLongFGridPts)
 
   !make sure ntc has same sign as cz(k) after the wrapping (potential sign flip above)
-  !why not just *-1? 
+  !why not just *-1; is it always flipped? 
   if (sig*dble(ntc(k)) .lt. zero) ntc(k)=-ntc(k) 
 
   !if there is an east-west direction to the contour section  
@@ -603,23 +603,26 @@ enddo
 
  !Determine crossing indices:
 do k=1,npt
-  if (ntc(k) .ne. 0) then !if there is a longitudinal crossing
-    jump=sign(1,ntc(k))
+  if (ntc(k) .ne. 0) then !if there is a longitudinal crossing between k and ka
+    jump=sign(1,ntc(k)) !equal to sign of cz(k): +1 if eastward crossing, -1 if westward
     ioff=nLongFGridPts+ilm1(k)+(1+jump)/2 
-    !nLongFGridPts+ilm1(k) shifts ilm1 to (0, 2nLongFGridPts)
-    !(1+jump)/2 0 if eastward, 1 if westward crossing
+    !nLongFGridPts+ilm1(k) in range nLongFGridPts, 2nLongFGridPts
+    !(1+jump)/2 0 if westward, 1 if eastward crossing
+    !=> ioff in range nLongFGridPts to 2nLongFGridPts+1 so ioff+ncr always positive
 
-    ncr=0
-    do while (ncr .ne. ntc(k)) !loop through the latitudes crossed
+    ncr=0 
+    do while (ncr .ne. ntc(k)) !loop through the longitudes crossed
 
       !get longitudinal fine grid index of crossing
-      i=1+mod(ioff+ncr,nLongFGridPts) 
-      
+      i=1+mod(ioff+ncr,nLongFGridPts) !+1 means i in range 1 to nLongFGridPts. (Matching qa definition)
+                                      !ioff in range nLongFGridPts to 2nLongFGridPts+1
+                                      !since 0, nLongFGridPts+1 would give -ve i if jump= -1
+
       !get the latitude of crossing
       !recall slonf = sin( dLongF*dble(i-1)-pi ) !centered longitudes at -pi to pi
       rlatc=dLongFInv*(hpi+atan(cx(k)*clonf(i)+cy(k)*slonf(i))) 
 
-      j=int(rlatc)+1 !round up
+      j=int(rlatc)+1 !truncate then at 1 i.e. round up
       p=rlatc-dble(j-1)
 
       qa(j,i)=  qa(j,i)+(one-p)*sq(k)
