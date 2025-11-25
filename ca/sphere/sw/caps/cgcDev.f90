@@ -66,6 +66,7 @@ program cgcDev
     contains
 
     subroutine init
+        print *, 'Initializing...'
         call openFiles
         call initVars
         
@@ -74,6 +75,7 @@ program cgcDev
             call readOutputs
         end do
         call closeFiles
+        print *, 'Initialized'
     end subroutine
 
 
@@ -119,10 +121,10 @@ program cgcDev
         integer :: filesize
         
         inquire(unit=102, size=filesize)
-        print *, 'File size of cgc_outputs.dat: ', filesize
-        print *, 'Size of one qc array: ', qcSize
+        !print *, 'File size of cgc_outputs.dat: ', filesize
+        !print *, 'Size of one qc array: ', qcSize
         numInputs=filesize/qcSize
-        print *, 'Number of inputs/outputs in files: ', numInputs
+        !print *, 'Number of inputs/outputs in files: ', numInputs
 
         return
     end subroutine
