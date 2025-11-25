@@ -131,14 +131,14 @@ program cgcDev
 
 
     subroutine openFiles
-        open(1, file="loop5_k_ij.txt", action='write', status='replace')
+        open(10, file="loop5_k_ij.txt", action='write', status='replace')
         open(100, file="cgc_inputs.dat", status='old', action='read', access='stream', form='unformatted')
         open(102, file="cgc_outputs.dat", status='old', action='read', access='stream', form='unformatted')
         return
     end subroutine
 
     subroutine closeFiles
-        close(1)
+        close(10)
         close(100)
         close(102)
         return
@@ -228,7 +228,7 @@ program cgcDev
                 qa(j+1,i)=qa(j+1,i)+    p*sq(k)
                 ncr=ncr+jump
 
-                write(1,*) 'k=',k,' i=',i,' j=',j
+                write(10,*) 'k=',k,' i=',i,' j=',j
                 enddo
             endif
         enddo
