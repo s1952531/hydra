@@ -183,7 +183,7 @@ program cgcDev
                 enddo
             !!$OMP END DO
 
-            !$OMP DO SCHEDULE(STATIC)
+            !!$OMP DO SCHEDULE(STATIC)
                 do k=1,npt
                     ka=next(k)
                     cx(k)=z(k)*y(ka)-y(k)*z(ka)
