@@ -1,4 +1,5 @@
 program cgcDev
+    use omp_lib
     implicit none
 
     !constants for the default test case
@@ -80,6 +81,7 @@ program cgcDev
     contains
 
     subroutine init
+	print *, 'Initializing...'
         call openFiles
         call initVars
         
@@ -90,6 +92,7 @@ program cgcDev
             !call readOutputsReversed
         end do
         call closeFiles
+	print *, 'Initialized'
     end subroutine
 
 
@@ -200,6 +203,8 @@ program cgcDev
     subroutine con2grid(qc)
         ! Calculates the PV anomaly field (stored in qc) from the PV 
         ! contours (x,y,z).  Takes away Coriolis frequency (fcor).
+	
+	use omp_lib
 
         implicit double precision(a-h,o-z)
         implicit integer(i-n)
@@ -229,25 +234,30 @@ program cgcDev
         ! 7.32    763.92    84.85    23810  __contours_MOD_con2grid
         ! 1.83   1067.81    21.25    23810  __contours_MOD_con2grid_avg
 
+	!print *, "qa size (bytes): ", size(qa) * storage_size(qa)/8
+
         startTime = omp_get_wtime()
         preAvgStart = startTime
 
         !Initialise crossing information:
 
         !!$OMP PARALLEL DEFAULT(NONE) SHARED(npt,dlfi,x,y,z,next,ilm1,cx,cy,cz,ntc,sq, zero) PRIVATE(k,ka,sig)
+	    
+	    !print *, 'Loop 1...'
             !!$OMP DO SCHEDULE(STATIC)
                 !LOOP 1
                 l1Start = omp_get_wtime()
-                !$OMP PARALLEL DO SCHEDULE(GUIDED)
+                !!$OMP PARALLEL DO SCHEDULE(GUIDED)
                 do k=1,npt
                     ilm1(k)=int(dlfi*(pi+atan2(y(k),x(k))))
                 enddo
-                !$OMP END PARALLEL DO
+                !!$OMP END PARALLEL DO
                 l1End = omp_get_wtime()
                 l1Time = l1End - l1Start
             !!$OMP END DO
 
-            !!$OMP DO SCHEDULE(STATIC)
+            !print *, 'Loop 2...'
+	    !!$OMP DO SCHEDULE(STATIC)
                 !LOOP 2
                 l2Start = omp_get_wtime()
                 do k=1,npt
@@ -260,6 +270,7 @@ program cgcDev
                 l2End = omp_get_wtime()
                 l2Time = l2End - l2Start
                 
+		!print *, 'Loop 3...'
                 !LOOP 3
                 l3Start = omp_get_wtime()
                 do k=1,npt
@@ -279,6 +290,7 @@ program cgcDev
 
         !----------------------------------------------------------------------
         !Initialise PV jump array:
+	!print *, 'Loop 4...'
         !LOOP 4
         l4Start = omp_get_wtime()        
         do i=1,ntf
@@ -290,9 +302,10 @@ program cgcDev
         l4Time = l4End - l4Start
 
         !Determine crossing indices:
-        !LOOP 5
+	!LOOP 5
         l5Start = omp_get_wtime()
-        !$OMP PARALLEL DO SCHEDULE(GUIDED), REDUCTION(+:qa), PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump)
+        !print *, 'Loop 5...'
+	!$OMP PARALLEL DO SCHEDULE(GUIDED)!, REDUCTION(+:qa), PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump)
         do k=1,npt
             if (ntc(k) .ne. 0) then
                 jump=sign(1,ntc(k))
@@ -303,11 +316,14 @@ program cgcDev
                     rlatc=dlfi*(hpi+atan(cx(k)*clonf(i)+cy(k)*slonf(i)))
                     j=int(rlatc)+1
                     p=rlatc-dble(j-1)
-                    !!$OMP ATOMIC
+                    !!$OMP CRITICAL
+		    !print *, 'Thread ', omp_get_thread_num(), 'at k=', k, 'i, j: ', i, ',', j
+		    !!$OMP ATOMIC
                     qa(j,i)=  qa(j,i)+(one-p)*sq(k)
                     !!$OMP ATOMIC
                     qa(j+1,i)=qa(j+1,i)+    p*sq(k)
-                    ncr=ncr+jump
+                    !!$OMP END CRITICAL
+		    ncr=ncr+jump
 
                     !print *, 'i,j', i, ',', j
                 enddo
