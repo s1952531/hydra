@@ -53,6 +53,8 @@ program cgcDev
             z = z_arr(:, callCount)
             next = next_arr(:, callCount)
             npt = npt_arr(callCount)
+		
+	    write(10, *) 'Sample Call:', callCount
             call con2grid(qc)
             call compare_qcs
         end do
