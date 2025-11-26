@@ -53,8 +53,9 @@ program cgcDev
             z = z_arr(:, callCount)
             next = next_arr(:, callCount)
             npt = npt_arr(callCount)
-		
+	
 	    write(10, *) 'Sample Call:', callCount
+            call getContourIndiceRange
             call con2grid(qc)
             call compare_qcs
         end do
@@ -157,6 +158,15 @@ program cgcDev
         read(100) z_arr(:, callCount)
         read(100) next_arr(:, callCount)
         read(100) npt_arr(callCount)
+        return
+    end subroutine
+
+    subroutine getContourIndiceRange
+        integer:: k
+
+        do k=1,npt
+            print *, 'next(', k, ') = ', next(k)
+        enddo
         return
     end subroutine
 
