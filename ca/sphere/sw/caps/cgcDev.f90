@@ -344,7 +344,11 @@ program cgcDev
         double precision, intent(in) :: xk, yk, zk, cxk, cyk
 
         open(144, file="k_info.txt", status='unknown', action='write', position='append')
-        write(144,*) 'k=', k, ' x=', xk, ' y=', yk, ' z=', zk, ' ilm1=', ilm1k, ' ntc=', ntck, ' cx=', cxk, ' cy=', cyk
+        write(144,*) 'k=', k
+        write(144,*)'x=', xk, ' y=', yk, ' z=', zk 
+        write(144,*)'ilm1=', ilm1k
+        write(144,*)'ntc=', ntck 
+        write(144,*)'cx=', cxk, ' cy=', cyk
         close(144)
 
         return
