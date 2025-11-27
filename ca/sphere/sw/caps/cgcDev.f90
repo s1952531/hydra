@@ -56,6 +56,9 @@ program cgcDev
 	
 	    !write(10, *) 'Sample Call:', callCount
             write(11, *) 'Sample Call:', callCount
+            open(144, file="k_info.txt", status='replace', action='write')
+            write(144, *) 'Sample Call:', callCount
+            close(144)
             call getContourIndiceRange
             call con2grid(qc)
             call compare_qcs
@@ -144,7 +147,7 @@ program cgcDev
 
     subroutine closeFiles
         close(11)
-	close(10)
+	    close(10)
         close(100)
         close(102)
         return
