@@ -56,9 +56,7 @@ program cgcDev
 	
 	    !write(10, *) 'Sample Call:', callCount
             write(11, *) 'Sample Call:', callCount
-            open(144, file="k_info.txt", status='replace', action='write')
             write(144, *) 'Sample Call:', callCount
-            close(144)
             call getContourIndiceRange
             call con2grid(qc)
             call compare_qcs
@@ -142,6 +140,7 @@ program cgcDev
         open(10, file="loop5_k_ij.txt", action='write', status='replace')
         open(100, file="cgc_inputs.dat", status='old', action='read', access='stream', form='unformatted')
         open(102, file="cgc_outputs.dat", status='old', action='read', access='stream', form='unformatted')
+        open(144, file="k_info.txt", status='replace', action='write')
         return
     end subroutine
 
@@ -150,6 +149,7 @@ program cgcDev
 	    close(10)
         close(100)
         close(102)
+        close(144)
         return
     end subroutine
 
@@ -346,13 +346,11 @@ program cgcDev
         integer, intent(in) :: k, ilm1k, ntck
         double precision, intent(in) :: xk, yk, zk, cxk, cyk
 
-        open(144, file="k_info.txt", status='unknown', action='write', position='append')
         write(144,*) 'k=', k
         write(144,*)'x=', xk, ' y=', yk, ' z=', zk 
         write(144,*)'ilm1=', ilm1k
         write(144,*)'ntc=', ntck 
         write(144,*)'cx=', cxk, ' cy=', cyk
-        close(144)
 
         return
     end subroutine
