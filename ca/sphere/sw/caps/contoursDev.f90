@@ -1164,7 +1164,7 @@ subroutine write_corners()
   integer:: i
   cornerWriteCount = cornerWriteCount + 1
   open(150, file="corners.dat", status='unknown', position='append', action='write', form='formatted')
-  write(150, *) cornerWriteCount
+  write(150, *) "callCount", cornerWriteCount
   do i=1, size(corners)
     write(150, *) corners(i)
   enddo
