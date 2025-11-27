@@ -52,8 +52,6 @@ integer:: con2gridCallCount
 !boolean to signal if writing CGC inputs/outputs
 logical:: saveTime
 
-con2gridCallCount = 0
-
 contains 
 
 !=======================================================================
