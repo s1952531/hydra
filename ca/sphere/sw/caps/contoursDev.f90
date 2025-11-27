@@ -4,7 +4,7 @@ module contours
 ! spe suite of f90 codes.
 
 use constants
-use globals
+!use globals
 
 implicit none
 

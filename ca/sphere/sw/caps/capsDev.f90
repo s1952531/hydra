@@ -35,7 +35,7 @@
 program caps
 
 use common
-use globals
+!use globals
 
 implicit none
 
