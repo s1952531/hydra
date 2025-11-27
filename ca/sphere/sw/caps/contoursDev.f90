@@ -1122,7 +1122,7 @@ do lev=1,nlev
       if (np(n) .gt. 3) then
         !if saveTime, write corners to file
         if (saveTime) then
-          write_corners(corners)
+          call write_corners(corners)
         endif           
         i1a(n)=npt+1
         npt=npt+np(n)
