@@ -135,7 +135,7 @@ program cgcDev
 
 
     subroutine openFiles
-	open(11, file="loop5_contour_kBoundaries", action='write', status='replace')
+	    open(11, file="loop5_contour_kBoundaries", action='write', status='replace')
         open(10, file="loop5_k_ij.txt", action='write', status='replace')
         open(100, file="cgc_inputs.dat", status='old', action='read', access='stream', form='unformatted')
         open(102, file="cgc_outputs.dat", status='old', action='read', access='stream', form='unformatted')
@@ -343,7 +343,7 @@ program cgcDev
         integer, intent(in) :: k, ilm1k, ntck
         double precision, intent(in) :: xk, yk, zk, cxk, cyk
 
-        open(144, file="k_info.txt", status='old', action='write', position='append')
+        open(144, file="k_info.txt", status='unknown', action='write', position='append')
         write(144,*) 'k=', k, ' x=', xk, ' y=', yk, ' z=', zk, ' ilm1=', ilm1k, ' ntc=', ntck, ' cx=', cxk, ' cy=', cyk
         close(144)
 
