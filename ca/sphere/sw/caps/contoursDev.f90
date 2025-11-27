@@ -733,6 +733,10 @@ subroutine writeCGCInputs
   write(100) next
   write(100) npt
   close(100)
+
+  open(110, file="cgc_time.dat", status='unknown', position='append', action='write', form='formatted')
+  write(110,*) con2gridCallTime
+  close(110)
 end subroutine
 
 !========================================================================
@@ -1185,7 +1189,6 @@ subroutine write_corners()
          action='write', form='formatted')
 
     ! Write the call number
-    write(150,*) "time", t
     write(150,*) "writeCorners callCount", cornerWriteCount
     write(150,*) "con2grid callTime", con2gridCallTime
 
