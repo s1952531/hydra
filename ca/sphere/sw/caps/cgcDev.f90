@@ -54,8 +54,8 @@ program cgcDev
             next = next_arr(:, callCount)
             npt = npt_arr(callCount)
 	
-	        write(10, *) 'Sample Call:', callCount
-            print *, 'Sample Call:', callCount
+	    !write(10, *) 'Sample Call:', callCount
+            write(11, *) 'Sample Call:', callCount
             call getContourIndiceRange
             call con2grid(qc)
             call compare_qcs
@@ -135,6 +135,7 @@ program cgcDev
 
 
     subroutine openFiles
+	open(11, file="loop5_contour_kBoundaries", action='write', status='replace')
         open(10, file="loop5_k_ij.txt", action='write', status='replace')
         open(100, file="cgc_inputs.dat", status='old', action='read', access='stream', form='unformatted')
         open(102, file="cgc_outputs.dat", status='old', action='read', access='stream', form='unformatted')
@@ -142,7 +143,8 @@ program cgcDev
     end subroutine
 
     subroutine closeFiles
-        close(10)
+        close(11)
+	close(10)
         close(100)
         close(102)
         return
@@ -167,7 +169,7 @@ program cgcDev
 
         do k=1,npt
             if (next(k) .ne. k+1) then 
-                print *, 'ibeg', next(k), 'iend=', k
+                write(11,*) 'ibeg', next(k), 'iend=', k
             endif
         enddo
         return
@@ -243,7 +245,7 @@ program cgcDev
                 qa(j+1,i)=qa(j+1,i)+    p*sq(k)
                 ncr=ncr+jump
 
-                write(10,*) 'k=',k,' i=',i,' j=',j
+                !write(10,*) 'k=',k,' i=',i,' j=',j
                 enddo
             endif
         enddo
