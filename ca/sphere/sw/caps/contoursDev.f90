@@ -45,7 +45,7 @@ double precision:: fcor(ng)
 double precision:: qoff
 
 !Array to store corner npt indices during renoding:
-integer, allocatable :: corners(:) 
+  integer, allocatable :: corners(:) 
 integer:: cornerWriteCount
 
 !boolean to signal if writing CGC inputs/outputs
@@ -244,11 +244,12 @@ do i=1,npd
   endif
 enddo
 
-!store corner indices
-if (ncorn .gt. 0) then
-  corners=node+npt
-else
-  corners=zeros(0)
+! store corner indices
+if (allocated(corners)) deallocate(corners)
+
+if (ncorn > 0) then
+    allocate(corners(ncorn))
+    corners = node(1:ncorn) + npt
 endif
 
  !Calculate the cubic interpolation coefficients:
@@ -1165,17 +1166,31 @@ return
 end subroutine
 
 subroutine write_corners()
-  integer:: i
-  cornerWriteCount = cornerWriteCount + 1
-  open(150, file="corners.dat", status='unknown', position='append', action='write', form='formatted')
-  write(150, *) "callCount", cornerWriteCount
-  do i=1, size(corners)
-    if (corners(i) .ne. 0.0d0) then
-      write(150, *) corners(i)
-    endif
-  enddo
-  close(150)
-end subroutine
+    implicit none
+    integer :: i
+
+    ! Only proceed if corners exists and has data
+    if (.not. allocated(corners)) return
+    if (size(corners) == 0) return
+
+    ! Increment call count (assume cornerWriteCount is saved)
+    cornerWriteCount = cornerWriteCount + 1
+
+    ! Open the file in append mode
+    open(150, file="corners.dat", status='unknown', position='append', &
+         action='write', form='formatted')
+
+    ! Write the call number
+    write(150,*) "callCount", cornerWriteCount
+
+    ! Write each corner on a new line
+    do i = 1, size(corners)
+        write(150,*) corners(i)
+    end do
+
+    ! Close the file
+    close(150)
+end subroutine write_corners
 
 
 !==========================================================================
