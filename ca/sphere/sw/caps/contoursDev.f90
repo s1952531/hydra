@@ -44,6 +44,13 @@ double precision:: fcor(ng)
 !Basic parameters:
 double precision:: qoff
 
+!Array to store corner npt indices during renoding:
+integer, allocatable :: corners(:) 
+integer:: cornerWriteCount
+
+!boolean to signal if writing CGC inputs/outputs
+logical:: saveTime
+
 contains 
 
 !=======================================================================
@@ -183,6 +190,7 @@ implicit integer(i-n)
 
  !Passed arrays:
 double precision:: xd(nprm),yd(nprm),zd(nprm),xr(nprm),yr(nprm),zr(nprm)
+
  !Local parameters and arrays:
 double precision:: dx(npd),dy(npd),dz(npd),a(npd),b(npd),c(npd),d(npd),e(npd)
 double precision:: dsa(npd),dsb(npd)
@@ -235,6 +243,9 @@ do i=1,npd
        &       (c(i)*dsa(i)-dz(i)*dsb(i))**2+small3)
   endif
 enddo
+
+!store corner indices
+corners=node+npt
 
  !Calculate the cubic interpolation coefficients:
 do i=1,npd
@@ -542,11 +553,6 @@ double precision:: sq(npt)
 integer:: dt_curr
 integer:: numSteps
 integer:: saveStepSpace
-logical:: saveTime
-
-! print *, 'tsim=', tsim
-! print *, 't=', t
-! print *, 'dt=', dt
 
 numSteps = tsim / dt
 dt_curr = t / dt
@@ -769,6 +775,24 @@ integer:: loc(nsegm),list(nsegm),node(nsegm)
 integer:: i1a(nm),i2a(nm),nexta(npm)
  !Logicals:
 logical:: avail(npt)
+
+!corner write timing
+integer:: dt_curr
+integer:: numSteps
+integer:: saveStepSpace
+
+numSteps = tsim / dt
+dt_curr = t / dt
+! print *, 'Current time step: ', dt_curr
+saveStepSpace = numSteps / 100
+if (dt_curr .eq. 1) then
+  print *, 'Writing CGC every ', saveStepSpace, ' steps. There are ', numSteps, ' steps in total.'
+end if
+if (mod(dt_curr, saveStepSpace) == 0) then
+   saveTime = .true.
+else
+   saveTime = .false.
+endif
 
 !------------------------------------------------------------
 ! Calculate beginning and ending contours (jq1,jq2) for each 
@@ -1096,6 +1120,10 @@ do lev=1,nlev
       np(n)=npd
       if (npd .gt. 3) call renode(xd,yd,zd,npd,xa(npt+1),ya(npt+1),za(npt+1),np(n))
       if (np(n) .gt. 3) then
+        !if saveTime, write corners to file
+        if (saveTime) then
+          write_corners(corners)
+        endif           
         i1a(n)=npt+1
         npt=npt+np(n)
         i2a(n)=npt
@@ -1132,6 +1160,15 @@ enddo
 return
 end subroutine
 
+subroutine write_corners(corners)
+  cornerWriteCount = cornerWriteCount + 1
+  open(150, file="corners.dat", status='unknown', position='append', action='write', access='stream', form='formatted')
+  write(150) cornerWriteCount
+  do corner_k in corners
+    write(150) corner_k
+  enddo
+  close(150)
+end subroutine
 
 
 !==========================================================================
