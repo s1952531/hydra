@@ -1161,11 +1161,12 @@ return
 end subroutine
 
 subroutine write_corners(corners)
+  integer:: i
   cornerWriteCount = cornerWriteCount + 1
   open(150, file="corners.dat", status='unknown', position='append', action='write', access='stream', form='formatted')
   write(150) cornerWriteCount
-  do corner_k in corners
-    write(150) corner_k
+  do i=1, size(corners)
+    write(150) corners(i)
   enddo
   close(150)
 end subroutine
