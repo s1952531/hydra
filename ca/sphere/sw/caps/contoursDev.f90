@@ -47,9 +47,12 @@ double precision:: qoff
 !Array to store corner npt indices during renoding:
   integer, allocatable :: corners(:) 
 integer:: cornerWriteCount
+integer:: con2gridCallCount
 
 !boolean to signal if writing CGC inputs/outputs
 logical:: saveTime
+
+con2gridCallCount = 0
 
 contains 
 
@@ -571,6 +574,8 @@ if (mod(dt_curr, saveStepSpace) == 0) then
 else
    saveTime = .false.
 endif
+
+con2gridCallCount = con2gridCallCount + 1
 !----------------------------------------------------------------
 if (saveTime) then
   call writeCGCInputs
@@ -1181,7 +1186,8 @@ subroutine write_corners()
          action='write', form='formatted')
 
     ! Write the call number
-    write(150,*) "callCount", cornerWriteCount
+    write(150,*) "writeCorners callCount", cornerWriteCount
+    write(150,*) "con2grid callCount", con2gridCallCount
 
     ! Write each corner on a new line
     do i = 1, size(corners)
