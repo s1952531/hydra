@@ -245,7 +245,11 @@ do i=1,npd
 enddo
 
 !store corner indices
-corners=node+npt
+if (ncorn .gt. 0) then
+  corners=node+npt
+else
+  corners=zeros(0)
+endif
 
  !Calculate the cubic interpolation coefficients:
 do i=1,npd
@@ -1166,7 +1170,9 @@ subroutine write_corners()
   open(150, file="corners.dat", status='unknown', position='append', action='write', form='formatted')
   write(150, *) "callCount", cornerWriteCount
   do i=1, size(corners)
-    write(150, *) corners(i)
+    if (corners(i) .ne. 0.0d0) then
+      write(150, *) corners(i)
+    endif
   enddo
   close(150)
 end subroutine
