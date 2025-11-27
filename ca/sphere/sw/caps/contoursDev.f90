@@ -1122,7 +1122,7 @@ do lev=1,nlev
       if (np(n) .gt. 3) then
         !if saveTime, write corners to file
         if (saveTime) then
-          call write_corners(corners)
+          call write_corners()
         endif           
         i1a(n)=npt+1
         npt=npt+np(n)
@@ -1160,7 +1160,7 @@ enddo
 return
 end subroutine
 
-subroutine write_corners(corners)
+subroutine write_corners()
   integer:: i
   cornerWriteCount = cornerWriteCount + 1
   open(150, file="corners.dat", status='unknown', position='append', action='write', access='stream', form='formatted')
