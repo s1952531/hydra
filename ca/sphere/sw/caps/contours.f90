@@ -622,9 +622,10 @@ do k=1,npt
       !recall slonf = sin( dLongF*dble(i-1)-pi ) !centered longitudes at -pi to pi
       rlatc=dLongFInv*(hpi+atan(cx(k)*clonf(i)+cy(k)*slonf(i))) 
 
-      j=int(rlatc)+1 !truncate then at 1 i.e. round up
-      p=rlatc-dble(j-1)
+      j=int(rlatc)+1 !truncate then add 1 i.e. round up
+      p=rlatc-dble(j-1)  !this is fractional part of rlatc
 
+      !linear interpolation to distribute PV jump across adjacent latitudes?
       qa(j,i)=  qa(j,i)+(one-p)*sq(k)
       qa(j+1,i)=qa(j+1,i)+    p*sq(k)
 
