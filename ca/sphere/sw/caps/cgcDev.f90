@@ -232,6 +232,7 @@ program cgcDev
 
         !Determine crossing indices:
         do k=1,npt
+        call write_k_info(k, x(k), y(k), z(k), ilm1(k), ntc(k), cx(k), cy(k))
             if (ntc(k) .ne. 0) then
                 jump=sign(1,ntc(k))
                 ioff=ntf+ilm1(k)+(1+jump)/2
@@ -335,6 +336,17 @@ program cgcDev
                 qc(j,i)=qa(j,i)-fcor(j)
             enddo
         enddo
+        return
+    end subroutine
+
+    subroutine write_k_info(k, xk, yk, zk, ilm1k, ntck, cxk, cyk)
+        integer, intent(in) :: k, ilm1k, ntck
+        double precision, intent(in) :: xk, yk, zk, cxk, cyk
+
+        open(144, file="k_info.txt", status='old', action='write', position='append')
+        write(144,*) 'k=', k, ' x=', xk, ' y=', yk, ' z=', zk, ' ilm1=', ilm1k, ' ntc=', ntck, ' cx=', cxk, ' cy=', cyk
+        close(144)
+
         return
     end subroutine
 
