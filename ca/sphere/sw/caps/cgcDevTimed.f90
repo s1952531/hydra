@@ -316,6 +316,11 @@ program cgcDev
         !get even and contiguous i's for each thread using threadID and mod
         threadID=omp_get_thread_num() !to get in range 1 to numThreads
 
+	!$OMP CRITICAL
+            print *, 'Thread ID: ', threadID
+            print *, 'Number of threads: ', numThreads
+        !$OMP END CRITICAL
+
         chunk = ntf/numThreads
 
         start=threadID*chunk + 1
@@ -329,12 +334,18 @@ program cgcDev
     
 	    !!$OMP PARALLEL DO SCHEDULE(GUIDED)!, REDUCTION(+:qa), PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump)
         do k=1,npt
+	    !if (mod(k,1) .eq. 0) then
+                !$OMP CRITICAL
+                !print *, 'Thread ', omp_get_thread_num(), ' at k=', k
+                !$OMP END CRITICAL
+            !endif
             if (ntc(k) .ne. 0) then
                 jump=sign(1,ntc(k))
                 ioff=ntf+ilm1(k)+(1+jump)/2
                 ncr=0
                 do while (ncr .ne. ntc(k))
                     i=1+mod(ioff+ncr,ntf)
+		    ncr=ncr+jump
                     
                     !check if i in thread's range (start to end)
                     if (i < start .or. i > end) cycle
@@ -349,7 +360,6 @@ program cgcDev
                     !!$OMP ATOMIC
                     qa(j+1,i)=qa(j+1,i)+    p*sq(k)
                     !!$OMP END CRITICAL
-		    ncr=ncr+jump
 
                     !print *, 'i,j', i, ',', j
                 enddo
