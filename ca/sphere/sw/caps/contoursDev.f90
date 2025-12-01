@@ -577,7 +577,7 @@ endif
 con2gridCallTime = t
 !----------------------------------------------------------------
 if (saveTime) then
-  call writeCGCInputs
+  !call writeCGCInputs
 endif
 !----------------------------------------------------------------
  !Initialise crossing information:
@@ -717,7 +717,7 @@ do i=1,nt
 enddo
 !----------------------------------------------------------------
 if (saveTime) then
-  call writeCGCOutputs(qc)
+  !call writeCGCOutputs(qc)
 endif
 !----------------------------------------------------------------
 
