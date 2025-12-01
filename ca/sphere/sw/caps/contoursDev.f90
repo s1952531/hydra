@@ -1059,7 +1059,7 @@ do lev=1,nlev
           
           !print i and is and check if these are equal to repeat ks
           if (saveTime) then
-            call writeCommon(i, isb)
+            call writeCommon(i, is)
           endif    
 
           x(i)=x(i)+dxa
