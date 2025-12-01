@@ -1056,6 +1056,12 @@ do lev=1,nlev
             dza=f12*delz
           endif
            !Move node i & is to a common node; first deal with node i:
+          
+          !print i and is and check if these are equal to repeat ks
+          if (saveTime) then
+            call writeCommon(i, isb)
+          endif    
+
           x(i)=x(i)+dxa
           y(i)=y(i)+dya
           z(i)=z(i)+dza
@@ -1172,6 +1178,24 @@ enddo
 
 return
 end subroutine
+
+subroutine writeCommon(node1, node2)
+    implicit none
+    integer :: node1, node2
+
+    ! Open the file in append mode
+    open(200, file="common_nodes.dat", status='unknown', position='append', &
+         action='write', form='formatted')
+
+    !Write con2grid call time
+    write(200,*) "con2grid callTime", con2gridCallTime
+
+    ! Write the common nodes
+    write(200,*) "Common nodes:", node1, node2
+
+    ! Close the file
+    close(200)
+end subroutine writeCommon
 
 subroutine write_corners()
     implicit none
