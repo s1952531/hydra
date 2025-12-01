@@ -305,7 +305,29 @@ program cgcDev
 	!LOOP 5
         l5Start = omp_get_wtime()
         !print *, 'Loop 5...'
-	!$OMP PARALLEL DO SCHEDULE(GUIDED)!, REDUCTION(+:qa), PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump)
+
+    !split i's across threads
+        !i's in range 1 to ntf
+    !$OMP PARALLEL PRIVATE(threadID, numThreads, chunk, start, end)
+        threadID=omp_get_thread_num()
+        numThreads=omp_get_num_threads()
+        !allocate(thread_is(0:numThreads-1, 2))
+
+        !get even and contiguous i's for each thread using threadID and mod
+        threadID=omp_get_thread_num() !to get in range 1 to numThreads
+
+        chunk = ntf/numThreads
+
+        start=threadID*chunk + 1
+        if (threadID .ne. numThreads-1) then
+            end=start + chunk - 1
+        else
+            end=ntf
+        endif
+        !thread_is(threadID, 1)=start
+        !thread_is(threadID, 2)=end
+    
+	    !!$OMP PARALLEL DO SCHEDULE(GUIDED)!, REDUCTION(+:qa), PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump)
         do k=1,npt
             if (ntc(k) .ne. 0) then
                 jump=sign(1,ntc(k))
@@ -313,6 +335,10 @@ program cgcDev
                 ncr=0
                 do while (ncr .ne. ntc(k))
                     i=1+mod(ioff+ncr,ntf)
+                    
+                    !check if i in thread's range (start to end)
+                    if (i < start .or. i > end) cycle
+
                     rlatc=dlfi*(hpi+atan(cx(k)*clonf(i)+cy(k)*slonf(i)))
                     j=int(rlatc)+1
                     p=rlatc-dble(j-1)
@@ -329,7 +355,8 @@ program cgcDev
                 enddo
             endif
         enddo
-        !$OMP END PARALLEL DO
+        !!$OMP END PARALLEL DO
+    !$OMP END PARALLEL
         l5End = omp_get_wtime()
         l5Time = l5End - l5Start
 
