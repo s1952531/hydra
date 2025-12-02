@@ -573,6 +573,9 @@ double precision:: sq(npt)
 ! else
 !    saveTime = .false.
 ! endif
+
+integer itime, jtime
+
 itime = nint(t/dt)
 jtime = itime / writeStepSpace
 if (writeStepSpace*jtime .eq. itime) saveTime = .true.
@@ -793,9 +796,9 @@ integer:: i1a(nm),i2a(nm),nexta(npm)
 logical:: avail(npt)
 
 !corner write timing
-integer:: dt_curr
-integer:: numSteps
-integer:: saveStepSpace
+! integer:: dt_curr
+! integer:: numSteps
+! integer:: saveStepSpace
 
 ! numSteps = tsim / dt
 ! dt_curr = t / dt
