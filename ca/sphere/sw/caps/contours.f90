@@ -792,16 +792,24 @@ enddo
 !------------------------------------------------------------------------
  !Define longitude in the array lonc:
 do i=1,npt
-  xx=atan2(y(i),x(i))
-  lonc(i)=xx-twopi*dble(int(xx*hlxi))
+  xx=atan2(y(i),x(i)) !longitude in range -pi to pi (inclusive)
+  lonc(i)=xx-twopi*dble(int(xx*hlxi)) !hlxi=1/(pi+small) 
+  !lonc(i) is just xx since xx*hlxi is practically in range -1 to 1 exclusive
+  !and int truncates toward zero
 enddo
 
 !------------------------------------------------------------------------
  !Get work arrays for efficient surgery:
 do i=1,npt
   ia=next(i)
-  xx=lonc(ia)-lonc(i)
+  xx=lonc(ia)-lonc(i) !could be in range -2pi to 2pi
   dlonc(i)=xx-twopi*dble(int(xx*hlxi))
+  !int(xx*hlxi) is
+  !  -1 if -2pi <= xx < -pi
+  !   0 if -pi <= xx <= pi
+  !  +1 if pi < xx <= 2pi
+  !  so dlonc(i) is always in range -pi to pi
+
    !dlonc: the change in longitude from node i to node ia
   dx(i)=x(ia)-x(i)
   dy(i)=y(ia)-y(i)
