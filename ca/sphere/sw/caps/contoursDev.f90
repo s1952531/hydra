@@ -550,7 +550,7 @@ subroutine con2grid(qc, t, writeStepSpace)
  !Passed arrays:
 double precision:: qc(ng,nt)
 double precision:: t
-integer:: writeStepSpace
+double precision:: writeStepSpace
 
  !Local arrays:
 double precision:: qa(0:ngf+1,ntf)
@@ -795,6 +795,10 @@ integer:: loc(nsegm),list(nsegm),node(nsegm)
 integer:: i1a(nm),i2a(nm),nexta(npm)
  !Logicals:
 logical:: avail(npt)
+
+!passed args:
+double precision:: writeStepSpace
+double precision:: t
 
 !corner write timing
 ! integer:: dt_curr
