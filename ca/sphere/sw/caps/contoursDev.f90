@@ -536,7 +536,7 @@ end subroutine
 
 !==========================================================================
 
-subroutine con2grid(qc, t)
+subroutine con2grid(qc, t, writeStepSpace)
 ! Calculates the PV anomaly field (stored in qc) from the PV 
 ! contours (x,y,z).  Takes away Coriolis frequency (fcor).
 
@@ -755,7 +755,7 @@ subroutine writeCGCOutputs(qc)
 end subroutine
 
 !========================================================================
-subroutine surgery
+subroutine surgery(writeStepSpace, t)
 ! Performs surgery and, afterwards, redistributes nodes
 
 ! Major revision 01/01/2001 by D. G. Dritschel to accelerate surgery

@@ -72,7 +72,7 @@ do while (t .le. tsim)
     endif
 
      !Regularise the PV contours (surgery + node redistribution):
-    call surgery
+    call surgery(writeStepSpace, t)
      !Record active contour complexity to complexity.asc:
     write(14,'(1x,f12.5,1x,i9,1x,i10)') t,n,npt
 
@@ -123,7 +123,7 @@ enddo
 call forfft(ng,nt,qs,trig,factors) 
 
  !Convert PV contours (x,y,z) to gridded PV anomaly as qc:
-call con2grid(qc, t)
+call con2grid(qc, t, writeStepSpace)
 
  !Convert qc to semi-spectral space:
 call forfft(ng,nt,qc,trig,factors) 
@@ -538,7 +538,7 @@ integer:: iopt
 !------------------------------------------------------------
 if (iopt .eq. 1) then
    !Convert PV contours (x,y,z) to gridded PV anomaly as qc:
-  call con2grid(qc, t)
+  call con2grid(qc, t, writeStepSpace)
 
    !Convert qc to semi-spectral space:
   call forfft(ng,nt,qc,trig,factors) 
@@ -577,7 +577,7 @@ double precision:: qa(ng,nt)
  !(see spectral.f90)
 
  !Convert PV contours (x,y,z) to gridded PV anomaly as qc:
-call con2grid(qc, t)
+call con2grid(qc, t, writeStepSpace)
 
  !Convert qc to semi-spectral space:
 call forfft(ng,nt,qc,trig,factors) 
