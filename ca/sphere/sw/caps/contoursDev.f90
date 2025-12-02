@@ -233,7 +233,7 @@ do i=1,npd
   if (corner(i)) then 
      !Keep track of corner locations for use in renoding below:
     ncorn=ncorn+1
-    node(ncorn)=i
+    node(ncorn)=i !node stores local indices of corners
      !Set curvature to zero at corners:
     d(i)=zero
   else
@@ -247,11 +247,11 @@ do i=1,npd
 enddo
 
 ! store corner indices
-if (allocated(corners)) deallocate(corners)
+if (allocated(corners)) deallocate(corners) !reset corners array
 
 if (ncorn > 0) then
     allocate(corners(ncorn))
-    corners = node(1:ncorn) + npt
+    corners = node(1:ncorn) + npt !get corners in global indexing
 endif
 
  !Calculate the cubic interpolation coefficients:
