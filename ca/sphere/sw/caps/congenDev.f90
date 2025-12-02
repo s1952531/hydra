@@ -313,22 +313,27 @@ integer(kind=halfint):: noctab(ntng)
 logical:: free(ncrm),keep
 
 !write corner timing
-integer:: dt_curr
-integer:: numSteps
-integer:: saveStepSpace
+! integer:: dt_curr
+! integer:: numSteps
+! integer:: saveStepSpace
 
-numSteps = tsim / dt
-dt_curr = t / dt
-! print *, 'Current time step: ', dt_curr
-saveStepSpace = numSteps / 100
-if (dt_curr .eq. 1) then
-  print *, 'Writing CGC every ', saveStepSpace, ' steps. There are ', numSteps, ' steps in total.'
-end if
-if (mod(dt_curr, saveStepSpace) == 0) then
-   saveTime = .true.
-else
-   saveTime = .false.
-endif
+! numSteps = tsim / dt
+! dt_curr = t / dt
+! ! print *, 'Current time step: ', dt_curr
+! saveStepSpace = numSteps / 100
+! if (dt_curr .eq. 1) then
+!   print *, 'Writing CGC every ', saveStepSpace, ' steps. There are ', numSteps, ' steps in total.'
+! end if
+! if (mod(dt_curr, saveStepSpace) == 0) then
+!    saveTime = .true.
+! else
+!    saveTime = .false.
+! endif
+
+!using writeStepSpace from common module
+itime = nint(t/dt)
+jtime = itime / writeStepSpace
+if (writeStepSpace*jtime .eq. itime) saveTime = .true.
 
 !--------------------------------------------------------
  !First get the beginning and ending contour levels:

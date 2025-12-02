@@ -557,27 +557,30 @@ double precision:: qaend(ngf/2)
 integer:: ilm1(npt),ntc(npt)
 double precision:: cx(npt),cy(npt),cz(npt)
 double precision:: sq(npt)
-integer:: dt_curr
-integer:: numSteps
-integer:: saveStepSpace
+! integer:: dt_curr
+! integer:: numSteps
+! integer:: saveStepSpace
 
-numSteps = tsim / dt
-dt_curr = t / dt
-! print *, 'Current time step: ', dt_curr
-saveStepSpace = numSteps / 100
-if (dt_curr .eq. 1) then
-  print *, 'Writing CGC every ', saveStepSpace, ' steps. There are ', numSteps, ' steps in total.'
-end if
-if (mod(dt_curr, saveStepSpace) == 0) then
-   saveTime = .true.
-else
-   saveTime = .false.
-endif
+! numSteps = tsim / dt
+! dt_curr = t / dt
+! ! print *, 'Current time step: ', dt_curr
+! saveStepSpace = numSteps / 100
+! if (dt_curr .eq. 1) then
+!   print *, 'Writing CGC every ', saveStepSpace, ' steps. There are ', numSteps, ' steps in total.'
+! end if
+! if (mod(dt_curr, saveStepSpace) == 0) then
+!    saveTime = .true.
+! else
+!    saveTime = .false.
+! endif
+itime = nint(t/dt)
+jtime = itime / writeStepSpace
+if (writeStepSpace*jtime .eq. itime) saveTime = .true.
 
 con2gridCallTime = t
 !----------------------------------------------------------------
 if (saveTime) then
-  !call writeCGCInputs
+  call writeCGCInputs
 endif
 !----------------------------------------------------------------
  !Initialise crossing information:
@@ -717,7 +720,7 @@ do i=1,nt
 enddo
 !----------------------------------------------------------------
 if (saveTime) then
-  !call writeCGCOutputs(qc)
+  call writeCGCOutputs(qc)
 endif
 !----------------------------------------------------------------
 
@@ -794,18 +797,22 @@ integer:: dt_curr
 integer:: numSteps
 integer:: saveStepSpace
 
-numSteps = tsim / dt
-dt_curr = t / dt
-! print *, 'Current time step: ', dt_curr
-saveStepSpace = numSteps / 100
-if (dt_curr .eq. 1) then
-  print *, 'Writing CGC every ', saveStepSpace, ' steps. There are ', numSteps, ' steps in total.'
-end if
-if (mod(dt_curr, saveStepSpace) == 0) then
-   saveTime = .true.
-else
-   saveTime = .false.
-endif
+! numSteps = tsim / dt
+! dt_curr = t / dt
+! ! print *, 'Current time step: ', dt_curr
+! saveStepSpace = numSteps / 100
+! if (dt_curr .eq. 1) then
+!   print *, 'Writing CGC every ', saveStepSpace, ' steps. There are ', numSteps, ' steps in total.'
+! end if
+! if (mod(dt_curr, saveStepSpace) == 0) then
+!    saveTime = .true.
+! else
+!    saveTime = .false.
+! endif
+
+itime = nint(t/dt)
+jtime = itime / writeStepSpace
+if (writeStepSpace*jtime .eq. itime) saveTime = .true.
 
 !------------------------------------------------------------
 ! Calculate beginning and ending contours (jq1,jq2) for each 

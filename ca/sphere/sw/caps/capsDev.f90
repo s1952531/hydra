@@ -201,6 +201,8 @@ ngsave=nint(tgsave/dt)
 ncsave=nint(tcsave/dt)
  !*** WARNING: tgsave and tcsave should be an integer multiple of dt
 
+writeStepSpace = ngsave
+
 return
 end subroutine initialise
 

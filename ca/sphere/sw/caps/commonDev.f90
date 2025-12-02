@@ -30,5 +30,6 @@ double precision:: t,twist
 
  !Number of time steps between grid and contour saves:
 double precision:: ngsave,ncsave
+double precision:: writeStepSpace
 
 end module
