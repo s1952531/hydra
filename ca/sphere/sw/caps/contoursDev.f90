@@ -579,7 +579,11 @@ integer itime, jtime
 
 itime = nint(t/dt)
 jtime = itime / writeStepSpace
-if (writeStepSpace*jtime .eq. itime) saveTime = .true.
+if (writeStepSpace*jtime .eq. itime) then
+  saveTime = .true.
+else
+  saveTime = .false.
+endif
 
 con2gridCallTime = t
 !----------------------------------------------------------------
@@ -820,7 +824,11 @@ double precision:: t
 
 itime = nint(t/dt)
 jtime = itime / writeStepSpace
-if (writeStepSpace*jtime .eq. itime) saveTime = .true.
+if (writeStepSpace*jtime .eq. itime) then
+  saveTime = .true.
+else
+  saveTime = .false.
+endif
 
 !------------------------------------------------------------
 ! Calculate beginning and ending contours (jq1,jq2) for each 
@@ -1215,6 +1223,9 @@ end subroutine writeCommon
 subroutine write_corners()
     implicit none
     integer :: i
+    integer:: itime
+
+    itime = nint(t/dt)
 
     ! Only proceed if corners exists and has data
     if (.not. allocated(corners)) return
@@ -1230,6 +1241,7 @@ subroutine write_corners()
     ! Write the call number
     write(150,*) "writeCorners callCount", cornerWriteCount
     write(150,*) "con2grid callTime", con2gridCallTime
+    write(150,*) "itime", itime
 
     ! Write each corner on a new line
     do i = 1, size(corners)

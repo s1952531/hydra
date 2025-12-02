@@ -333,7 +333,11 @@ logical:: free(ncrm),keep
 !using writeStepSpace from common module
 itime = nint(t/dt)
 jtime = itime / writeStepSpace
-if (writeStepSpace*jtime .eq. itime) saveTime = .true.
+if (writeStepSpace*jtime .eq. itime) then
+  saveTime = .true.
+else
+  saveTime = .false.
+endif
 
 !--------------------------------------------------------
  !First get the beginning and ending contour levels:
