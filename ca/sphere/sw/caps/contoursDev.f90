@@ -1223,9 +1223,6 @@ end subroutine writeCommon
 subroutine write_corners()
     implicit none
     integer :: i
-    integer:: itime
-
-    itime = nint(t/dt)
 
     ! Only proceed if corners exists and has data
     if (.not. allocated(corners)) return
@@ -1241,7 +1238,6 @@ subroutine write_corners()
     ! Write the call number
     write(150,*) "writeCorners callCount", cornerWriteCount
     write(150,*) "con2grid callTime", con2gridCallTime
-    write(150,*) "itime", itime
 
     ! Write each corner on a new line
     do i = 1, size(corners)
