@@ -588,7 +588,7 @@ endif
 con2gridCallTime = t
 !----------------------------------------------------------------
 if (saveTime) then
-  call writeCGCInputs
+  !call writeCGCInputs
 endif
 !----------------------------------------------------------------
  !Initialise crossing information:
@@ -728,7 +728,7 @@ do i=1,nt
 enddo
 !----------------------------------------------------------------
 if (saveTime) then
-  call writeCGCOutputs(qc)
+  !call writeCGCOutputs(qc)
 endif
 !----------------------------------------------------------------
 
@@ -1081,9 +1081,9 @@ do lev=1,nlev
            !Move node i & is to a common node; first deal with node i:
           
           !print i and is and check if these are equal to repeat ks
-          if (saveTime) then
-            call writeCommon(i, is)
-          endif    
+          !if (saveTime) then
+          call writeCommon(i, is, t)
+          !endif    
 
           x(i)=x(i)+dxa
           y(i)=y(i)+dya
@@ -1163,9 +1163,9 @@ do lev=1,nlev
       if (npd .gt. 3) call renode(xd,yd,zd,npd,xa(npt+1),ya(npt+1),za(npt+1),np(n))
       if (np(n) .gt. 3) then
         !if saveTime, write corners to file
-        if (saveTime) then
-          call write_corners()
-        endif           
+        !if (saveTime) then
+        call write_corners(t)
+        !endif           
         i1a(n)=npt+1
         npt=npt+np(n)
         i2a(n)=npt
@@ -1202,16 +1202,17 @@ enddo
 return
 end subroutine
 
-subroutine writeCommon(node1, node2)
+subroutine writeCommon(node1, node2, t)
     implicit none
     integer :: node1, node2
+    double precision :: t
 
     ! Open the file in append mode
     open(200, file="common_nodes.dat", status='unknown', position='append', &
          action='write', form='formatted')
 
     !Write con2grid call time
-    write(200,*) "con2grid callTime", con2gridCallTime
+    write(200,*) "t: ", t
 
     ! Write the common nodes
     write(200,*) "Common nodes:", node1, node2
@@ -1220,9 +1221,10 @@ subroutine writeCommon(node1, node2)
     close(200)
 end subroutine writeCommon
 
-subroutine write_corners()
+subroutine write_corners(t)
     implicit none
     integer :: i
+    double precision :: t
 
     ! Only proceed if corners exists and has data
     if (.not. allocated(corners)) return
@@ -1236,8 +1238,7 @@ subroutine write_corners()
          action='write', form='formatted')
 
     ! Write the call number
-    write(150,*) "writeCorners callCount", cornerWriteCount
-    write(150,*) "con2grid callTime", con2gridCallTime
+    write(150,*) "t: ", t
 
     ! Write each corner on a new line
     do i = 1, size(corners)

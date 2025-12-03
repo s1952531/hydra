@@ -487,7 +487,7 @@ do lev=levbeg,levend
       if (keep) then 
         !if saveTime, write corners to file
         if (saveTime) then
-          call write_corners()
+          call write_corners(t)
         end if
         
         npt=npt+np(n)
