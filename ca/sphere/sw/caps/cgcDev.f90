@@ -55,9 +55,10 @@ program cgcDev
             npt = npt_arr(callCount)
 	
 	    !write(10, *) 'Sample Call:', callCount
-            write(11, *) 'Sample Call:', callCount
-            write(144, *) 'Sample Call:', callCount
-            call getContourIndiceRange
+            !write(11, *) 'Sample Call:', callCount
+            !write(144, *) 'Sample Call:', callCount
+            write(150, *) 'Sample Call:', callCount
+            !call getContourIndiceRange
             call con2grid(qc)
             call compare_qcs
         end do
@@ -141,6 +142,7 @@ program cgcDev
         open(100, file="cgc_inputs.dat", status='old', action='read', access='stream', form='unformatted')
         open(102, file="cgc_outputs.dat", status='old', action='read', access='stream', form='unformatted')
         open(144, file="k_info.txt", status='replace', action='write')
+        open(150, file="contour_continuous.txt", status='replace', action='write')
         return
     end subroutine
 
@@ -150,6 +152,7 @@ program cgcDev
         close(100)
         close(102)
         close(144)
+        close(150)
         return
     end subroutine
 
@@ -194,12 +197,19 @@ program cgcDev
         double precision:: cx(npt),cy(npt),cz(npt)
         double precision:: sq(npt)
 
+        double precision:: i_cont, j_cont
+
         !Initialise crossing information:
 
         !!$OMP PARALLEL DEFAULT(NONE) SHARED(npt,dlfi,x,y,z,next,ilm1,cx,cy,cz,ntc,sq, zero) PRIVATE(k,ka,sig)
             !!$OMP DO SCHEDULE(STATIC)
                 do k=1,npt
                     ilm1(k)=int(dlfi*(pi+atan2(y(k),x(k))))
+
+                    i_cont=dlfi*(pi+atan2(y(k),x(k)))
+                    j_cont= (atan2(z(k),sqrt(x(k)**2 + y(k)**2)) + hpi)*dble(ntf)/pi
+                    !write non int() value to file to plot continuous space ilm1
+                    write(150,*) "k:", k, "i:", i_cont, "j:", j_cont
                 enddo
             !!$OMP END DO
 
@@ -235,7 +245,7 @@ program cgcDev
 
         !Determine crossing indices:
         do k=1,npt
-        call write_k_info(k, x(k), y(k), z(k), ilm1(k), ntc(k), cx(k), cy(k))
+        !call write_k_info(k, x(k), y(k), z(k), ilm1(k), ntc(k), cx(k), cy(k))
             if (ntc(k) .ne. 0) then
                 jump=sign(1,ntc(k))
                 ioff=ntf+ilm1(k)+(1+jump)/2
