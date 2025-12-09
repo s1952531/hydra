@@ -73,6 +73,7 @@ program cgcDev
             next = next_arr(:, callCount)
             npt = npt_arr(callCount)
 
+            call readRepeatKs
             call getNonRepeatKs
 
             call con2grid(qc)
@@ -97,7 +98,6 @@ program cgcDev
             !call readInputReversed
             call readOutputs
             !call readOutputsReversed
-            call readRepeatKs
         end do
         call closeFiles
 	print *, 'Initialized'
@@ -171,6 +171,8 @@ program cgcDev
         integer :: unit, val, count, ios
         character(len=256) :: filename
 
+        print *, 'Loading repeat ks for call ', callCount
+
         ! Build filename from global callCount
         write(filename, '(A,I0,A)') 'RepeatKFiles/repeatKs_call_', callCount, '.txt'
 
@@ -189,10 +191,11 @@ program cgcDev
             callsRepeatKs(count) = val
         end do
 
+        print *, 'Loaded'
+
         close(unit)
 
     end subroutine
-
 
     subroutine readInput
         ! Reads in the contour data from a file "cgc_inputs.dat"
