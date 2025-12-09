@@ -238,7 +238,9 @@ program cgcDev
         end if
         allocate(callsRepeatKs(count))
 
-        call move_alloc(temp(1:count), callsRepeatKs)
+        callsRepeatKs(:) = temp(1:count)
+
+        deallocate(temp)
 
         print *, 'Loaded ', count, ' repeat ks.'
 
