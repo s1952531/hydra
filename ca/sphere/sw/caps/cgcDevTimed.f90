@@ -230,10 +230,13 @@ program cgcDev
         close(unit)
 
         ! Allocate callsRepeatKs to exact size using move_alloc
+
         if (allocated(callsRepeatKs)) then
             deallocate(callsRepeatKs)
         end if
         allocate(callsRepeatKs(count))
+
+        print *, 'moving temp(1:count) to callsRepeatKs...'
         call move_alloc(temp(1:count), callsRepeatKs)
 
         deallocate(temp)
