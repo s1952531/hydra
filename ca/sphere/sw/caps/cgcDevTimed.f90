@@ -58,6 +58,10 @@ program cgcDev
     double precision:: l1TotTime=0.0d0, l2TotTime=0.0d0, l3TotTime=0.0d0, l4TotTime=0.0d0, l5TotTime=0.0d0
     double precision:: l6TotTime=0.0d0
 
+    !hard coded repeat ks
+    integer, allocatable :: callsRepeatKs(:)
+    integer, allocatable :: nonRepeatKs(:)
+
     call init
     
     !main loop
@@ -68,6 +72,9 @@ program cgcDev
             z = z_arr(:, callCount)
             next = next_arr(:, callCount)
             npt = npt_arr(callCount)
+
+            call getNonRepeatKs
+
             call con2grid(qc)
             call compare_qcs
         end do
@@ -90,6 +97,7 @@ program cgcDev
             !call readInputReversed
             call readOutputs
             !call readOutputsReversed
+            call readRepeatKs
         end do
         call closeFiles
 	print *, 'Initialized'
@@ -158,6 +166,33 @@ program cgcDev
         return
     end subroutine
 
+    subroutine readRepeatKs
+
+        integer :: unit, val, count, ios
+        character(len=256) :: filename
+
+        ! Build filename from global callCount
+        write(filename, '(A,I0,A)') 'RepeatKFiles/repeatKs_call_', callCount, '.txt'
+
+        ! Allocate array with global npt
+        allocate(callsRepeatKs(npt))
+        count = 0
+
+        ! Open file
+        open(newunit=unit, file=filename, status='old', action='read')
+
+        ! Read integers directly into data
+        do
+            read(unit, *, iostat=ios) val
+            if (ios /= 0) exit
+            count = count + 1
+            callsRepeatKs(count) = val
+        end do
+
+        close(unit)
+
+    end subroutine
+
 
     subroutine readInput
         ! Reads in the contour data from a file "cgc_inputs.dat"
@@ -199,6 +234,36 @@ program cgcDev
         read(100) npt_arr(callCount)
 
     end subroutine
+
+    subroutine getNonRepeatKs
+        !remove callsRepeatKs from array of all ks 1 to npt
+        integer :: totalKs
+        integer :: i, idx
+
+        allocate(nonRepeatKs(npt))
+
+        !initialize nonRepeatKs to all ks
+        totalKs = 0
+        do i=1,npt
+            nonRepeatKs(i) = i
+        enddo
+
+        !flag repeat ks for removal
+        do i=1,size(callsRepeatKs)
+            idx = callsRepeatKs(i)
+            nonRepeatKs(idx) = -1 !mark as removed
+        enddo
+
+        !compact array to only non-repeat ks
+        totalKs = 0
+        do i=1,npt
+            if (nonRepeatKs(i) /= -1) then
+                totalKs = totalKs + 1
+                nonRepeatKs(totalKs) = nonRepeatKs(i)
+            endif
+        enddo
+
+    end subroutine getNonRepeatKs
 
     subroutine con2grid(qc)
         ! Calculates the PV anomaly field (stored in qc) from the PV 
@@ -306,38 +371,66 @@ program cgcDev
         l5Start = omp_get_wtime()
         !print *, 'Loop 5...'
 
-    !split i's across threads
-        !i's in range 1 to ntf
-    !$OMP PARALLEL PRIVATE(threadID, numThreads, chunk, start, end)
-        threadID=omp_get_thread_num()
-        numThreads=omp_get_num_threads()
-        !allocate(thread_is(0:numThreads-1, 2))
+    ! !split i's across threads
+    !     !i's in range 1 to ntf
+    ! !$OMP PARALLEL PRIVATE(threadID, numThreads, chunk, start, end)
+    !     threadID=omp_get_thread_num()
+    !     numThreads=omp_get_num_threads()
+    !     !allocate(thread_is(0:numThreads-1, 2))
 
-        !get even and contiguous i's for each thread using threadID and mod
-        threadID=omp_get_thread_num() !to get in range 1 to numThreads
+    !     !get even and contiguous i's for each thread using threadID and mod
+    !     threadID=omp_get_thread_num() !to get in range 1 to numThreads
 
-	!$OMP CRITICAL
-            print *, 'Thread ID: ', threadID
-            print *, 'Number of threads: ', numThreads
-        !$OMP END CRITICAL
+	! !$OMP CRITICAL
+    !         print *, 'Thread ID: ', threadID
+    !         print *, 'Number of threads: ', numThreads
+    !     !$OMP END CRITICAL
 
-        chunk = ntf/numThreads
+    !     chunk = ntf/numThreads
 
-        start=threadID*chunk + 1
-        if (threadID .ne. numThreads-1) then
-            end=start + chunk - 1
-        else
-            end=ntf
-        endif
-        !thread_is(threadID, 1)=start
-        !thread_is(threadID, 2)=end
+    !     start=threadID*chunk + 1
+    !     if (threadID .ne. numThreads-1) then
+    !         end=start + chunk - 1
+    !     else
+    !         end=ntf
+    !     endif
+    !     !thread_is(threadID, 1)=start
+    !     !thread_is(threadID, 2)=end
     
+    !$OMP PARALLEL DO PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump)
 	    !!$OMP PARALLEL DO SCHEDULE(GUIDED)!, REDUCTION(+:qa), PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump)
-        do k=1,npt
-	    !if (mod(k,1) .eq. 0) then
-                !$OMP CRITICAL
-                !print *, 'Thread ', omp_get_thread_num(), ' at k=', k
-                !$OMP END CRITICAL
+        !do k=1,npt
+        !split k=1,npt into repeat and non-repeat ks. have master do repeat ks serially
+        !$OMP MASTER
+        do kk=1,size(callsRepeatKs)
+            k=callsRepeatKs(kk)
+            if (ntc(k) .ne. 0) then
+                jump=sign(1,ntc(k))
+                ioff=ntf+ilm1(k)+(1+jump)/2
+                ncr=0
+                do while (ncr .ne. ntc(k))
+                    i=1+mod(ioff+ncr,ntf)
+                    ncr=ncr+jump
+                    
+                    !check if i in thread's range (start to end)
+                    if (i < start .or. i > end) cycle
+
+                    rlatc=dlfi*(hpi+atan(cx(k)*clonf(i)+cy(k)*slonf(i)))
+                    j=int(rlatc)+1
+                    p=rlatc-dble(j-1)
+                    qa(j,i)=  qa(j,i)+(one-p)*sq(k)
+                    qa(j+1,i)=qa(j+1,i)+    p*sq(k)
+                enddo
+            endif
+        enddo
+        !$OMP END MASTER
+        
+        do kk=1,size(nonRepeatKs)
+            k=nonRepeatKs(kk)
+        !if (mod(k,1) .eq. 0) then
+                ! !$OMP CRITICAL
+                ! !print *, 'Thread ', omp_get_thread_num(), ' at k=', k
+                ! !$OMP END CRITICAL
             !endif
             if (ntc(k) .ne. 0) then
                 jump=sign(1,ntc(k))
@@ -345,7 +438,7 @@ program cgcDev
                 ncr=0
                 do while (ncr .ne. ntc(k))
                     i=1+mod(ioff+ncr,ntf)
-		    ncr=ncr+jump
+                    ncr=ncr+jump
                     
                     !check if i in thread's range (start to end)
                     if (i < start .or. i > end) cycle
@@ -354,8 +447,8 @@ program cgcDev
                     j=int(rlatc)+1
                     p=rlatc-dble(j-1)
                     !!$OMP CRITICAL
-		    !print *, 'Thread ', omp_get_thread_num(), 'at k=', k, 'i, j: ', i, ',', j
-		    !!$OMP ATOMIC
+                    !print *, 'Thread ', omp_get_thread_num(), 'at k=', k, 'i, j: ', i, ',', j
+                    !!$OMP ATOMIC
                     qa(j,i)=  qa(j,i)+(one-p)*sq(k)
                     !!$OMP ATOMIC
                     qa(j+1,i)=qa(j+1,i)+    p*sq(k)
