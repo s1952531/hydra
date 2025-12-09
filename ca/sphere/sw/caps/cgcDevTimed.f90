@@ -203,7 +203,7 @@ program cgcDev
         character(len=256) :: filename
         integer, allocatable :: temp(:)  ! temporary array, allocatable for move_alloc
 
-        print *, 'Loading repeat ks for call ', callCount
+        !print *, 'Loading repeat ks for call ', callCount
 
         ! Build filename from global callCount
         write(filename, '(A,I0,A)') 'RepeatKFiles/repeatKs_call_', callCount, '.txt'
@@ -227,7 +227,7 @@ program cgcDev
             temp(count) = val
         end do
 
-        print *, 'read ', count, ' repeat ks from file.'
+        !print *, 'read ', count, ' repeat ks from file.'
 
         close(unit)
 
@@ -242,7 +242,7 @@ program cgcDev
 
         deallocate(temp)
 
-        print *, 'Loaded ', count, ' repeat ks.'
+        !print *, 'Loaded ', count, ' repeat ks.'
 
     end subroutine
 
@@ -292,7 +292,7 @@ program cgcDev
         integer :: totalKs
         integer :: i, idx
 
-        print *, 'Calculating non-repeat ks for call ', callCount
+        !print *, 'Calculating non-repeat ks for call ', callCount
         !print *, 'npt=', npt, ' size(callsRepeatKs)=', size(callsRepeatKs)
 
         !print*, 'Allocation of nonRepeatKs...'
