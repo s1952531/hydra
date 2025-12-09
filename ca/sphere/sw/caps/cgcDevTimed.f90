@@ -227,6 +227,8 @@ program cgcDev
             temp(count) = val
         end do
 
+        print *, 'read ', count, ' repeat ks from file.'
+
         close(unit)
 
         ! Allocate callsRepeatKs to exact size using move_alloc
@@ -291,8 +293,9 @@ program cgcDev
         print *, 'Calculating non-repeat ks for call ', callCount
         print *, 'npt=', npt, ' size(callsRepeatKs)=', size(callsRepeatKs)
 
-        print*, 'Allocating of nonRepeatKs...'
+        print*, 'Allocation of nonRepeatKs...'
         if (allocated(nonRepeatKs)) then
+            print *, 'Deallocating previous nonRepeatKs...'
             deallocate(nonRepeatKs)
         end if
         allocate(nonRepeatKs(npt))
