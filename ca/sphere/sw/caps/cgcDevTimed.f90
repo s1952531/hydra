@@ -251,6 +251,8 @@ program cgcDev
         !check if all ks from 1 to npt are included in callsRepeatKs and nonRepeatKs
         integer :: i, k, found
 
+        print *, 'Checking all ks included for call ', callCount
+
         !print *, 'Checking if all ks are included...'
         do i=1,npt
             found = 0
