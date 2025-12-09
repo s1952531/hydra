@@ -176,6 +176,10 @@ program cgcDev
         ! Build filename from global callCount
         write(filename, '(A,I0,A)') 'RepeatKFiles/repeatKs_call_', callCount, '.txt'
 
+        ! Deallocate previous array if allocated
+        if (allocated(callsRepeatKs)) then
+            deallocate(callsRepeatKs)
+        end if
         ! Allocate array with global npt
         allocate(callsRepeatKs(npt))
         count = 0
