@@ -256,17 +256,20 @@ program cgcDev
         allocate(nonRepeatKs(npt))
 
         !initialize nonRepeatKs to all ks
+        print *, 'Initializing non-repeat ks...'    
         totalKs = 0
         do i=1,npt
             nonRepeatKs(i) = i
         enddo
 
+        print *, 'Flagging repeat ks...'
         !flag repeat ks for removal
         do i=1,size(callsRepeatKs)
             idx = callsRepeatKs(i)
             nonRepeatKs(idx) = -1 !mark as removed
         enddo
 
+        print *, 'Compacting non-repeat ks...'
         !compact array to only non-repeat ks
         totalKs = 0
         do i=1,npt
