@@ -250,10 +250,12 @@ program cgcDev
         print *, 'Calculating non-repeat ks for call ', callCount
         print *, 'npt=', npt, ' size(callsRepeatKs)=', size(callsRepeatKs)
 
+        print*, 'Allocatinf of nonRepeatKs...'
         if (allocated(nonRepeatKs)) then
             deallocate(nonRepeatKs)
         end if
         allocate(nonRepeatKs(npt))
+        print *, 'Allocated'
 
         !initialize nonRepeatKs to all ks
         print *, 'Initializing non-repeat ks...'    
