@@ -75,7 +75,7 @@ program cgcDev
             call readRepeatKs
             call getNonRepeatKs
 
-            call checkAllKIncluded
+            !call checkAllKIncluded
 
             call con2grid(qc)
             call compare_qcs
@@ -504,7 +504,7 @@ program cgcDev
 	    !!$OMP PARALLEL DO SCHEDULE(GUIDED)!, REDUCTION(+:qa), PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump)
         !do k=1,npt
         !split k=1,npt into repeat and non-repeat ks. have master do repeat ks serially
-        !$OMP MASTER
+        !!$OMP MASTER
         do kk=1,size(callsRepeatKs)
             k=callsRepeatKs(kk)
             if (ntc(k) .ne. 0) then
@@ -514,9 +514,6 @@ program cgcDev
                 do while (ncr .ne. ntc(k))
                     i=1+mod(ioff+ncr,ntf)
                     ncr=ncr+jump
-                    
-                    !check if i in thread's range (start to end)
-                    if (i < start .or. i > end) cycle
 
                     rlatc=dlfi*(hpi+atan(cx(k)*clonf(i)+cy(k)*slonf(i)))
                     j=int(rlatc)+1
@@ -526,7 +523,7 @@ program cgcDev
                 enddo
             endif
         enddo
-        !$OMP END MASTER
+        !!$OMP END MASTER
         
         !$OMP DO SCHEDULE(GUIDED)
         do kk=1,size(nonRepeatKs)
@@ -545,7 +542,7 @@ program cgcDev
                     ncr=ncr+jump
                     
                     !check if i in thread's range (start to end)
-                    if (i < start .or. i > end) cycle
+                    !if (i < start .or. i > end) cycle
 
                     rlatc=dlfi*(hpi+atan(cx(k)*clonf(i)+cy(k)*slonf(i)))
                     j=int(rlatc)+1
