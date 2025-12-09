@@ -75,7 +75,7 @@ program cgcDev
             call readRepeatKs
             call getNonRepeatKs
 
-            !call checkAllKIncluded
+            call checkAllKIncluded
 
             call con2grid(qc)
             call compare_qcs
@@ -249,38 +249,30 @@ program cgcDev
 
     subroutine checkAllKIncluded
         !check if all ks from 1 to npt are included in callsRepeatKs and nonRepeatKs
-        integer :: i, k, found
+        integer :: k, kk
+        integer :: k_count(npt)
 
         print *, 'Checking all ks included for call ', callCount
 
-        !print *, 'Checking if all ks are included...'
-        do i=1,npt
-            found = 0
-            !check if i is in callsRepeatKs
-            do k=1,size(callsRepeatKs)
-                if (callsRepeatKs(k) == i) then
-                    found = 1
-                    exit
-                end if
-            end do
+        do k=1,npt
+            k_count(k)=0
+        enddo
 
-            !if not found, check in nonRepeatKs
-            if (found == 0) then
-                do k=1,size(nonRepeatKs)
-                    if (nonRepeatKs(k) == i) then
-                        found = 1
-                        exit
-                    end if
-                end do
-            end if
+        do kk=1,size(callsRepeatKs)
+            k=callsRepeatKs(kk)
+            k_count(k)=k_count(k)+1
+        enddo
 
-            !if still not found, print error and stop program
-            if (found == 0) then
-                print *, 'Error: k=', i, ' not found in callsRepeatKs or nonRepeatKs.'
-                stop 1
-            end if
+        do kk=1,size(nonRepeatKs)
+            k=nonRepeatKs(kk)
+            k_count(k)=k_count(k)+1
+        enddo
 
-        end do
+        do k=1,npt
+            if (k_count(k) /= 1) then
+                print *, 'Error: k=', k, ' count=', k_count(k)
+            endif
+        enddo
 
     end subroutine checkAllKIncluded
 
