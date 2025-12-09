@@ -397,7 +397,7 @@ program cgcDev
     !     !thread_is(threadID, 1)=start
     !     !thread_is(threadID, 2)=end
     
-    !$OMP PARALLEL DO PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump)
+    !$OMP PARALLEL PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump)
 	    !!$OMP PARALLEL DO SCHEDULE(GUIDED)!, REDUCTION(+:qa), PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump)
         !do k=1,npt
         !split k=1,npt into repeat and non-repeat ks. have master do repeat ks serially
@@ -425,6 +425,7 @@ program cgcDev
         enddo
         !$OMP END MASTER
         
+        !$OMP DO SCHEDULE(GUIDED)
         do kk=1,size(nonRepeatKs)
             k=nonRepeatKs(kk)
         !if (mod(k,1) .eq. 0) then
@@ -458,6 +459,7 @@ program cgcDev
                 enddo
             endif
         enddo
+        !$OMP END DO
         !!$OMP END PARALLEL DO
     !$OMP END PARALLEL
         l5End = omp_get_wtime()
