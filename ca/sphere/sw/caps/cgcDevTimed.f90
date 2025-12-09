@@ -250,7 +250,7 @@ program cgcDev
         print *, 'Calculating non-repeat ks for call ', callCount
         print *, 'npt=', npt, ' size(callsRepeatKs)=', size(callsRepeatKs)
 
-        print*, 'Allocatinf of nonRepeatKs...'
+        print*, 'Allocating of nonRepeatKs...'
         if (allocated(nonRepeatKs)) then
             deallocate(nonRepeatKs)
         end if
@@ -259,7 +259,6 @@ program cgcDev
 
         !initialize nonRepeatKs to all ks
         print *, 'Initializing non-repeat ks...'    
-        totalKs = 0
         do i=1,npt
             nonRepeatKs(i) = i
         enddo
@@ -268,6 +267,7 @@ program cgcDev
         !flag repeat ks for removal
         do i=1,size(callsRepeatKs)
             idx = callsRepeatKs(i)
+            print *, 'marking k ', idx, ' as repeat'
             nonRepeatKs(idx) = -1 !mark as removed
         enddo
 
@@ -277,6 +277,7 @@ program cgcDev
         do i=1,npt
             if (nonRepeatKs(i) /= -1) then
                 totalKs = totalKs + 1
+                print *, 'keeping k ', nonRepeatKs(i), 'in position ', totalKs
                 nonRepeatKs(totalKs) = nonRepeatKs(i)
             endif
         enddo
