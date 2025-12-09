@@ -168,36 +168,77 @@ program cgcDev
 
     subroutine readRepeatKs
 
+        ! integer :: unit, val, count, ios
+        ! character(len=256) :: filename
+
+        ! print *, 'Loading repeat ks for call ', callCount
+
+        ! ! Build filename from global callCount
+        ! write(filename, '(A,I0,A)') 'RepeatKFiles/repeatKs_call_', callCount, '.txt'
+
+        ! ! Deallocate previous array if allocated
+        ! if (allocated(callsRepeatKs)) then
+        !     deallocate(callsRepeatKs)
+        ! end if
+        ! ! Allocate array with global npt
+        ! allocate(callsRepeatKs(npt))
+        ! count = 0
+
+        ! ! Open file
+        ! open(newunit=unit, file=filename, status='old', action='read')
+
+        ! ! Read integers directly into data
+        ! do
+        !     read(unit, *, iostat=ios) val
+        !     if (ios /= 0) exit
+        !     count = count + 1
+        !     callsRepeatKs(count) = val
+        ! end do
+
+        ! print *, 'Loaded'
+
+        ! close(unit)
+
         integer :: unit, val, count, ios
         character(len=256) :: filename
+        integer, allocatable :: temp(:)  ! temporary array, allocatable for move_alloc
 
         print *, 'Loading repeat ks for call ', callCount
 
         ! Build filename from global callCount
         write(filename, '(A,I0,A)') 'RepeatKFiles/repeatKs_call_', callCount, '.txt'
 
-        ! Deallocate previous array if allocated
-        if (allocated(callsRepeatKs)) then
-            deallocate(callsRepeatKs)
-        end if
-        ! Allocate array with global npt
-        allocate(callsRepeatKs(npt))
-        count = 0
-
         ! Open file
         open(newunit=unit, file=filename, status='old', action='read')
 
-        ! Read integers directly into data
+        ! Allocate temporary array with size npt
+        allocate(temp(npt))
+
+        ! Read integers directly into temp
+        count = 0
         do
             read(unit, *, iostat=ios) val
             if (ios /= 0) exit
             count = count + 1
-            callsRepeatKs(count) = val
+            if (count > npt) then
+                print *, 'Warning: more repeat Ks in file than npt, truncating at npt'
+                exit
+            end if
+            temp(count) = val
         end do
 
-        print *, 'Loaded'
-
         close(unit)
+
+        ! Allocate callsRepeatKs to exact size using move_alloc
+        if (allocated(callsRepeatKs)) then
+            deallocate(callsRepeatKs)
+        end if
+        allocate(callsRepeatKs(count))
+        call move_alloc(temp(1:count), callsRepeatKs)
+
+        deallocate(temp)
+
+        print *, 'Loaded ', count, ' repeat ks.'
 
     end subroutine
 
