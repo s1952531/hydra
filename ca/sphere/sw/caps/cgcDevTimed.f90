@@ -72,7 +72,6 @@ program cgcDev
             z = z_arr(:, callCount)
             next = next_arr(:, callCount)
             npt = npt_arr(callCount)
-8
             call readRepeatKs
             call getNonRepeatKs
 
