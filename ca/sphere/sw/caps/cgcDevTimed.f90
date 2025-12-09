@@ -504,7 +504,7 @@ program cgcDev
 	    !!$OMP PARALLEL DO SCHEDULE(GUIDED)!, REDUCTION(+:qa), PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump)
         !do k=1,npt
         !split k=1,npt into repeat and non-repeat ks. have master do repeat ks serially
-        !!$OMP MASTER
+        !$OMP MASTER
         do kk=1,size(callsRepeatKs)
             k=callsRepeatKs(kk)
             if (ntc(k) .ne. 0) then
@@ -523,7 +523,7 @@ program cgcDev
                 enddo
             endif
         enddo
-        !!$OMP END MASTER
+        !$OMP END MASTER
         
         !$OMP DO SCHEDULE(GUIDED)
         do kk=1,size(nonRepeatKs)
