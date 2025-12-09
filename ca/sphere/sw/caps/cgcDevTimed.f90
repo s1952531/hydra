@@ -293,37 +293,37 @@ program cgcDev
         integer :: i, idx
 
         print *, 'Calculating non-repeat ks for call ', callCount
-        print *, 'npt=', npt, ' size(callsRepeatKs)=', size(callsRepeatKs)
+        !print *, 'npt=', npt, ' size(callsRepeatKs)=', size(callsRepeatKs)
 
-        print*, 'Allocation of nonRepeatKs...'
+        !print*, 'Allocation of nonRepeatKs...'
         if (allocated(nonRepeatKs)) then
-            print *, 'Deallocating previous nonRepeatKs...'
+            !print *, 'Deallocating previous nonRepeatKs...'
             deallocate(nonRepeatKs)
         end if
         allocate(nonRepeatKs(npt))
-        print *, 'Allocated'
+        !print *, 'Allocated'
 
         !initialize nonRepeatKs to all ks
-        print *, 'Initializing non-repeat ks...'    
+        !print *, 'Initializing non-repeat ks...'    
         do i=1,npt
             nonRepeatKs(i) = i
         enddo
 
-        print *, 'Flagging repeat ks...'
+        !print *, 'Flagging repeat ks...'
         !flag repeat ks for removal
         do i=1,size(callsRepeatKs)
             idx = callsRepeatKs(i)
-            print *, 'marking k ', idx, ' as repeat'
+            !print *, 'marking k ', idx, ' as repeat'
             nonRepeatKs(idx) = -1 !mark as removed
         enddo
 
-        print *, 'Compacting non-repeat ks...'
+        !print *, 'Compacting non-repeat ks...'
         !compact array to only non-repeat ks
         totalKs = 0
         do i=1,npt
             if (nonRepeatKs(i) /= -1) then
                 totalKs = totalKs + 1
-                print *, 'keeping k ', nonRepeatKs(i), 'in position ', totalKs
+                !print *, 'keeping k ', nonRepeatKs(i), 'in position ', totalKs
                 nonRepeatKs(totalKs) = nonRepeatKs(i)
             endif
         enddo
