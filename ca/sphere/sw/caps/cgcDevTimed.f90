@@ -72,9 +72,11 @@ program cgcDev
             z = z_arr(:, callCount)
             next = next_arr(:, callCount)
             npt = npt_arr(callCount)
-
+8
             call readRepeatKs
             call getNonRepeatKs
+
+            call checkAllKIncluded
 
             call con2grid(qc)
             call compare_qcs
@@ -245,6 +247,41 @@ program cgcDev
         !print *, 'Loaded ', count, ' repeat ks.'
 
     end subroutine
+
+    subroutine checkAllKIncluded
+        !check if all ks from 1 to npt are included in callsRepeatKs and nonRepeatKs
+        integer :: i, k, found
+
+        !print *, 'Checking if all ks are included...'
+        do i=1,npt
+            found = 0
+            !check if i is in callsRepeatKs
+            do k=1,size(callsRepeatKs)
+                if (callsRepeatKs(k) == i) then
+                    found = 1
+                    exit
+                end if
+            end do
+
+            !if not found, check in nonRepeatKs
+            if (found == 0) then
+                do k=1,size(nonRepeatKs)
+                    if (nonRepeatKs(k) == i) then
+                        found = 1
+                        exit
+                    end if
+                end do
+            end if
+
+            !if still not found, print error and stop program
+            if (found == 0) then
+                print *, 'Error: k=', i, ' not found in callsRepeatKs or nonRepeatKs.'
+                stop 1
+            end if
+
+        end do
+
+    end subroutine checkAllKIncluded
 
     subroutine readInput
         ! Reads in the contour data from a file "cgc_inputs.dat"
