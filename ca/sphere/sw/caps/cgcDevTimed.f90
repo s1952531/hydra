@@ -238,6 +238,7 @@ program cgcDev
 
         print *, 'moving temp(1:count) to callsRepeatKs...'
         call move_alloc(temp(1:count), callsRepeatKs)
+        print *, 'moved.'
 
         deallocate(temp)
 
