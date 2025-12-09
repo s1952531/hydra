@@ -247,6 +247,9 @@ program cgcDev
         integer :: totalKs
         integer :: i, idx
 
+        if (allocated(nonRepeatKs)) then
+            deallocate(nonRepeatKs)
+        end if
         allocate(nonRepeatKs(npt))
 
         !initialize nonRepeatKs to all ks
