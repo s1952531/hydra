@@ -236,11 +236,7 @@ program cgcDev
         end if
         allocate(callsRepeatKs(count))
 
-        print *, 'moving temp(1:count) to callsRepeatKs...'
         call move_alloc(temp(1:count), callsRepeatKs)
-        print *, 'moved.'
-
-        deallocate(temp)
 
         print *, 'Loaded ', count, ' repeat ks.'
 
