@@ -247,6 +247,9 @@ program cgcDev
         integer :: totalKs
         integer :: i, idx
 
+        print *, 'Calculating non-repeat ks for call ', callCount
+        print *, 'npt=', npt, ' size(callsRepeatKs)=', size(callsRepeatKs)
+
         if (allocated(nonRepeatKs)) then
             deallocate(nonRepeatKs)
         end if
