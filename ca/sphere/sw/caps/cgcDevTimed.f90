@@ -78,7 +78,8 @@ program cgcDev
 
             !call checkAllKIncluded
 
-            call con2grid(qc)
+            !call con2grid(qc)
+            call con2grid_serial(qc)
             call compare_qcs
         end do
     end do
