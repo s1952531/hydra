@@ -267,6 +267,8 @@ program cgcDev
         character(len=:), allocatable :: token
         integer :: i, g, ncommas, start, ios
         integer, allocatable :: tmp(:)
+        integer :: count
+
 
         ! Build filename
         write(filename,'(A,I0,A)') 'grouped_repeat_ks/call_', callCount, '.txt'
@@ -295,7 +297,7 @@ program cgcDev
 
         numGroups = ncommas + 1
         allocate(groups(numGroups))
-        allocate(rawGroups(numGroups))
+        allocate(rawGroups(numGroups), source='')  ! each element starts length 0
 
         ! Split line into comma-separated strings
         start = 1
@@ -325,7 +327,6 @@ program cgcDev
             end if
 
             ! Count integers
-            integer :: count
             count = 0
             do i = 1, size(tmp)
                 if (tmp(i) == 0) exit
