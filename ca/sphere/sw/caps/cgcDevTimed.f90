@@ -595,27 +595,27 @@ program cgcDev
 
         !combine qa and qa_jp1 into qa
         
-        ! !$omp do collapse(2)
-        ! do j = 0, ngf+1
-        !     do i = 1, ntf
-        !         qa(j,i) = qa(j,i) + qa_jp1(j,i)
-        !     end do
-        ! end do
-        ! !$omp end do
-
-        !!$OMP END PARALLEL DO
-    !$OMP END PARALLEL
-
-        combineStart = omp_get_wtime()
-        !$omp parallel do collapse(2)
+        !$omp do collapse(2)
         do j = 0, ngf+1
             do i = 1, ntf
                 qa(j,i) = qa(j,i) + qa_jp1(j,i)
             end do
         end do
-        !$omp end parallel do
-        combineEnd = omp_get_wtime()
-        combineTime = combineEnd - combineStart
+        !$omp end do
+
+        !!$OMP END PARALLEL DO
+    !$OMP END PARALLEL
+
+        ! combineStart = omp_get_wtime()
+        ! !$omp parallel do collapse(2)
+        ! do j = 0, ngf+1
+        !     do i = 1, ntf
+        !         qa(j,i) = qa(j,i) + qa_jp1(j,i)
+        !     end do
+        ! end do
+        ! !$omp end parallel do
+        ! combineEnd = omp_get_wtime()
+        ! combineTime = combineEnd - combineStart
 
         ! combineStart = omp_get_wtime()
         ! !combine qa and qa_jp1 into qa serially
@@ -835,7 +835,7 @@ program cgcDev
         print *, 'Loop 3 total time: ', l3TotTime
         print *, 'Loop 4 total time: ', l4TotTime
         print *, 'Loop 5 total time: ', l5TotTime
-        print *, 'Combine time: ', combineTotTime
+        !print *, 'Combine time: ', combineTotTime
         print *, 'Loop 6 total time: ', l6TotTime
         return
     end subroutine
