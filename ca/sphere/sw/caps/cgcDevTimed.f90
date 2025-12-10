@@ -290,6 +290,8 @@ program cgcDev
 
         line = trim(line)
 
+        print *, 'Read line: ', trim(line)
+
         ! Count commas → number of groups
         ncommas = 0
         do i = 1, len_trim(line)
@@ -297,6 +299,9 @@ program cgcDev
         end do
 
         numGroups = ncommas + 1
+
+        print *, 'Number of groups: ', numGroups
+
         allocate(groups(numGroups))
         allocate(rawGroups(numGroups), source='')  ! each element starts length 0
 
@@ -308,25 +313,30 @@ program cgcDev
                 g = g + 1
                 rawGroups(g) = adjustl(line(start:i-1))
                 start = i + 1
+                print *, 'Extracted group ', g, ': ', trim(rawGroups(g))
             end if
         end do
         g = g + 1
         rawGroups(g) = adjustl(line(start:len_trim(line)))
 
+        print *, 'Extracted group ', g, ': ', trim(rawGroups(g))
+
         ! Parse each group into an allocatable array
         do g = 1, numGroups
             !Remove leading and trailing spaces
             token = adjustl(trim(rawGroups(g)))
+            print *, 'Parsing group ', g, ': ', trim(token)
 
-        ! Keep only digits and spaces
-        clean_token = ""
-        do i = 1, len(token)
-            if (token(i:i) >= '0' .and. token(i:i) <= '9' .or. token(i:i) == ' ') then
-                clean_token = clean_token // token(i:i)
-            end if
-        end do
-        token = clean_token
+            ! Keep only digits and spaces
+            clean_token = ""
+            do i = 1, len(token)
+                if (token(i:i) >= '0' .and. token(i:i) <= '9' .or. token(i:i) == ' ') then
+                    clean_token = clean_token // token(i:i)
+                end if
+            end do
+            token = clean_token
 
+            print *, 'Cleaned token for group ', g, ': ', trim(token)
 
             ! Temporary buffer
             allocate(tmp(2000))
