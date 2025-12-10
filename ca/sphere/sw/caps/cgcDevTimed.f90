@@ -265,6 +265,7 @@ program cgcDev
         character(len=50000) :: line
         character(len=:), allocatable :: rawGroups(:)
         character(len=:), allocatable :: token
+        character(len=:), allocatable :: clean_token
         integer :: i, g, ncommas, start, ios
         integer, allocatable :: tmp(:)
         integer :: count
@@ -316,6 +317,16 @@ program cgcDev
         do g = 1, numGroups
             !Remove leading and trailing spaces
             token = adjustl(trim(rawGroups(g)))
+
+        ! Keep only digits and spaces
+        clean_token = ""
+        do i = 1, len(token)
+            if (token(i:i) >= '0' .and. token(i:i) <= '9' .or. token(i:i) == ' ') then
+                clean_token = clean_token // token(i:i)
+            end if
+        end do
+        token = clean_token
+
 
             ! Temporary buffer
             allocate(tmp(2000))
