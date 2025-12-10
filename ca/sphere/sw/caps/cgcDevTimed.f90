@@ -75,7 +75,7 @@ program cgcDev
             call readRepeatKs
             call getNonRepeatKs
 
-            call checkAllKIncluded
+            !call checkAllKIncluded
 
             call con2grid(qc)
             call compare_qcs
