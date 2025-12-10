@@ -844,7 +844,7 @@ program cgcDev
 	    !!$OMP PARALLEL DO SCHEDULE(GUIDED)!, REDUCTION(+:qa), PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump)
         !split k=1,npt into repeat and non-repeat ks. 
         !hard coded load of pre balanced repeat ks
-        !$omp do
+        !$omp do nowait
         do groupCount = 1, numGroups
             do ki = 1, size(groups(groupCount)%ks)
                 k = groups(groupCount)%ks(ki)
