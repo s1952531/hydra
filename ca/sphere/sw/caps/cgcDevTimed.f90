@@ -303,8 +303,8 @@ program cgcDev
         print *, 'Number of groups: ', numGroups
 
         allocate(groups(numGroups))
-        allocate(rawGroups(numGroups), source='')  ! each element starts length 0
-
+        allocate(character(len=len_trim(line)) :: rawGroups(numGroups))
+        
         ! Split line into comma-separated strings
         start = 1
         g = 0
