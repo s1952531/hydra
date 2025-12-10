@@ -263,13 +263,10 @@ program cgcDev
         implicit none
         character(len=256) :: filename
         character(len=50000) :: line
-        character(len=:), allocatable :: rawGroups(:)
-        character(len=:), allocatable :: token
-        character(len=:), allocatable :: clean_token
+        character(len=1000), allocatable :: rawGroups(:)
         integer :: i, g, ncommas, start, ios
         integer, allocatable :: tmp(:)
         integer :: count
-
 
         ! Build filename
         write(filename,'(A,I0,A)') 'binned_repeat_ks_weighted/call_', callCount, '.txt'
@@ -289,23 +286,21 @@ program cgcDev
         end if
 
         line = trim(line)
-
-        print *, 'Read line: ', trim(line)
+        print *, "Read line: ", trim(line)
 
         ! Count commas → number of groups
         ncommas = 0
         do i = 1, len_trim(line)
             if (line(i:i) == ',') ncommas = ncommas + 1
         end do
-
         numGroups = ncommas + 1
+        print *, "Number of groups: ", numGroups
 
-        print *, 'Number of groups: ', numGroups
-
+        ! Allocate arrays
         allocate(groups(numGroups))
-        allocate(character(len=len_trim(line)) :: rawGroups(numGroups))
+        allocate(rawGroups(numGroups))
 
-        ! Split line into comma-separated strings
+        ! Split line into comma-separated groups
         start = 1
         g = 0
         do i = 1, len_trim(line)
@@ -313,47 +308,45 @@ program cgcDev
                 g = g + 1
                 rawGroups(g) = adjustl(line(start:i-1))
                 start = i + 1
-                print *, 'Extracted group ', g, ': ', trim(rawGroups(g))
+                print *, "Extracted group ", g, ": ", trim(rawGroups(g))
             end if
         end do
         g = g + 1
         rawGroups(g) = adjustl(line(start:len_trim(line)))
-
-        print *, 'Extracted group ', g, ': ', trim(rawGroups(g))
+        print *, "Extracted group ", g, ": ", trim(rawGroups(g))
 
         ! Parse each group into an allocatable array
         do g = 1, numGroups
-            !Remove leading and trailing spaces
-            token = adjustl(trim(rawGroups(g)))
-            print *, 'Parsing group ', g, ': ', trim(token)
+            ! Trim spaces
+            line = adjustl(trim(rawGroups(g)))
 
-            ! Temporary buffer
-            allocate(tmp(2000))
-            tmp = 0
+            ! Count number of integers in the string
+            count = 0
+            do i = 1, len_trim(line)
+                if (line(i:i) == ' ') count = count + 1
+            end do
+            count = count + 1
 
-            read(token, *, iostat=ios) tmp
+            ! Allocate temporary array
+            allocate(tmp(count))
+
+            ! Read integers from the string
+            read(line, *, iostat=ios) tmp
             if (ios /= 0) then
-                print *, "ERROR parsing group ", g, ": ", token
+                print *, "ERROR parsing group ", g, ": ", trim(line)
                 stop
             end if
 
-            ! Count integers
-            count = 0
-            do i = 1, size(tmp)
-                if (tmp(i) == 0) exit
-                count = count + 1
-            end do
-
-            ! Allocate exact size and copy
+            ! Allocate exact size for group's ks and copy
             allocate(groups(g)%ks(count))
-            groups(g)%ks(:) = tmp(1:count)
+            groups(g)%ks = tmp
 
             deallocate(tmp)
         end do
 
         ! Clean up
         deallocate(rawGroups)
-    end subroutine 
+    end subroutine
 
     subroutine checkAllKIncluded
         !check if all ks from 1 to npt are included in callsRepeatKs and nonRepeatKs
