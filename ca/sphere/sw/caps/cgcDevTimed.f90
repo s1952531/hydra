@@ -271,7 +271,7 @@ program cgcDev
 
 
         ! Build filename
-        write(filename,'(A,I0,A)') 'grouped_repeat_ks/call_', callCount, '.txt'
+        write(filename,'(A,I0,A)') 'binned_repeat_ks_weighted/call_', callCount, '.txt'
 
         ! Open file and read the first line
         open(10, file=filename, status='old', action='read', iostat=ios)
