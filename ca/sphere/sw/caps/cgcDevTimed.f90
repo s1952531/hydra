@@ -844,7 +844,7 @@ program cgcDev
     !$OMP PARALLEL PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump, groupCount, ki)
         !split k=1,npt into repeat and non-repeat ks. 
         !hard coded load of pre balanced repeat ks
-        !$omp do
+        !$omp do nowait
         do groupCount = 1, numGroups
             do ki = 1, size(groups(groupCount)%ks)
                 k = groups(groupCount)%ks(ki)
@@ -863,6 +863,7 @@ program cgcDev
                         qa_jp1(j+1,i)=qa_jp1(j+1,i)+    p*sq(k)
                     enddo
                 endif
+            enddo
         enddo
         !$omp end do
         
