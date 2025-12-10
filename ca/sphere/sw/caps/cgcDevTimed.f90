@@ -304,7 +304,7 @@ program cgcDev
 
         allocate(groups(numGroups))
         allocate(character(len=len_trim(line)) :: rawGroups(numGroups))
-        
+
         ! Split line into comma-separated strings
         start = 1
         g = 0
@@ -326,17 +326,6 @@ program cgcDev
             !Remove leading and trailing spaces
             token = adjustl(trim(rawGroups(g)))
             print *, 'Parsing group ', g, ': ', trim(token)
-
-            ! Keep only digits and spaces
-            clean_token = ""
-            do i = 1, len(token)
-                if (token(i:i) >= '0' .and. token(i:i) <= '9' .or. token(i:i) == ' ') then
-                    clean_token = clean_token // token(i:i)
-                end if
-            end do
-            token = clean_token
-
-            print *, 'Cleaned token for group ', g, ': ', trim(token)
 
             ! Temporary buffer
             allocate(tmp(2000))
