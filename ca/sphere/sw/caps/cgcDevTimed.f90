@@ -260,12 +260,17 @@ program cgcDev
 
         do kk=1,size(callsRepeatKs)
             k=callsRepeatKs(kk)
+            print *, 'k in callsRepeatKs: ', k
             k_count(k)=k_count(k)+1
         enddo
 
         do kk=1,size(nonRepeatKs)
             k=nonRepeatKs(kk)
             k_count(k)=k_count(k)+1
+
+            if (k .ge. 19038) then
+                print *, 'k in nonRepeatKs: ', k
+            endif
         enddo
 
         do k=1,npt
@@ -318,45 +323,79 @@ program cgcDev
     end subroutine
 
     subroutine getNonRepeatKs
-        !remove callsRepeatKs from array of all ks 1 to npt
-        integer :: totalKs
-        integer :: i, idx
+        ! !remove callsRepeatKs from array of all ks 1 to npt
+        ! integer :: totalKs
+        ! integer :: i, idx
 
-        !print *, 'Calculating non-repeat ks for call ', callCount
-        !print *, 'npt=', npt, ' size(callsRepeatKs)=', size(callsRepeatKs)
+        ! !print *, 'Calculating non-repeat ks for call ', callCount
+        ! !print *, 'npt=', npt, ' size(callsRepeatKs)=', size(callsRepeatKs)
 
-        !print*, 'Allocation of nonRepeatKs...'
-        if (allocated(nonRepeatKs)) then
-            !print *, 'Deallocating previous nonRepeatKs...'
-            deallocate(nonRepeatKs)
+        ! !print*, 'Allocation of nonRepeatKs...'
+        ! if (allocated(nonRepeatKs)) then
+        !     !print *, 'Deallocating previous nonRepeatKs...'
+        !     deallocate(nonRepeatKs)
+        ! end if
+        ! allocate(nonRepeatKs(npt - size(callsRepeatKs)))
+        ! !print *, 'Allocated'
+
+        ! !initialize nonRepeatKs to all ks
+        ! !print *, 'Initializing non-repeat ks...'    
+        ! do i=1,npt
+        !     nonRepeatKs(i) = i
+        ! enddo
+
+        ! !print *, 'Flagging repeat ks...'
+        ! !flag repeat ks for removal
+        ! do i=1,size(callsRepeatKs)
+        !     idx = callsRepeatKs(i)
+        !     !print *, 'marking k ', idx, ' as repeat'
+        !     nonRepeatKs(idx) = -1 !mark as removed
+        ! enddo
+
+        ! !print *, 'Compacting non-repeat ks...'
+        ! !compact array to only non-repeat ks
+        ! totalKs = 0
+        ! do i=1,npt
+        !     if (nonRepeatKs(i) /= -1) then
+        !         totalKs = totalKs + 1
+        !         !print *, 'keeping k ', nonRepeatKs(i), 'in position ', totalKs
+        !         nonRepeatKs(totalKs) = nonRepeatKs(i)
+        !     endif
+        ! enddo
+
+        ! Remove the ks listed in callsRepeatKs from 1..npt.
+    ! callsRepeatKs is guaranteed to contain unique values.
+
+    integer :: i, j
+    logical, allocatable :: isRepeat(:)
+    integer :: nNonRepeat
+
+    ! Mask to mark repeats
+    allocate(isRepeat(npt))
+    isRepeat = .false.
+
+    ! Mark repeat ks
+    do i = 1, size(callsRepeatKs)
+        isRepeat(callsRepeatKs(i)) = .true.
+    end do
+
+    ! Number of ks that are NOT in callsRepeatKs
+    nNonRepeat = npt - size(callsRepeatKs)
+
+    ! Allocate exact-size result array
+    if (allocated(nonRepeatKs)) deallocate(nonRepeatKs)
+    allocate(nonRepeatKs(nNonRepeat))
+
+    ! Fill the array
+    j = 0
+    do i = 1, npt
+        if (.not. isRepeat(i)) then
+            j = j + 1
+            nonRepeatKs(j) = i
         end if
-        allocate(nonRepeatKs(npt))
-        !print *, 'Allocated'
+    end do
 
-        !initialize nonRepeatKs to all ks
-        !print *, 'Initializing non-repeat ks...'    
-        do i=1,npt
-            nonRepeatKs(i) = i
-        enddo
-
-        !print *, 'Flagging repeat ks...'
-        !flag repeat ks for removal
-        do i=1,size(callsRepeatKs)
-            idx = callsRepeatKs(i)
-            !print *, 'marking k ', idx, ' as repeat'
-            nonRepeatKs(idx) = -1 !mark as removed
-        enddo
-
-        !print *, 'Compacting non-repeat ks...'
-        !compact array to only non-repeat ks
-        totalKs = 0
-        do i=1,npt
-            if (nonRepeatKs(i) /= -1) then
-                totalKs = totalKs + 1
-                !print *, 'keeping k ', nonRepeatKs(i), 'in position ', totalKs
-                nonRepeatKs(totalKs) = nonRepeatKs(i)
-            endif
-        enddo
+    deallocate(isRepeat)
 
     end subroutine getNonRepeatKs
 
