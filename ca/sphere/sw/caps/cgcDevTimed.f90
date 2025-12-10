@@ -408,6 +408,7 @@ program cgcDev
         double precision:: qc(ng,nt)
         !Local arrays:
         double precision:: qa(0:ngf+1,ntf)
+        double precision:: qa_jp1(0:ngf+1,ntf)
         double precision:: qaend(ngf/2)
         integer:: ilm1(npt),ntc(npt)
         double precision:: cx(npt),cy(npt),cz(npt)
@@ -491,6 +492,7 @@ program cgcDev
         do i=1,ntf
             do j=0,ngf+1
                 qa(j,i)=zero
+                qa_jp1(j,i)=zero
             enddo
         enddo
         l4End = omp_get_wtime()
@@ -546,7 +548,7 @@ program cgcDev
                     j=int(rlatc)+1
                     p=rlatc-dble(j-1)
                     qa(j,i)=  qa(j,i)+(one-p)*sq(k)
-                    qa(j+1,i)=qa(j+1,i)+    p*sq(k)
+                    qa_jp1(j+1,i)=qa_jp1(j+1,i)+    p*sq(k)
                 enddo
             endif
         enddo
@@ -579,7 +581,7 @@ program cgcDev
                     !!$OMP ATOMIC
                     qa(j,i)=  qa(j,i)+(one-p)*sq(k)
                     !!$OMP ATOMIC
-                    qa(j+1,i)=qa(j+1,i)+    p*sq(k)
+                    qa_jp1(j+1,i)=qa_jp1(j+1,i)+    p*sq(k)
                     !!$OMP END CRITICAL
 
                     !print *, 'i,j', i, ',', j
@@ -587,6 +589,15 @@ program cgcDev
             endif
         enddo
         !$OMP END DO
+
+        !combine qa and qa_jp1 into qa
+        !$omp parallel do collapse(2)
+        do j = 0, ngf+1
+            do i = 1, ntf
+                qa(j,i) = qa(j,i) + qa_jp1(j,i)
+            end do
+        end do
+        !$omp end parallel do
         !!$OMP END PARALLEL DO
     !$OMP END PARALLEL
         l5End = omp_get_wtime()
