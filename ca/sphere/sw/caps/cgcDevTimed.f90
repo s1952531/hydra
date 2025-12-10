@@ -841,10 +841,9 @@ program cgcDev
         !print *, 'Loop 5...'
     
     !$OMP PARALLEL PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump, groupCount, ki)
-	    !!$OMP PARALLEL DO SCHEDULE(GUIDED)!, REDUCTION(+:qa), PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump)
         !split k=1,npt into repeat and non-repeat ks. 
         !hard coded load of pre balanced repeat ks
-        !$omp do nowait
+        !$omp do
         do groupCount = 1, numGroups
             do ki = 1, size(groups(groupCount)%ks)
                 k = groups(groupCount)%ks(ki)
