@@ -833,13 +833,13 @@ program cgcDev
 
         !combine qa and qa_jp1 into qa
         
-        !$omp do collapse(2)
-        do j = 0, ngf+1
-            do i = 1, ntf
-                qa(j,i) = qa(j,i) + qa_jp1(j,i)
-            end do
-        end do
-        !$omp end do
+        ! !$omp do collapse(2)
+        ! do j = 0, ngf+1
+        !     do i = 1, ntf
+        !         qa(j,i) = qa(j,i) + qa_jp1(j,i)
+        !     end do
+        ! end do
+        ! !$omp end do
 
         !!$OMP END PARALLEL DO
     !$OMP END PARALLEL
@@ -856,9 +856,9 @@ program cgcDev
         ! combineTime = combineEnd - combineStart
 
         ! combineStart = omp_get_wtime()
-        ! !combine qa and qa_jp1 into qa serially
-        ! qa = qa + qa_jp1
-        ! combineEnd = omp_get_wtime()
+        !combine qa and qa_jp1 into qa serially
+        qa = qa + qa_jp1
+        combineEnd = omp_get_wtime()
         ! combineTime = combineEnd - combineStart
 
         l5End = omp_get_wtime()
