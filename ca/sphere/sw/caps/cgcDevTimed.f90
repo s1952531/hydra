@@ -591,13 +591,14 @@ program cgcDev
         !$OMP END DO
 
         !combine qa and qa_jp1 into qa
-        !$omp parallel do collapse(2)
+        !$omp do collapse(2)
         do j = 0, ngf+1
             do i = 1, ntf
                 qa(j,i) = qa(j,i) + qa_jp1(j,i)
             end do
         end do
-        !$omp end parallel do
+        !$omp end do
+
         !!$OMP END PARALLEL DO
     !$OMP END PARALLEL
         l5End = omp_get_wtime()
