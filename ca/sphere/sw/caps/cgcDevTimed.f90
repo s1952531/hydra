@@ -57,6 +57,7 @@ program cgcDev
     double precision:: con2gridToTTime=0.0d0, preAvgTotTime=0.0d0, avgTotTime=0.0d0
     double precision:: l1TotTime=0.0d0, l2TotTime=0.0d0, l3TotTime=0.0d0, l4TotTime=0.0d0, l5TotTime=0.0d0
     double precision:: l6TotTime=0.0d0
+    double precision:: combineTotTime=0.0d0
 
     !hard coded repeat ks
     integer, allocatable :: callsRepeatKs(:)
@@ -423,6 +424,8 @@ program cgcDev
         double precision:: l5Start, l5End, l5Time
         double precision:: l6Start, l6End, l6Time
 
+        double precision:: combineStart, combineEnd, combineTime
+
         double precision:: preAvgStart, preAvgEnd, preAvgTime
         double precision:: avgStart, avgEnd, avgTime
 
@@ -601,9 +604,13 @@ program cgcDev
 
         !!$OMP END PARALLEL DO
     !$OMP END PARALLEL
+
+        combineStart = omp_get_wtime()
         !combine qa and qa_jp1 into qa serially
         qa = qa + qa_jp1
-        
+        combineEnd = omp_get_wtime()
+        combineTime = combineEnd - combineStart
+
         l5End = omp_get_wtime()
         l5Time = l5End - l5Start
 
@@ -720,7 +727,7 @@ program cgcDev
 
         call accumulateTimes(totalTime, preAvgTime, avgTime, &
                               l1Time, l2Time, l3Time, l4Time, l5Time, &
-                              l6Time)
+                              l6Time, combineTime)
         
         return
         
@@ -728,12 +735,13 @@ program cgcDev
 
     subroutine accumulateTimes(totalTime, preAvgTime, avgTime, &
                               l1Time, l2Time, l3Time, l4Time, l5Time, &
-                              l6Time)
+                              l6Time, combineTime)
 
         !passed args
         double precision:: totalTime, preAvgTime, avgTime
         double precision:: l1Time, l2Time, l3Time, l4Time, l5Time
         double precision:: l6Time
+        double precision:: combineTime
 
         !accumulate times into total timers
         con2gridToTTime = con2gridToTTime + totalTime
@@ -744,6 +752,7 @@ program cgcDev
         l3TotTime = l3TotTime + l3Time
         l4TotTime = l4TotTime + l4Time
         l5TotTime = l5TotTime + l5Time
+        combineTotTime = combineTotTime + combineTime
         l6TotTime = l6TotTime + l6Time
         return
     end subroutine
@@ -814,6 +823,7 @@ program cgcDev
         print *, 'Loop 3 total time: ', l3TotTime
         print *, 'Loop 4 total time: ', l4TotTime
         print *, 'Loop 5 total time: ', l5TotTime
+        print *, 'Combine time: ', combineTotTime
         print *, 'Loop 6 total time: ', l6TotTime
         return
     end subroutine
