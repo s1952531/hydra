@@ -637,7 +637,7 @@ program cgcDev
         ! Calculates the PV anomaly field (stored in qc) from the PV 
         ! contours (x,y,z).  Takes away Coriolis frequency (fcor).
 	
-	use omp_lib
+	    use omp_lib
 
         implicit double precision(a-h,o-z)
         implicit integer(i-n)
@@ -670,7 +670,7 @@ program cgcDev
         ! 7.32    763.92    84.85    23810  __contours_MOD_con2grid
         ! 1.83   1067.81    21.25    23810  __contours_MOD_con2grid_avg
 
-	!print *, "qa size (bytes): ", size(qa) * storage_size(qa)/8
+	    !print *, "qa size (bytes): ", size(qa) * storage_size(qa)/8
 
         startTime = omp_get_wtime()
         preAvgStart = startTime
@@ -794,7 +794,7 @@ program cgcDev
         enddo
         !$OMP END MASTER
         
-        !$OMP DO SCHEDULE(GUIDED)
+        !$OMP DO
         do kk=1,size(nonRepeatKs)
             k=nonRepeatKs(kk)
         !if (mod(k,1) .eq. 0) then
