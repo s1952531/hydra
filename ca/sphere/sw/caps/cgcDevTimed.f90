@@ -260,17 +260,13 @@ program cgcDev
 
         do kk=1,size(callsRepeatKs)
             k=callsRepeatKs(kk)
-            print *, 'k in callsRepeatKs: ', k
+            !print *, 'k in callsRepeatKs: ', k
             k_count(k)=k_count(k)+1
         enddo
 
         do kk=1,size(nonRepeatKs)
             k=nonRepeatKs(kk)
             k_count(k)=k_count(k)+1
-
-            if (k .ge. 19038) then
-                print *, 'k in nonRepeatKs: ', k
-            endif
         enddo
 
         do k=1,npt
