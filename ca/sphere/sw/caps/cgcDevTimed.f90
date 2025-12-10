@@ -314,7 +314,8 @@ program cgcDev
 
         ! Parse each group into an allocatable array
         do g = 1, numGroups
-            token = trim(rawGroups(g))
+            !Remove leading and trailing spaces
+            token = adjustl(trim(rawGroups(g)))
 
             ! Temporary buffer
             allocate(tmp(2000))
