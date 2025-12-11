@@ -343,8 +343,6 @@ program cgcDev
             deallocate(tmp)
         end do
 
-        ! Clean up
-        deallocate(rawGroups)
     end subroutine
 
     subroutine checkAllKIncluded
