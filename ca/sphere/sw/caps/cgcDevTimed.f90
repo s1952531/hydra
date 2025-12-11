@@ -266,7 +266,7 @@ program cgcDev
         integer, allocatable :: tmp(:)
 
         ! Build filename from global callCount
-        write(filename, '(A,I0,A)') 'balancedRepeatKs_call_', callCount, '.txt'
+        write(filename, '(A,I0,A)') 'binned_repeat_ks_weighted/call_', callCount, '.txt'
 
         ! ------------------------------------------------
         ! First pass: count how many non-empty lines
