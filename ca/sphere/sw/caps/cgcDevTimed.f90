@@ -263,7 +263,7 @@ program cgcDev
         implicit none
         character(len=256) :: filename
         character(len=50000) :: line
-        character(len=1000), allocatable :: rawGroups(:)
+        character(len=50000) :: rawGroups(1000)
         integer :: i, g, ncommas, start, ios
         integer, allocatable :: tmp(:)
         integer :: count
@@ -298,7 +298,6 @@ program cgcDev
 
         ! Allocate arrays
         allocate(groups(numGroups))
-        allocate(rawGroups(numGroups))
 
         ! Split line into comma-separated groups
         start = 1
