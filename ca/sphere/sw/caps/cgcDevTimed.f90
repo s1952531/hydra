@@ -64,12 +64,13 @@ program cgcDev
     integer, allocatable :: nonRepeatKs(:)
 
     !for load balancing repeat Ks
-    type :: Group
-        integer, allocatable :: ks(:)
-    end type Group
+    type :: group_t
+        integer, allocatable :: values(:)
+    end type group_t
 
-    type(Group), allocatable :: groups(:)
-    integer :: numGroups = 0
+    type(group_t), allocatable :: groups(:)
+    integer :: ngroups = 0
+    character(len=:), allocatable :: filename
 
     call init
     
@@ -260,92 +261,69 @@ program cgcDev
     end subroutine
 
     subroutine getBalancedRepeatKs
-        implicit none
-        character(len=256) :: filename
-        character(len=50000) :: line
-        character(len=50000) :: rawGroups(1000)
-        integer :: i, g, ncommas, start, ios
+         character(len=:), allocatable :: line
+        integer :: unit, ios, i, nvals
         integer, allocatable :: tmp(:)
-        integer :: count
 
-        ! Build filename
-        write(filename,'(A,I0,A)') 'binned_repeat_ks_weighted/call_', callCount, '.txt'
-
-        ! Open file and read the first line
-        open(10, file=filename, status='old', action='read', iostat=ios)
-        if (ios /= 0) then
-            print *, "ERROR: cannot open ", trim(filename)
+        if (.not. allocated(filename)) then
+            print *, "ERROR: group_reader::filename was never set"
             stop
         end if
 
-        read(10,'(A)', iostat=ios) line
-        close(10)
-        if (ios /= 0) then
-            print *, "ERROR reading line from ", trim(filename)
-            stop
+        ! ------------------------------------------------
+        ! First pass: count how many non-empty lines
+        ! ------------------------------------------------
+        ngroups = 0
+        open(newunit=unit, file=filename, status='old', action='read')
+
+        allocate(character(200000) :: line)
+
+        do
+            read(unit, '(A)', iostat=ios) line
+            if (ios /= 0) exit
+            if (len_trim(line) > 0) ngroups = ngroups + 1
+        end do
+        close(unit)
+
+        if (ngroups == 0) then
+            print *, "WARNING: no groups found in ", filename
+            return
         end if
 
-        line = trim(line)
-        print *, "Read line: ", trim(line)
+        ! Allocate global groups array
+        allocate(groups(ngroups))
 
-        ! Count commas → number of groups
-        ncommas = 0
-        do i = 1, len_trim(line)
-            if (line(i:i) == ',') ncommas = ncommas + 1
-        end do
-        numGroups = ncommas + 1
-        print *, "Number of groups: ", numGroups
+        ! ------------------------------------------------
+        ! Second pass: parse groups
+        ! ------------------------------------------------
+        open(newunit=unit, file=filename, status='old', action='read')
 
-        ! Allocate arrays
-        allocate(groups(numGroups))
+        i = 0
+        do
+            read(unit, '(A)', iostat=ios) line
+            if (ios /= 0) exit
+            if (len_trim(line) == 0) cycle
 
-        ! Split line into comma-separated groups
-        start = 1
-        g = 0
-        do i = 1, len_trim(line)
-            if (line(i:i) == ',') then
-                g = g + 1
-                rawGroups(g) = adjustl(line(start:i-1))
-                start = i + 1
-                print *, "Extracted group ", g, ": ", trim(rawGroups(g))
-            end if
-        end do
-        g = g + 1
-        rawGroups(g) = adjustl(line(start:len_trim(line)))
-        print *, "Extracted group ", g, ": ", trim(rawGroups(g))
+            i = i + 1
 
-        ! Parse each group into an allocatable array
-        do g = 1, numGroups
-            ! Trim spaces
-            line = adjustl(trim(rawGroups(g)))
+            ! Count integers: number of spaces + 1
+            nvals = count([(line(j:j) == ' ', j=1,len_trim(line))]) + 1
 
-            ! Count number of integers in the string
-            count = 0
-            do i = 1, len_trim(line)
-                if (line(i:i) == ' ') count = count + 1
-            end do
-            count = count + 1
+            allocate(tmp(nvals))
 
-            ! Allocate temporary array
-            allocate(tmp(count))
-
-            ! Read integers from the string
+            ! Parse values
             read(line, *, iostat=ios) tmp
             if (ios /= 0) then
-                print *, "ERROR parsing group ", g, ": ", trim(line)
+                print *, "ERROR parsing group ", i, ": ", trim(line)
                 stop
             end if
 
-            ! Allocate exact size for group's ks and copy
-
-            if (allocated(groups(g)%ks)) then
-                deallocate(groups(g)%ks)
-            end if
-            allocate(groups(g)%ks(count))
-            groups(g)%ks = tmp
-
-            deallocate(tmp)
+            ! Save to global array
+            allocate(groups(i)%values(nvals))
+            groups(i)%values = tmp
         end do
+
+        close(unit)
 
     end subroutine
 
@@ -851,8 +829,8 @@ program cgcDev
         !hard coded load of pre balanced repeat ks
         !$omp do
         do groupCount = 1, numGroups
-            do ki = 1, size(groups(groupCount)%ks)
-                k = groups(groupCount)%ks(ki)
+            do ki = 1, size(groups(groupCount)%values)
+                k = groups(groupCount)%values(ki)
                 if (ntc(k) .ne. 0) then
                     jump=sign(1,ntc(k))
                     ioff=ntf+ilm1(k)+(1+jump)/2
