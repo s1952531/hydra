@@ -265,10 +265,8 @@ program cgcDev
         integer :: unit, ios, i, nvals
         integer, allocatable :: tmp(:)
 
-        if (.not. allocated(filename)) then
-            print *, "ERROR: group_reader::filename was never set"
-            stop
-        end if
+        ! Build filename from global callCount
+        write(filename, '(A,I0,A)') 'balancedRepeatKs_call_', callCount, '.txt'
 
         ! ------------------------------------------------
         ! First pass: count how many non-empty lines
