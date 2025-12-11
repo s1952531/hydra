@@ -286,6 +286,9 @@ program cgcDev
             return
         end if
 
+        if (allocated(groups)) then
+            deallocate(groups)
+        end if
         ! Allocate global groups array
         allocate(groups(ngroups))
 
@@ -317,6 +320,7 @@ program cgcDev
             ! Save to global array
             allocate(groups(i)%values(nvals))
             groups(i)%values = tmp
+            deallocate(tmp)
         end do
 
         close(unit)
