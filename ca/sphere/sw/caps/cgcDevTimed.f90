@@ -260,7 +260,7 @@ program cgcDev
     end subroutine
 
     subroutine getBalancedRepeatKs
-         character(len=:), allocatable :: line
+        character(len=200000) :: line
         integer :: unit, ios, i, nvals
         integer, allocatable :: tmp(:)
         character(len=256) :: filename
