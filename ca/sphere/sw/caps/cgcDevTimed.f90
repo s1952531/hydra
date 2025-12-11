@@ -337,6 +337,10 @@ program cgcDev
             end if
 
             ! Allocate exact size for group's ks and copy
+
+            if (allocated(groups(g)%ks)) then
+                deallocate(groups(g)%ks)
+            end if
             allocate(groups(g)%ks(count))
             groups(g)%ks = tmp
 
