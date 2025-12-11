@@ -274,8 +274,6 @@ program cgcDev
         ngroups = 0
         open(newunit=unit, file=filename, status='old', action='read')
 
-        allocate(character(200000) :: line)
-
         do
             read(unit, '(A)', iostat=ios) line
             if (ios /= 0) exit
