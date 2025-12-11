@@ -70,7 +70,6 @@ program cgcDev
 
     type(group_t), allocatable :: groups(:)
     integer :: ngroups = 0
-    character(len=:), allocatable :: filename
 
     call init
     
@@ -264,6 +263,7 @@ program cgcDev
          character(len=:), allocatable :: line
         integer :: unit, ios, i, nvals
         integer, allocatable :: tmp(:)
+        character(len=256) :: filename
 
         ! Build filename from global callCount
         write(filename, '(A,I0,A)') 'binned_repeat_ks_weighted/call_', callCount, '.txt'
