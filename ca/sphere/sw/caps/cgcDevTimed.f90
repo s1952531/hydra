@@ -826,7 +826,7 @@ program cgcDev
         !split k=1,npt into repeat and non-repeat ks. 
         !hard coded load of pre balanced repeat ks
         !$omp do
-        do groupCount = 1, numGroups
+        do groupCount = 1, ngroups
             do ki = 1, size(groups(groupCount)%values)
                 k = groups(groupCount)%values(ki)
                 if (ntc(k) .ne. 0) then
