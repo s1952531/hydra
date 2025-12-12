@@ -286,7 +286,7 @@ program cgcDev
         integer :: nGroups
 
         ! Build filename from global callCount
-        write(filename, '(A,I0,A)') 'binned_repeat_ks_weighted/call_', callCount, '.txt'
+        !write(filename, '(A,I0,A)') 'binned_repeat_ks_weighted/call_', callCount, '.txt'
 
         ! ------------------------------------------------
         ! First pass: count how many non-empty lines
@@ -732,7 +732,7 @@ program cgcDev
         
     end subroutine
 
-    subroutine con2grid_balancedRepeatKs(qc)
+    subroutine con2grid_balancedAllKs(qc)
         ! Calculates the PV anomaly field (stored in qc) from the PV 
         ! contours (x,y,z).  Takes away Coriolis frequency (fcor).
 	
@@ -1045,7 +1045,7 @@ program cgcDev
         
     end subroutine 
 
-    subroutine con2grid_balancedAllKs(qc)
+    subroutine con2grid_balancedRepeatKs(qc)
         ! Calculates the PV anomaly field (stored in qc) from the PV 
         ! contours (x,y,z).  Takes away Coriolis frequency (fcor).
 	
@@ -1161,9 +1161,9 @@ program cgcDev
         !split k=1,npt into repeat and non-repeat ks. 
         !hard coded load of pre balanced repeat ks
         !$omp do
-        do groupCount = 1, nGroups
-            do ki = 1, size(groups(groupCount)%values)
-                k = groups(groupCount)%values(ki)
+        do groupCount = 1, nRepeatKgroups
+            do ki = 1, size(RepeatK_groups(groupCount)%values)
+                k = RepeatK_groups(groupCount)%values(ki)
                 if (ntc(k) .ne. 0) then
                     jump=sign(1,ntc(k))
                     ioff=ntf+ilm1(k)+(1+jump)/2
