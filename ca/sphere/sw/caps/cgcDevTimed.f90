@@ -68,9 +68,18 @@ program cgcDev
         integer, allocatable :: values(:)
     end type group_t
 
-    type(group_t), allocatable :: groups(:)
-    integer :: ngroups = 0
+    type(group_t), allocatable :: RepeatK_groups(:)
+    integer :: nRepeatKgroups = 0
 
+    type(group_t), allocatable :: NonRepeatK_groups(:)
+    integer :: nNonRepeatKgroups = 0
+
+    character(len=256) :: balanced_RepeatK_filename
+    character(len=256) :: balanced_NonRepeatK_filename
+
+    character(len=20) :: callStr
+
+    
     call init
     
     !main loop
@@ -83,11 +92,19 @@ program cgcDev
             npt = npt_arr(callCount)
             call readRepeatKs
             call getNonRepeatKs
-            call getBalancedRepeatKs
+
+            write(callStr, '(I0)') callCount   ! I0 = write integer with no leading spaces
+
+            balanced_NonRepeatK_filename = 'binned_NonRepeat_ks_weighted/call_' // trim(callStr) // '.txt'
+            balanced_RepeatK_filename    = 'binned_repeat_ks_weighted/call_'     // trim(callStr) // '.txt'
+
+            call getBalancedRepeatKs(balanced_NonRepeatK_filename, NonRepeatK_groups, nNonRepeatKgroups)
+            call getBalancedRepeatKs(balanced_RepeatK_filename, RepeatK_groups, nRepeatKgroups)
 
             !call checkAllKIncluded
 
-            call con2grid_balancedRepeatKs(qc)
+            call con2grid_balancedAllKs(qc)
+            !call con2grid_balancedRepeatKs(qc)
             !call con2grid_masterRepeatKs(qc)
             !call con2grid_serial(qc)
             call compare_qcs
@@ -259,11 +276,14 @@ program cgcDev
 
     end subroutine
 
-    subroutine getBalancedRepeatKs
+    subroutine getBalancedRepeatKs(filename, groups, nGroups)
         character(len=200000) :: line
         integer :: unit, ios, i, nvals
         integer, allocatable :: tmp(:)
         character(len=256) :: filename
+
+        type(group_t), allocatable :: groups(:)
+        integer :: nGroups
 
         ! Build filename from global callCount
         write(filename, '(A,I0,A)') 'binned_repeat_ks_weighted/call_', callCount, '.txt'
@@ -271,17 +291,17 @@ program cgcDev
         ! ------------------------------------------------
         ! First pass: count how many non-empty lines
         ! ------------------------------------------------
-        ngroups = 0
+        nGroups = 0
         open(newunit=unit, file=filename, status='old', action='read')
 
         do
             read(unit, '(A)', iostat=ios) line
             if (ios /= 0) exit
-            if (len_trim(line) > 0) ngroups = ngroups + 1
+            if (len_trim(line) > 0) nGroups = nGroups + 1
         end do
         close(unit)
 
-        if (ngroups == 0) then
+        if (nGroups == 0) then
             print *, "WARNING: no groups found in ", filename
             return
         end if
@@ -290,7 +310,7 @@ program cgcDev
             deallocate(groups)
         end if
         ! Allocate global groups array
-        allocate(groups(ngroups))
+        allocate(groups(nGroups))
 
         ! ------------------------------------------------
         ! Second pass: parse groups
@@ -828,7 +848,320 @@ program cgcDev
         !split k=1,npt into repeat and non-repeat ks. 
         !hard coded load of pre balanced repeat ks
         !$omp do
-        do groupCount = 1, ngroups
+        do groupCount = 1, nRepeatKgroups
+            do ki = 1, size(RepeatK_groups(groupCount)%values)
+                k = RepeatK_groups(groupCount)%values(ki)
+                if (ntc(k) .ne. 0) then
+                    jump=sign(1,ntc(k))
+                    ioff=ntf+ilm1(k)+(1+jump)/2
+                    ncr=0
+                    do while (ncr .ne. ntc(k))
+                        i=1+mod(ioff+ncr,ntf)
+                        ncr=ncr+jump
+
+                        rlatc=dlfi*(hpi+atan(cx(k)*clonf(i)+cy(k)*slonf(i)))
+                        j=int(rlatc)+1
+                        p=rlatc-dble(j-1)
+                        qa(j,i)=  qa(j,i)+(one-p)*sq(k)
+                        qa_jp1(j+1,i)=qa_jp1(j+1,i)+    p*sq(k)
+                    enddo
+                endif
+            enddo
+        enddo
+        !$omp end do
+        
+        !$omp do
+        do groupCount = 1, nNonRepeatKgroups
+            do ki = 1, size(NonRepeatK_groups(groupCount)%values)
+                k = NonRepeatK_groups(groupCount)%values(ki)
+                if (ntc(k) .ne. 0) then
+                    jump=sign(1,ntc(k))
+                    ioff=ntf+ilm1(k)+(1+jump)/2
+                    ncr=0
+                    do while (ncr .ne. ntc(k))
+                        i=1+mod(ioff+ncr,ntf)
+                        ncr=ncr+jump
+
+                        rlatc=dlfi*(hpi+atan(cx(k)*clonf(i)+cy(k)*slonf(i)))
+                        j=int(rlatc)+1
+                        p=rlatc-dble(j-1)
+                        qa(j,i)=  qa(j,i)+(one-p)*sq(k)
+                        qa_jp1(j+1,i)=qa_jp1(j+1,i)+    p*sq(k)
+                    enddo
+                endif
+            enddo
+        enddo
+        !$omp end do
+
+        !combine qa and qa_jp1 into qa
+        
+        ! !$omp do collapse(2)
+        ! do j = 0, ngf+1
+        !     do i = 1, ntf
+        !         qa(j,i) = qa(j,i) + qa_jp1(j,i)
+        !     end do
+        ! end do
+        ! !$omp end do
+
+        !!$OMP END PARALLEL DO
+    !$OMP END PARALLEL
+
+        ! combineStart = omp_get_wtime()
+        ! !$omp parallel do collapse(2)
+        ! do j = 0, ngf+1
+        !     do i = 1, ntf
+        !         qa(j,i) = qa(j,i) + qa_jp1(j,i)
+        !     end do
+        ! end do
+        ! !$omp end parallel do
+        ! combineEnd = omp_get_wtime()
+        ! combineTime = combineEnd - combineStart
+
+        ! combineStart = omp_get_wtime()
+        !combine qa and qa_jp1 into qa serially
+        qa = qa + qa_jp1
+        combineEnd = omp_get_wtime()
+        ! combineTime = combineEnd - combineStart
+
+        l5End = omp_get_wtime()
+        l5Time = l5End - l5Start
+
+        !Get PV values, at half latitudes, by sweeping through latitudes:
+        !LOOP 6
+        l6Start = omp_get_wtime()
+        do i=1,ntf
+            do j=2,ngf
+                qa(j,i)=qa(j,i)+qa(j-1,i)
+            enddo
+        enddo
+        l6End = omp_get_wtime()
+        l6Time = l6End - l6Start
+        !Here, qa(j,i) stands for the PV at latitude j-1/2,
+        !from j = 1, ..., ngf.
+
+        preAvgEnd = omp_get_wtime()
+        preAvgTime = preAvgEnd - preAvgStart
+    
+        !----------------------------------------------------------------------
+        ! %      cumulative self     calls    
+        ! 7.32    763.92    84.85    23810  __contours_MOD_con2grid
+        ! 1.83   1067.81    21.25    23810  __contours_MOD_con2grid_avg
+
+        avgStart = omp_get_wtime()
+
+        !Average PV values on the fine grid to get corresponding 
+        !values on the inversion grid (ng,nt):
+        ngh=ngf
+        nth=ntf
+        
+        do while (ngh .gt. ng) !need to precalc number of iters if want to parallelise with OMP
+            !Pre-store PV adjacent to poles at complementary longitudes (+pi):
+            nthh=nth/2
+            nghp1=ngh+1
+            do i=1,nthh
+                ic=i+nthh
+                qa(0,i)=qa(1,ic)
+                qa(0,ic)=qa(1,i)
+                qa(nghp1,i)=qa(ngh,ic)
+                qa(nghp1,ic)=qa(ngh,i)
+            enddo
+
+            !Work from SP to NP to define PV at full latitudes from averages
+            !at adjacent half latitudes:
+            do i=1,nth
+                do j=0,ngh
+                qa(j,i)=f12*(qa(j+1,i)+qa(j,i))
+                enddo
+            enddo
+
+            !Now qa(j,i) is the PV at latitude j*(pi/ngh)-pi/2
+
+            !Next 1-2-1 average these values to define PV at half latitudes
+            !on a grid twice as coarse:
+            nghh=ngh/2
+            do i=1,nth
+                do j=1,nghh
+                je=2*j
+                qa(j,i)=f12*qa(je-1,i)+f14*(qa(je-2,i)+qa(je,i))
+                enddo
+            enddo
+
+            !Now perform analogous longitudinal 1-2-1 average:
+            do j=1,nghh
+                qaend(j)=f12*(qa(j,nth)+qa(j,1))
+            enddo
+
+            do i=1,nth-1
+                ip1=i+1
+                do j=1,nghh
+                qa(j,i)=f12*(qa(j,i)+qa(j,ip1))
+                enddo
+            enddo
+
+            do j=1,nghh
+                qa(j,nth)=qaend(j)
+            enddo
+            !Now qa(j,i) gives the PV at the half-longitudes i + 1/2.
+
+            !Average these on the twice coarser grid:
+            nthh=nth/2
+
+            do j=1,nghh
+                qa(j,1)=f12*(qa(j,nth)+qa(j,1))
+            enddo
+
+            do i=2,nthh
+                io=2*i-1
+                ie=io-1
+                do j=1,nghh
+                qa(j,i)=f12*(qa(j,ie)+qa(j,io))
+                enddo
+            enddo
+
+            ngh=nghh
+            nth=nthh
+
+        enddo
+
+        !Finalise and take away f to define PV anomaly:
+        do i=1,nt
+            do j=1,ng
+                qc(j,i)=qa(j,i)-fcor(j)
+            enddo
+        enddo
+
+        avgEnd = omp_get_wtime()
+        avgTime = avgEnd - avgStart
+
+        endTime = omp_get_wtime()
+        totalTime = endTime - startTime
+        !print *, 'call', callCount, ' of con2grid took ', totalTime, ' seconds.'
+
+        call accumulateTimes(totalTime, preAvgTime, avgTime, &
+                              l1Time, l2Time, l3Time, l4Time, l5Time, &
+                              l6Time, combineTime)
+        
+        return
+        
+    end subroutine 
+
+    subroutine con2grid_balancedAllKs(qc)
+        ! Calculates the PV anomaly field (stored in qc) from the PV 
+        ! contours (x,y,z).  Takes away Coriolis frequency (fcor).
+	
+	    use omp_lib
+
+        implicit double precision(a-h,o-z)
+        implicit integer(i-n)
+
+        !Passed arrays:
+        double precision:: qc(ng,nt)
+        !Local arrays:
+        double precision:: qa(0:ngf+1,ntf)
+        double precision:: qa_jp1(0:ngf+1,ntf)
+        double precision:: qaend(ngf/2)
+        integer:: ilm1(npt),ntc(npt)
+        double precision:: cx(npt),cy(npt),cz(npt)
+        double precision:: sq(npt)
+
+        !timers (overall and one for each loop)
+        double precision:: startTime, endTime, totalTime
+        double precision:: l1Start, l1End, l1Time
+        double precision:: l2Start, l2End, l2Time
+        double precision:: l3Start, l3End, l3Time
+        double precision:: l4Start, l4End, l4Time
+        double precision:: l5Start, l5End, l5Time
+        double precision:: l6Start, l6End, l6Time
+
+        double precision:: combineStart, combineEnd, combineTime
+
+        double precision:: preAvgStart, preAvgEnd, preAvgTime
+        double precision:: avgStart, avgEnd, avgTime
+
+        integer:: groupCount, ki
+
+        ! %      cumulative self     calls    
+        ! 7.32    763.92    84.85    23810  __contours_MOD_con2grid
+        ! 1.83   1067.81    21.25    23810  __contours_MOD_con2grid_avg
+
+	    !print *, "qa size (bytes): ", size(qa) * storage_size(qa)/8
+
+        startTime = omp_get_wtime()
+        preAvgStart = startTime
+
+        !Initialise crossing information:
+
+        !!$OMP PARALLEL DEFAULT(NONE) SHARED(npt,dlfi,x,y,z,next,ilm1,cx,cy,cz,ntc,sq, zero) PRIVATE(k,ka,sig)
+	    
+	    !print *, 'Loop 1...'
+            !!$OMP DO SCHEDULE(STATIC)
+                !LOOP 1
+                l1Start = omp_get_wtime()
+                !!$OMP PARALLEL DO SCHEDULE(GUIDED)
+                do k=1,npt
+                    ilm1(k)=int(dlfi*(pi+atan2(y(k),x(k))))
+                enddo
+                !!$OMP END PARALLEL DO
+                l1End = omp_get_wtime()
+                l1Time = l1End - l1Start
+            !!$OMP END DO
+
+            !print *, 'Loop 2...'
+	    !!$OMP DO SCHEDULE(STATIC)
+                !LOOP 2
+                l2Start = omp_get_wtime()
+                do k=1,npt
+                    ka=next(k)
+                    cx(k)=z(k)*y(ka)-y(k)*z(ka)
+                    cy(k)=x(k)*z(ka)-z(k)*x(ka)
+                    cz(k)=x(k)*y(ka)-y(k)*x(ka)
+                    ntc(k)=ilm1(ka)-ilm1(k)
+                enddo    
+                l2End = omp_get_wtime()
+                l2Time = l2End - l2Start
+                
+		!print *, 'Loop 3...'
+                !LOOP 3
+                l3Start = omp_get_wtime()
+                do k=1,npt
+                    sig=sign(one,cz(k))
+                    sq(k)=dq*sig
+                    ntc(k)=ntc(k)-ntf*((2*ntc(k))/ntf)
+                    if (sig*dble(ntc(k)) .lt. zero) ntc(k)=-ntc(k)
+                        if (abs(cz(k)) .gt. zero) then
+                            cx(k)=cx(k)/cz(k)
+                            cy(k)=cy(k)/cz(k)
+                        endif
+                enddo
+                l3End = omp_get_wtime()
+                l3Time = l3End - l3Start
+            !!$OMP END DO
+        !!$OMP END PARALLEL
+
+        !----------------------------------------------------------------------
+        !Initialise PV jump array:
+	!print *, 'Loop 4...'
+        !LOOP 4
+        l4Start = omp_get_wtime()        
+        do i=1,ntf
+            do j=0,ngf+1
+                qa(j,i)=zero
+                qa_jp1(j,i)=zero
+            enddo
+        enddo
+        l4End = omp_get_wtime()
+        l4Time = l4End - l4Start
+
+        !Determine crossing indices:
+	!LOOP 5
+        l5Start = omp_get_wtime()
+        !print *, 'Loop 5...'
+    
+    !$OMP PARALLEL PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump, groupCount, ki)
+        !split k=1,npt into repeat and non-repeat ks. 
+        !hard coded load of pre balanced repeat ks
+        !$omp do
+        do groupCount = 1, nGroups
             do ki = 1, size(groups(groupCount)%values)
                 k = groups(groupCount)%values(ki)
                 if (ntc(k) .ne. 0) then
@@ -1037,6 +1370,7 @@ program cgcDev
         return
         
     end subroutine 
+
 
     subroutine con2grid_masterRepeatKs(qc)
         ! Calculates the PV anomaly field (stored in qc) from the PV 
