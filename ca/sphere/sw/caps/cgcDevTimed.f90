@@ -138,9 +138,6 @@ program cgcDev
             print *, 'Call ', callCount, ': NonAccessed_ij_groups has ', nNonAccessed_ijs, ' groups.'
 
             print *, 'size(NonAccessed_ij_groups): ', size(NonAccessed_ij_groups)
-            do debugLoopCount = 1, nNonAccessed_ijs
-                print *, 'Group ', debugLoopCount, ' has ', size(NonAccessed_ij_groups(debugLoopCount)%pairs), ' pairs.'
-            end do
 
             !call checkAllKIncluded
 
@@ -1007,7 +1004,7 @@ program cgcDev
 
             !$omp do schedule(dynamic, 1) 
             !in Loop 5 these are not accessed so don't need to first touch them to a specific thread
-                do groupCount = 1, nNonAccessedKgroups
+                do groupCount = 1, nNonAccessed_ijs
                     if (.not.allocated(NonAccessed_ij_groups(groupCount)%pairs)) then
                             stop 'No nonAccessed ks to initialize.'
                     endif
