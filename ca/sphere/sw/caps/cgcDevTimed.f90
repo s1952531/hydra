@@ -991,10 +991,6 @@ program cgcDev
                 print *, 'Initialized qa and qa_jp1 for nonRepeat ks...'
             !$omp end single
 
-            !$omp single
-                print *, 'Initialized qa and qa_jp1 for nonAccessed ks...'
-            !$omp end single
-
             !$omp do schedule(dynamic, 1) 
             !in Loop 5 these are not accessed so don't need to first touch them to a specific thread
                 do groupCount = 1, nNonAccessedKgroups
@@ -1010,6 +1006,10 @@ program cgcDev
                     enddo
                 enddo
             !$omp end do
+
+            !$omp single
+                print *, 'Initialized qa and qa_jp1 for nonAccessed ks...'
+            !$omp end single
 
             l4End = omp_get_wtime()
             l4Time = l4End - l4Start
