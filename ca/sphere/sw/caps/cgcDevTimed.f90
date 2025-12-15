@@ -98,8 +98,8 @@ program cgcDev
             balanced_NonRepeatK_filename = 'binned_NonRepeat_ks_weighted/call_' // trim(callStr) // '.txt'
             balanced_RepeatK_filename    = 'binned_repeat_ks_weighted/call_'     // trim(callStr) // '.txt'
 
-            call getBalancedRepeatKs(balanced_NonRepeatK_filename, NonRepeatK_groups, nNonRepeatKgroups)
-            call getBalancedRepeatKs(balanced_RepeatK_filename, RepeatK_groups, nRepeatKgroups)
+            call getBalancedKs(balanced_NonRepeatK_filename, NonRepeatK_groups, nNonRepeatKgroups)
+            call getBalancedKs(balanced_RepeatK_filename, RepeatK_groups, nRepeatKgroups)
 
             !call checkAllKIncluded
 
@@ -276,7 +276,7 @@ program cgcDev
 
     end subroutine
 
-    subroutine getBalancedRepeatKs(filename, groups, nGroups)
+    subroutine getBalancedKs(filename, groups, nGroups)
         character(len=200000) :: line
         integer :: unit, ios, i, nvals
         integer, allocatable :: tmp(:)
@@ -826,28 +826,54 @@ program cgcDev
         !!$OMP END PARALLEL
 
         !----------------------------------------------------------------------
-        !Initialise PV jump array:
-	!print *, 'Loop 4...'
-        !LOOP 4
-        l4Start = omp_get_wtime()        
-        do i=1,ntf
-            do j=0,ngf+1
-                qa(j,i)=zero
-                qa_jp1(j,i)=zero
-            enddo
-        enddo
-        l4End = omp_get_wtime()
-        l4Time = l4End - l4Start
-
-        !Determine crossing indices:
-	!LOOP 5
-        l5Start = omp_get_wtime()
-        !print *, 'Loop 5...'
-    
-    !$OMP PARALLEL PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump, groupCount, ki)
+    !!$OMP PARALLEL PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump, groupCount, ki)
         !split k=1,npt into repeat and non-repeat ks. 
-        !hard coded load of pre balanced repeat ks
-        !$omp do
+        !hard coded load of pre balanced repeat/non-repeat ks
+
+        !Initialise PV jump array:
+        !print *, 'Loop 4...'
+            !LOOP 4
+            l4Start = omp_get_wtime()        
+            do i=1,ntf
+                do j=0,ngf+1
+                    qa(j,i)=zero
+                    qa_jp1(j,i)=zero
+                enddo
+            enddo
+            ! !$omp do schedule(static, 1)
+            ! do groupCount = 1, nRepeatKgroups
+            !     !loop as below but instead of RepeatK_groups(groupCount)%values use RepeatK_ij_groups(groupCount)%values(ki)
+            !     do ki = 1, size(RepeatK_ij_groups(groupCount)%values)
+            !         i, j = RepeatK_ij_groups(groupCount)%values(ki)
+            !         qa(j, i) = zero
+            !         qa_jp1(j+1, i) = zero
+            !     enddo
+            ! 
+            !     !loop over non-repeat ks
+            !     do ki = 1, size(NonRepeatK_ij_groups(groupCount)%values
+            !         i, j = NonRepeatK_ij_groups(groupCount)%values(ki)
+            !         qa(j, i) = zero
+            !         qa_jp1(j+1, i) = zero
+            !     enddo
+            !     
+            !     !are all i,j initialised to zero? Perhaps another loop to all other i,j is necessary so make and read either nonAccessed_ij_groups 
+            !     !or schedule differently without groups (could be faster)
+
+
+            l4End = omp_get_wtime()
+            l4Time = l4End - l4Start
+
+            !Determine crossing indices:
+        !LOOP 5
+            l5Start = omp_get_wtime()
+            !print *, 'Loop 5...'
+    
+
+    !$OMP PARALLEL PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump, groupCount, ki)
+        
+        !$omp do schedule(static, 1) 
+        !groups of repeat ks are assigned cyclicly to threads
+        !static instead of dynamic to allow deterministic thread->k to exploit first touch locality 
         do groupCount = 1, nRepeatKgroups
             do ki = 1, size(RepeatK_groups(groupCount)%values)
                 k = RepeatK_groups(groupCount)%values(ki)
@@ -869,8 +895,9 @@ program cgcDev
             enddo
         enddo
         !$omp end do
-        
-        !$omp do
+
+        !$omp do schedule(static, 1)
+        !groups of non-repeat ks are assigned cyclicly to threads
         do groupCount = 1, nNonRepeatKgroups
             do ki = 1, size(NonRepeatK_groups(groupCount)%values)
                 k = NonRepeatK_groups(groupCount)%values(ki)
