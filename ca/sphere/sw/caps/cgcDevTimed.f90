@@ -995,9 +995,7 @@ program cgcDev
             !in Loop 5 these are not accessed so don't need to first touch them to a specific thread
                 do groupCount = 1, nNonAccessedKgroups
                     if (.not.allocated(NonAccessed_ij_groups(groupCount)%pairs)) then
-                        !$omp single
                             stop 'No nonAccessed ks to initialize.'
-                        !$omp end single
                     endif
                     do pairCount = 1, size(NonAccessed_ij_groups(groupCount)%pairs)
 
