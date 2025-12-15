@@ -130,7 +130,8 @@ program cgcDev
 
             !call checkAllKIncluded
 
-            call con2grid_balancedAllKs(qc)
+            call con2grid_firstTouch_balancedAllKs(qc)
+            !call con2grid_balancedAllKs(qc)
             !call con2grid_balancedRepeatKs(qc)
             !call con2grid_masterRepeatKs(qc)
             !call con2grid_serial(qc)
