@@ -1029,7 +1029,6 @@ program cgcDev
             ! !$omp end single
 
             l4End = omp_get_wtime()
-            l4Time = l4End - l4Start
 
             !Determine crossing indices:
         !LOOP 5
@@ -1119,6 +1118,8 @@ program cgcDev
         ! combineTime = combineEnd - combineStart
 
         l5End = omp_get_wtime()
+
+        l4Time = l4End - l4Start
         l5Time = l5End - l5Start
 
         !Get PV values, at half latitudes, by sweeping through latitudes:
