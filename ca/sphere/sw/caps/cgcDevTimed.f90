@@ -97,6 +97,8 @@ program cgcDev
     character(len=256) :: balanced_repeatK_ij_filename
     character(len=256) :: balanced_nonRepeatK_ij_filename
     character(len=256) :: balanced_nonAccessed_ij_filename
+
+    integer :: debugLoopCount
     
     call init
     
@@ -119,14 +121,26 @@ program cgcDev
             balanced_RepeatK_filename    = 'binned_repeat_ks_weighted/call_'     // trim(callStr) // '.txt'
             call getBalancedKs(balanced_RepeatK_filename, RepeatK_groups, nRepeatKgroups)
 
+            print *, 'Call ', callCount, ': Pre-getBalancedIJs, nRepeatKgroups=', nRepeatKgroups, ' nNonRepeatKgroups=', nNonRepeatKgroups
+
             balanced_repeatK_ij_filename = 'binned_repeat_ks_weighted_ijs/call_' // trim(callStr) // '.txt'
             call getBalancedIJs(balanced_repeatK_ij_filename, RepeatK_ij_groups, nRepeatKgroups)
 
             balanced_nonRepeatK_ij_filename = 'binned_NonRepeat_ks_weighted_ijs/call_' // trim(callStr) // '.txt'
             call getBalancedIJs(balanced_nonRepeatK_ij_filename, NonRepeatK_ij_groups, nNonRepeatKgroups)
 
+            print *, 'Call ', callCount, ': Post-getBalancedIJs nRepeatKgroups=', nRepeatKgroups, ' nNonRepeatKgroups=', nNonRepeatKgroups
+
             balanced_nonAccessed_ij_filename = 'binned_nonAccessed_ijs/call_' // trim(callStr) // '.txt'
             call getBalancedIJs(balanced_nonAccessed_ij_filename, NonAccessed_ij_groups, nNonAccessed_ijs)
+
+            !print how many groups and pairs in each group NonAccessed_ij_groups has
+            print *, 'Call ', callCount, ': NonAccessed_ij_groups has ', nNonAccessed_ijs, ' groups.'
+
+            print *, 'size(NonAccessed_ij_groups): ', size(NonAccessed_ij_groups)
+            do debugLoopCount = 1, nNonAccessed_ijs
+                print *, 'Group ', debugLoopCount, ' has ', size(NonAccessed_ij_groups(debugLoopCount)%pairs), ' pairs.'
+            end do
 
             !call checkAllKIncluded
 
