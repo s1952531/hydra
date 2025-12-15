@@ -121,7 +121,7 @@ program cgcDev
             balanced_RepeatK_filename    = 'binned_repeat_ks_weighted/call_'     // trim(callStr) // '.txt'
             call getBalancedKs(balanced_RepeatK_filename, RepeatK_groups, nRepeatKgroups)
 
-            print *, 'Call ', callCount, ': Pre-getBalancedIJs, nRepeatKgroups=', nRepeatKgroups, ' nNonRepeatKgroups=', nNonRepeatKgroups
+            ! print *, 'Call ', callCount, ': Pre-getBalancedIJs, nRepeatKgroups=', nRepeatKgroups, ' nNonRepeatKgroups=', nNonRepeatKgroups
 
             balanced_repeatK_ij_filename = 'binned_repeat_ks_weighted_ijs/call_' // trim(callStr) // '.txt'
             call getBalancedIJs(balanced_repeatK_ij_filename, RepeatK_ij_groups, nRepeatKgroups)
@@ -129,15 +129,15 @@ program cgcDev
             balanced_nonRepeatK_ij_filename = 'binned_NonRepeat_ks_weighted_ijs/call_' // trim(callStr) // '.txt'
             call getBalancedIJs(balanced_nonRepeatK_ij_filename, NonRepeatK_ij_groups, nNonRepeatKgroups)
 
-            print *, 'Call ', callCount, ': Post-getBalancedIJs nRepeatKgroups=', nRepeatKgroups, ' nNonRepeatKgroups=', nNonRepeatKgroups
+            ! print *, 'Call ', callCount, ': Post-getBalancedIJs nRepeatKgroups=', nRepeatKgroups, ' nNonRepeatKgroups=', nNonRepeatKgroups
 
             balanced_nonAccessed_ij_filename = 'binned_nonAccessed_ijs/call_' // trim(callStr) // '.txt'
             call getBalancedIJs(balanced_nonAccessed_ij_filename, NonAccessed_ij_groups, nNonAccessed_ijs)
 
             !print how many groups and pairs in each group NonAccessed_ij_groups has
-            print *, 'Call ', callCount, ': NonAccessed_ij_groups has ', nNonAccessed_ijs, ' groups.'
+            ! print *, 'Call ', callCount, ': NonAccessed_ij_groups has ', nNonAccessed_ijs, ' groups.'
 
-            print *, 'size(NonAccessed_ij_groups): ', size(NonAccessed_ij_groups)
+            ! print *, 'size(NonAccessed_ij_groups): ', size(NonAccessed_ij_groups)
 
             !call checkAllKIncluded
 
@@ -978,9 +978,9 @@ program cgcDev
                 enddo
             !$omp end do
 
-            !$omp single
-                print *, 'Initialized qa and qa_jp1 for repeat ks...'
-            !$omp end single
+            ! !$omp single
+            !     print *, 'Initialized qa and qa_jp1 for repeat ks...'
+            ! !$omp end single
             
             !$omp do schedule(static, 1)
                 do groupCount = 1, nNonRepeatKgroups
@@ -998,9 +998,9 @@ program cgcDev
                 enddo
             !$omp end do
 
-            !$omp single
-                print *, 'Initialized qa and qa_jp1 for nonRepeat ks...'
-            !$omp end single
+            ! !$omp single
+            !     print *, 'Initialized qa and qa_jp1 for nonRepeat ks...'
+            ! !$omp end single
 
             !$omp do schedule(dynamic, 1) 
             !in Loop 5 these are not accessed so don't need to first touch them to a specific thread
@@ -1024,9 +1024,9 @@ program cgcDev
                 enddo
             !$omp end do
 
-            !$omp single
-                print *, 'Initialized qa and qa_jp1 for nonAccessed ks...'
-            !$omp end single
+            ! !$omp single
+            !     print *, 'Initialized qa and qa_jp1 for nonAccessed ks...'
+            ! !$omp end single
 
             l4End = omp_get_wtime()
             l4Time = l4End - l4Start
