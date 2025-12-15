@@ -836,7 +836,7 @@ program cgcDev
         
     end subroutine
 
-       subroutine con2grid_firstTouch_balancedAllKs(qc)
+    subroutine con2grid_firstTouch_balancedAllKs(qc)
         ! Calculates the PV anomaly field (stored in qc) from the PV 
         ! contours (x,y,z).  Takes away Coriolis frequency (fcor).
 	
@@ -957,6 +957,10 @@ program cgcDev
                     do pairCount = 1, size(RepeatK_ij_groups(groupCount)%pairs)
                         i = RepeatK_ij_groups(groupCount)%pairs(pairCount)%i
                         j = RepeatK_ij_groups(groupCount)%pairs(pairCount)%j
+
+                        if (i < 1 .or. i > ntf) stop "i out of bounds in repeatK init"
+                        if (j < 0 .or. j > ngf+1) stop "j out of bounds in repeatK init"
+
                         qa(j, i) = zero
                         qa_jp1(j+1, i) = zero
                     enddo
@@ -968,8 +972,13 @@ program cgcDev
                     do pairCount = 1, size(NonRepeatK_ij_groups(groupCount)%pairs)
                         i = NonRepeatK_ij_groups(groupCount)%pairs(pairCount)%i
                         j = NonRepeatK_ij_groups(groupCount)%pairs(pairCount)%j
+
+                        if (i < 1 .or. i > ntf) stop "i out of bounds in non-repeatK init"
+                        if (j < 0 .or. j > ngf+1) stop "j out of bounds in non-repeatK init"
+
                         qa(j, i) = zero
                         qa_jp1(j+1, i) = zero
+
                     enddo
                 enddo
             !$omp end do
@@ -980,6 +989,10 @@ program cgcDev
                     do pairCount = 1, size(NonAccessed_ij_groups(groupCount)%pairs)
                         i = NonAccessed_ij_groups(groupCount)%pairs(pairCount)%i
                         j = NonAccessed_ij_groups(groupCount)%pairs(pairCount)%j
+
+                        if (i < 1 .or. i > ntf) stop "i out of bounds in non-accessedK init"
+                        if (j < 0 .or. j > ngf+1) stop "j out of bounds in non-accessedK init"
+
                         qa(j, i) = zero
                         qa_jp1(j+1, i) = zero
                     enddo
