@@ -930,7 +930,7 @@ program cgcDev
         !!$OMP END PARALLEL
 
         !----------------------------------------------------------------------
-    !$OMP PARALLEL PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump, groupCount, ki)
+    !$OMP PARALLEL PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump, groupCount, ki, pairCount)
         !split k=1,npt into repeat and non-repeat ks. 
         !hard coded load of pre balanced repeat/non-repeat ks
 
