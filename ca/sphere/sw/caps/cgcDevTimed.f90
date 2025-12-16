@@ -136,7 +136,7 @@ program cgcDev
             ! balanced_nonAccessed_ij_filename = 'binned_nonAccessed_ijs/call_' // trim(callStr) // '.txt'
             ! call getBalancedIJs(balanced_nonAccessed_ij_filename, NonAccessed_ij_groups, nNonAccessed_ijs)
 
-            call internalGetNonAccessedIJs
+            !call internalGetNonAccessedIJs
 
             !print how many groups and pairs in each group NonAccessed_ij_groups has
             ! print *, 'Call ', callCount, ': NonAccessed_ij_groups has ', nNonAccessed_ijs, ' groups.'
@@ -144,7 +144,7 @@ program cgcDev
             ! print *, 'size(NonAccessed_ij_groups): ', size(NonAccessed_ij_groups)
 
             !call checkAllKIncluded
-            call checkNoInitIJOverlap
+            !call checkNoInitIJOverlap
 
             !call checkAllInitFully
 
@@ -1159,36 +1159,45 @@ program cgcDev
             !     print *, 'Initialized qa and qa_jp1 for nonRepeat ks...'
             ! !$omp end single
 
-            !$omp do schedule(static) private(i,j, pairCount)
-            !in Loop 5 these are not accessed so don't need to first touch them to a specific thread
-                ! do groupCount = 1, nNonAccessed_ijs
-                !     if (.not.allocated(NonAccessed_ij_groups(groupCount)%pairs)) then
-                !             stop 'No nonAccessed ks to initialize.'
-                !     endif
-                !     do pairCount = 1, size(NonAccessed_ij_groups(groupCount)%pairs)
+            ! !$omp do schedule(static) private(i,j, pairCount)
+            ! !in Loop 5 these are not accessed so don't need to first touch them to a specific thread
+            !     ! do groupCount = 1, nNonAccessed_ijs
+            !     !     if (.not.allocated(NonAccessed_ij_groups(groupCount)%pairs)) then
+            !     !             stop 'No nonAccessed ks to initialize.'
+            !     !     endif
+            !     !     do pairCount = 1, size(NonAccessed_ij_groups(groupCount)%pairs)
 
                         
-                        ! i = NonAccessed_ij_groups(groupCount)%pairs(pairCount)%i
-                        ! j = NonAccessed_ij_groups(groupCount)%pairs(pairCount)%j
+            !             ! i = NonAccessed_ij_groups(groupCount)%pairs(pairCount)%i
+            !             ! j = NonAccessed_ij_groups(groupCount)%pairs(pairCount)%j
 
-                        ! if (i < 1 .or. i > ntf) stop "i out of bounds in non-accessedK init"
-                        ! if (j < 0 .or. j > ngf+1) stop "j out of bounds in non-accessedK init"
+            !             ! if (i < 1 .or. i > ntf) stop "i out of bounds in non-accessedK init"
+            !             ! if (j < 0 .or. j > ngf+1) stop "j out of bounds in non-accessedK init"
 
-                        ! qa(j, i) = zero
-                        ! qa_jp1(j+1, i) = zero
-                    !enddo
+            !             ! qa(j, i) = zero
+            !             ! qa_jp1(j+1, i) = zero
+            !         !enddo
 
-                do pairCount = 1, nNonAccessed_ijs
-                    i = NonAccessed_ij_groups(1)%pairs(pairCount)%i
-                    j = NonAccessed_ij_groups(1)%pairs(pairCount)%j
+            !     do pairCount = 1, nNonAccessed_ijs
+            !         i = NonAccessed_ij_groups(1)%pairs(pairCount)%i
+            !         j = NonAccessed_ij_groups(1)%pairs(pairCount)%j
 
-                    if (i<1 .or. i>ntf) stop "i out of bounds"
-                    if (j<0 .or. j>ngf+1) stop "j out of bounds"
+            !         if (i<1 .or. i>ntf) stop "i out of bounds"
+            !         if (j<0 .or. j>ngf+1) stop "j out of bounds"
 
-                    qa(j, i) = zero
-                    qa_jp1(j+1, i) = zero
-                enddo
-            !$omp end do
+            !         qa(j, i) = zero
+            !         qa_jp1(j+1, i) = zero
+            !     enddo
+            ! !$omp end do
+
+            !loop over all ijs to avoid slow calc of NonAccessed_ij_groups
+            !$omp parallel do collapse(2) schedule(static) private(i,j)
+            do j = 0, ngf+1
+            do i = 1, ntf
+                qa(j,i) = 0.0
+                qa_jp1(j,i) = 0.0
+            end do
+            end do
 
             ! !$omp single
             !     print *, 'Initialized qa and qa_jp1 for nonAccessed ks...'
