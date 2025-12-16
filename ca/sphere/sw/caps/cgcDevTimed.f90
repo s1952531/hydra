@@ -284,6 +284,9 @@ program cgcDev
         open(newunit=unit, file=filename, status='old', action='read')
 
         ! Allocate temporary array with size npt
+        if (allocated(temp)) then
+            deallocate(temp)
+        end if
         allocate(temp(npt))
 
         ! Read integers directly into temp
@@ -425,6 +428,9 @@ program cgcDev
             return
         end if
 
+        if (allocated(groups)) then
+            deallocate(groups)
+        end if
         allocate(groups(nGroups))
 
         ! ------------------------------------------------
