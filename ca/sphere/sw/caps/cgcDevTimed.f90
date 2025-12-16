@@ -1113,7 +1113,7 @@ program cgcDev
             !LOOP 4
             ! l4Start = omp_get_wtime()        
 
-            !$omp do schedule(static, 1)
+            !$omp do schedule(static, 1) private(i,j, pairCount)
                 do groupCount = 1, nRepeatKgroups
                     do pairCount = 1, size(RepeatK_ij_groups(groupCount)%pairs)
                         i = RepeatK_ij_groups(groupCount)%pairs(pairCount)%i
@@ -1132,7 +1132,7 @@ program cgcDev
             !     print *, 'Initialized qa and qa_jp1 for repeat ks...'
             ! !$omp end single
             
-            !$omp do schedule(static, 1)
+            !$omp do schedule(static, 1) private(i,j, pairCount)
                 do groupCount = 1, nNonRepeatKgroups
                     do pairCount = 1, size(NonRepeatK_ij_groups(groupCount)%pairs)
                         i = NonRepeatK_ij_groups(groupCount)%pairs(pairCount)%i
@@ -1152,7 +1152,7 @@ program cgcDev
             !     print *, 'Initialized qa and qa_jp1 for nonRepeat ks...'
             ! !$omp end single
 
-            !$omp do schedule(static) 
+            !$omp do schedule(static) private(i,j, pairCount)
             !in Loop 5 these are not accessed so don't need to first touch them to a specific thread
                 ! do groupCount = 1, nNonAccessed_ijs
                 !     if (.not.allocated(NonAccessed_ij_groups(groupCount)%pairs)) then
