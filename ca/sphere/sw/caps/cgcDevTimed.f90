@@ -1096,7 +1096,6 @@ program cgcDev
         !!$OMP END PARALLEL
 
         !----------------------------------------------------------------------
-    !$OMP PARALLEL PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump, groupCount, ki, pairCount)
         !split k=1,npt into repeat and non-repeat ks. 
         !hard coded load of pre balanced repeat/non-repeat ks
 
@@ -1114,10 +1113,11 @@ program cgcDev
     ! type(group_ijs), allocatable :: NonAccessed_ij_groups(:)
 
         !Initialise PV jump array:
-        !print *, 'Loop 4...'
-            !LOOP 4
-            ! l4Start = omp_get_wtime()        
+        print *, 'Loop 4...'
+        !LOOP 4
+        l4Start = omp_get_wtime()        
 
+    !$OMP PARALLEL PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump, groupCount, ki, pairCount)
             !$omp do schedule(static, 1) private(i,j, pairCount)
                 do groupCount = 1, nRepeatKgroups
                     do pairCount = 1, size(RepeatK_ij_groups(groupCount)%pairs)
@@ -1192,16 +1192,17 @@ program cgcDev
             !     print *, 'Initialized qa and qa_jp1 for nonAccessed ks...'
             ! !$omp end single
 
-            ! l4End = omp_get_wtime()
-            ! l4Time = l4End - l4Start
+    !$OMP END PARALLEL
 
-            !Determine crossing indices:
+        l4End = omp_get_wtime()
+        l4Time = l4End - l4Start
+
+        !Determine crossing indices:
         !LOOP 5
-            ! l5Start = omp_get_wtime()
-            !print *, 'Loop 5...'
-    
+        l5Start = omp_get_wtime()
+        print *, 'Loop 5...'
 
-    !!$OMP PARALLEL PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump, groupCount, ki)
+    !$OMP PARALLEL PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump, groupCount, ki)
         
         !$omp do schedule(static, 1) 
         !groups of repeat ks are assigned cyclicly to threads
