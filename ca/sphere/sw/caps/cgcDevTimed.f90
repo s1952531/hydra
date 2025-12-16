@@ -146,6 +146,8 @@ program cgcDev
             !call checkAllKIncluded
             call checkNoInitIJOverlap
 
+            call checkAllInitFully
+
             call con2grid_firstTouch_balancedAllKs(qc)
             !call con2grid_balancedAllKs(qc)
             !call con2grid_balancedRepeatKs(qc)
@@ -1208,6 +1210,7 @@ program cgcDev
         !groups of repeat ks are assigned cyclicly to threads
         !static instead of dynamic to allow deterministic thread->k to exploit first touch locality 
         do groupCount = 1, nRepeatKgroups
+            if (.not. allocated(RepeatK_groups(groupCount)%values)) stop 'No repeat ks to process.'
             do ki = 1, size(RepeatK_groups(groupCount)%values)
                 k = RepeatK_groups(groupCount)%values(ki)
                 if (ntc(k) .ne. 0) then
@@ -1221,6 +1224,10 @@ program cgcDev
                         rlatc=dlfi*(hpi+atan(cx(k)*clonf(i)+cy(k)*slonf(i)))
                         j=int(rlatc)+1
                         p=rlatc-dble(j-1)
+
+                        if (i<1 .or. i>ntf) stop "i out of bounds"
+                        if (j<0 .or. j>ngf+1) stop "j out of bounds"
+
                         qa(j,i)=  qa(j,i)+(one-p)*sq(k)
                         qa_jp1(j+1,i)=qa_jp1(j+1,i)+    p*sq(k)
                     enddo
@@ -1232,6 +1239,7 @@ program cgcDev
         !$omp do schedule(static, 1) private(i,j,k,ki)
         !groups of non-repeat ks are assigned cyclicly to threads
         do groupCount = 1, nNonRepeatKgroups
+            if (.not. allocated(NonRepeatK_groups(groupCount)%values)) stop 'No non-repeat ks to process.'
             do ki = 1, size(NonRepeatK_groups(groupCount)%values)
                 k = NonRepeatK_groups(groupCount)%values(ki)
                 if (ntc(k) .ne. 0) then
@@ -1245,6 +1253,10 @@ program cgcDev
                         rlatc=dlfi*(hpi+atan(cx(k)*clonf(i)+cy(k)*slonf(i)))
                         j=int(rlatc)+1
                         p=rlatc-dble(j-1)
+
+                        if (i<1 .or. i>ntf) stop "i out of bounds"
+                        if (j<0 .or. j>ngf+1) stop "j out of bounds"
+
                         qa(j,i)=  qa(j,i)+(one-p)*sq(k)
                         qa_jp1(j+1,i)=qa_jp1(j+1,i)+    p*sq(k)
                     enddo
