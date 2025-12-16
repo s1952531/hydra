@@ -370,6 +370,9 @@ program cgcDev
             ! Count integers: number of spaces + 1
             nvals = count([(line(j:j) == ' ', j=1,len_trim(line))]) + 1
 
+            if (allocated(tmp)) then
+                deallocate(tmp)
+            end if
             allocate(tmp(nvals))
 
             ! Parse values
@@ -380,6 +383,9 @@ program cgcDev
             end if
 
             ! Save to global array
+            if (allocated(groups(i)%values)) then
+                deallocate(groups(i)%values)
+            end if
             allocate(groups(i)%values(nvals))
             groups(i)%values = tmp
             deallocate(tmp)
@@ -442,7 +448,10 @@ program cgcDev
                 print *, trim(line)
                 stop
             end if
-
+            
+            if (allocated(tmp)) then
+                deallocate(tmp)
+            end if
             allocate(tmp(nints))
             read(line, *, iostat=ios) tmp
             if (ios /= 0) then
@@ -451,6 +460,9 @@ program cgcDev
             end if
 
             npairs = nints / 2
+            if (allocated(groups(i)%pairs)) then
+                deallocate(groups(i)%pairs)
+            end if
             allocate(groups(i)%pairs(npairs))
 
             do j = 1, npairs
@@ -525,7 +537,14 @@ program cgcDev
         end do
 
         ! Allocate parent group and copy the results
+        if (allocated(NonAccessed_ij_groups)) then
+            deallocate(NonAccessed_ij_groups)
+        end if
         allocate(NonAccessed_ij_groups(1))
+
+        if (allocated(NonAccessed_ij_groups(1)%pairs)) then
+            deallocate(NonAccessed_ij_groups(1)%pairs)
+        end if
         allocate(NonAccessed_ij_groups(1)%pairs(nNonAccessed_ijs))
         NonAccessed_ij_groups(1)%pairs = nonaccessed_pairs(1:nNonAccessed_ijs)
 
@@ -654,6 +673,7 @@ program cgcDev
     integer :: nNonRepeat
 
     ! Mask to mark repeats
+    if (allocated(isRepeat)) deallocate(isRepeat)
     allocate(isRepeat(npt))
     isRepeat = .false.
 
