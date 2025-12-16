@@ -961,9 +961,9 @@ program cgcDev
         !Initialise PV jump array:
         !print *, 'Loop 4...'
             !LOOP 4
-            !$omp single
-            l4Start = omp_get_wtime()    
-            !$omp end single    
+            ! !$omp single
+            !     l4Start = omp_get_wtime()    
+            ! !$omp end single    
 
             !$omp do schedule(static, 1)
                 do groupCount = 1, nRepeatKgroups
@@ -1030,14 +1030,12 @@ program cgcDev
             !     print *, 'Initialized qa and qa_jp1 for nonAccessed ks...'
             ! !$omp end single
 
-            !$omp single
-                l4End = omp_get_wtime()
-            !$omp end single
             !Determine crossing indices:
         !LOOP 5
-            !$omp single
-                l5Start = omp_get_wtime()
-            !$omp end single
+            ! !$omp single
+            !     l4End = omp_get_wtime()
+            !     l5Start = omp_get_wtime()
+            ! !$omp end single
             !print *, 'Loop 5...'
     
 
@@ -1119,13 +1117,13 @@ program cgcDev
         ! combineStart = omp_get_wtime()
         !combine qa and qa_jp1 into qa serially
         qa = qa + qa_jp1
-        combineEnd = omp_get_wtime()
+        !combineEnd = omp_get_wtime()
         ! combineTime = combineEnd - combineStart
 
-        l5End = omp_get_wtime()
+        ! l5End = omp_get_wtime()
 
-        l4Time = l4End - l4Start
-        l5Time = l5End - l5Start
+        ! l4Time = l4End - l4Start
+        ! l5Time = l5End - l5Start
 
         !Get PV values, at half latitudes, by sweeping through latitudes:
         !LOOP 6
