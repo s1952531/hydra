@@ -473,6 +473,9 @@ program cgcDev
         type(ij_pair), allocatable :: nonaccessed_pairs(:)
 
         ! Maximum possible size: ntf*(ngf+2)
+        if (allocated(nonaccessed_pairs)) then
+            deallocate(nonaccessed_pairs)
+        end if
         allocate(nonaccessed_pairs(ntf*(ngf+2)))
         nNonAccessed_ijs = 0   ! reset parent-scope counter
 
