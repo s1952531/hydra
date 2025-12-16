@@ -1204,7 +1204,7 @@ program cgcDev
 
     !$OMP PARALLEL PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump, groupCount, ki)
         
-        !$omp do schedule(static, 1) 
+        !$omp do schedule(static, 1) private(i,j,k,ki)
         !groups of repeat ks are assigned cyclicly to threads
         !static instead of dynamic to allow deterministic thread->k to exploit first touch locality 
         do groupCount = 1, nRepeatKgroups
@@ -1229,7 +1229,7 @@ program cgcDev
         enddo
         !$omp end do
 
-        !$omp do schedule(static, 1)
+        !$omp do schedule(static, 1) private(i,j,k,ki)
         !groups of non-repeat ks are assigned cyclicly to threads
         do groupCount = 1, nNonRepeatKgroups
             do ki = 1, size(NonRepeatK_groups(groupCount)%values)
