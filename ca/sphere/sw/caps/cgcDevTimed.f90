@@ -1113,8 +1113,8 @@ program cgcDev
     ! type(group_ijs), allocatable :: NonAccessed_ij_groups(:)
 
         !Initialise PV jump array:
-        print *, 'Loop 4...'
         !LOOP 4
+        print *, 'Loop 4...'
         l4Start = omp_get_wtime()        
 
     !$OMP PARALLEL PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump, groupCount, ki, pairCount)
@@ -1199,8 +1199,8 @@ program cgcDev
 
         !Determine crossing indices:
         !LOOP 5
-        l5Start = omp_get_wtime()
         print *, 'Loop 5...'
+        l5Start = omp_get_wtime()
 
     !$OMP PARALLEL PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump, groupCount, ki)
         
@@ -1288,6 +1288,7 @@ program cgcDev
 
         !Get PV values, at half latitudes, by sweeping through latitudes:
         !LOOP 6
+        print *, 'Loop 6...'
         l6Start = omp_get_wtime()
         do i=1,ntf
             do j=2,ngf
@@ -1307,6 +1308,7 @@ program cgcDev
         ! 7.32    763.92    84.85    23810  __contours_MOD_con2grid
         ! 1.83   1067.81    21.25    23810  __contours_MOD_con2grid_avg
 
+        print *, 'Averaging...'
         avgStart = omp_get_wtime()
 
         !Average PV values on the fine grid to get corresponding 
@@ -1391,6 +1393,7 @@ program cgcDev
         enddo
 
         avgEnd = omp_get_wtime()
+        print *, 'Finished averaging.'
         avgTime = avgEnd - avgStart
 
         endTime = omp_get_wtime()
