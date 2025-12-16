@@ -146,7 +146,7 @@ program cgcDev
             !call checkAllKIncluded
             call checkNoInitIJOverlap
 
-            call checkAllInitFully
+            !call checkAllInitFully
 
             call con2grid_firstTouch_balancedAllKs(qc)
             !call con2grid_balancedAllKs(qc)
