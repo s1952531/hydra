@@ -613,6 +613,7 @@ program cgcDev
         do g1 = 1, nRepeatKgroups
             do m1 = 1, size(RepeatK_ij_groups(g1)%pairs)
                 do g2 = 1, nNonAccessed_ijs
+                    if (.not. allocated(NonAccessed_ij_groups(g2)%pairs)) cycle
                     do m2 = 1, size(NonAccessed_ij_groups(g2)%pairs)
                         if (RepeatK_ij_groups(g1)%pairs(m1)%i == NonAccessed_ij_groups(g2)%pairs(m2)%i .and. &
                             RepeatK_ij_groups(g1)%pairs(m1)%j == NonAccessed_ij_groups(g2)%pairs(m2)%j) then
@@ -628,6 +629,7 @@ program cgcDev
         do g1 = 1, nNonRepeatKgroups
             do m1 = 1, size(NonRepeatK_ij_groups(g1)%pairs)
                 do g2 = 1, nNonAccessed_ijs
+                    if (.not. allocated(NonAccessed_ij_groups(g2)%pairs)) cycle
                     do m2 = 1, size(NonAccessed_ij_groups(g2)%pairs)
                         if (NonRepeatK_ij_groups(g1)%pairs(m1)%i == NonAccessed_ij_groups(g2)%pairs(m2)%i .and. &
                             NonRepeatK_ij_groups(g1)%pairs(m1)%j == NonAccessed_ij_groups(g2)%pairs(m2)%j) then
