@@ -92,6 +92,7 @@ program cgcDev
     type(group_ijs), allocatable :: RepeatK_ij_groups(:)
     type(group_ijs), allocatable :: NonRepeatK_ij_groups(:)
     type(group_ijs), allocatable :: NonAccessed_ij_groups(:)
+
     integer :: nNonAccessed_ijs = 0
 
     character(len=256) :: balanced_repeatK_ij_filename
@@ -131,8 +132,10 @@ program cgcDev
 
             ! print *, 'Call ', callCount, ': Post-getBalancedIJs nRepeatKgroups=', nRepeatKgroups, ' nNonRepeatKgroups=', nNonRepeatKgroups
 
-            balanced_nonAccessed_ij_filename = 'binned_nonAccessed_ijs/call_' // trim(callStr) // '.txt'
-            call getBalancedIJs(balanced_nonAccessed_ij_filename, NonAccessed_ij_groups, nNonAccessed_ijs)
+            ! balanced_nonAccessed_ij_filename = 'binned_nonAccessed_ijs/call_' // trim(callStr) // '.txt'
+            ! call getBalancedIJs(balanced_nonAccessed_ij_filename, NonAccessed_ij_groups, nNonAccessed_ijs)
+
+            call internalGetNonAccessedIJs
 
             !print how many groups and pairs in each group NonAccessed_ij_groups has
             ! print *, 'Call ', callCount, ': NonAccessed_ij_groups has ', nNonAccessed_ijs, ' groups.'
@@ -460,6 +463,60 @@ program cgcDev
 
         close(unit)
 
+    end subroutine
+
+    subroutine internalGetNonAccessedIJs
+        !get all i,j cominations that are not in RepeatK_ij_groups or NonRepeatK_ij_groups for j in range 0:ngf+1 and i in range 1:ntf
+        !dont need to declare the arrays as they are in the parent scope
+        integer :: i, j, g, found
+        type(ij_pair), allocatable :: nonaccessed_pairs(:)
+
+
+        !qa is of size (0:ngf+1, ntf) so could have up to (ntf*(ngf+2)) non-accessed i,j pairs
+        allocate(nonaccessed_pairs(ntf*(ngf+2)))
+
+        do j=0,ngf+1
+            do i=1,ntf
+                !check if (i,j) is in RepeatK_ij_groups or NonRepeatK_ij_groups
+                found = 0
+                do g=1,nRepeatKgroups
+                    if (found == 1) exit
+                    if (allocated(RepeatK_ij_groups(g)%pairs)) then
+                        if (any( [(RepeatK_ij_groups(g)%pairs(m)%i == i .and. RepeatK_ij_groups(g)%pairs(m)%j == j, m=1,size(RepeatK_ij_groups(g)%pairs))] )) then
+                            found = 1
+                        end if
+                    end if
+                end do
+                if (found == 0) then
+                    do g=1,nNonRepeatKgroups
+                        if (found == 1) exit
+                        if (allocated(NonRepeatK_ij_groups(g)%pairs)) then
+                            if (any( [(NonRepeatK_ij_groups(g)%pairs(m)%i == i .and. NonRepeatK_ij_groups(g)%pairs(m)%j == j, m=1,size(NonRepeatK_ij_groups(g)%pairs))] )) then
+                                found = 1
+                            end if
+                        end if
+                    end do
+                end if
+                if (found == 0) then
+                    nNonAccessed_ijs = nNonAccessed_ijs + 1
+
+                    !add i,j to nonaccessed_pairs
+                    nonaccessed_pairs(nNonAccessed_ijs)%i = i
+                    nonaccessed_pairs(nNonAccessed_ijs)%j = j
+                end if
+            end do
+        end do
+
+        !allocate(parent(x))
+        !parent(1:x) = tmp(1:x)
+
+        !allocate(groups(nGroups))
+        !allocate(groups(i)%pairs(npairs))
+
+        allocate(NonAccessed_ij_groups(1))
+        allocate(NonAccessed_ij_groups(1)%pairs(nNonAccessed_ijs))
+
+        NonAccessed_ij_groups(1)%pairs = nonaccessed_pairs(1:nNonAccessed_ijs)
     end subroutine
 
     subroutine checkAllKIncluded
@@ -1002,25 +1059,31 @@ program cgcDev
             !     print *, 'Initialized qa and qa_jp1 for nonRepeat ks...'
             ! !$omp end single
 
-            !$omp do schedule(dynamic, 1) 
+            !$omp do schedule(static) 
             !in Loop 5 these are not accessed so don't need to first touch them to a specific thread
-                do groupCount = 1, nNonAccessed_ijs
-                    if (.not.allocated(NonAccessed_ij_groups(groupCount)%pairs)) then
-                            stop 'No nonAccessed ks to initialize.'
-                    endif
-                    do pairCount = 1, size(NonAccessed_ij_groups(groupCount)%pairs)
+                ! do groupCount = 1, nNonAccessed_ijs
+                !     if (.not.allocated(NonAccessed_ij_groups(groupCount)%pairs)) then
+                !             stop 'No nonAccessed ks to initialize.'
+                !     endif
+                !     do pairCount = 1, size(NonAccessed_ij_groups(groupCount)%pairs)
 
                         
+                        ! i = NonAccessed_ij_groups(groupCount)%pairs(pairCount)%i
+                        ! j = NonAccessed_ij_groups(groupCount)%pairs(pairCount)%j
 
-                        i = NonAccessed_ij_groups(groupCount)%pairs(pairCount)%i
-                        j = NonAccessed_ij_groups(groupCount)%pairs(pairCount)%j
+                        ! if (i < 1 .or. i > ntf) stop "i out of bounds in non-accessedK init"
+                        ! if (j < 0 .or. j > ngf+1) stop "j out of bounds in non-accessedK init"
 
-                        if (i < 1 .or. i > ntf) stop "i out of bounds in non-accessedK init"
-                        if (j < 0 .or. j > ngf+1) stop "j out of bounds in non-accessedK init"
+                        ! qa(j, i) = zero
+                        ! qa_jp1(j+1, i) = zero
+                    !enddo
+
+                do pairCount = 1, nNonAccessed_ijs
+                    i = NonAccessed_ij_groups(1)%pairs(pairCount)%i
+                    j = NonAccessed_ij_groups(1)%pairs(pairCount)%j
 
                         qa(j, i) = zero
                         qa_jp1(j+1, i) = zero
-                    enddo
                 enddo
             !$omp end do
 
@@ -1028,12 +1091,12 @@ program cgcDev
             !     print *, 'Initialized qa and qa_jp1 for nonAccessed ks...'
             ! !$omp end single
 
-            l4End = omp_get_wtime()
-            l4Time = l4End - l4Start
+            !l4End = omp_get_wtime()
+            !l4Time = l4End - l4Start
 
             !Determine crossing indices:
         !LOOP 5
-            l5Start = omp_get_wtime()
+            !l5Start = omp_get_wtime()
             !print *, 'Loop 5...'
     
 
