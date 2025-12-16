@@ -1283,8 +1283,8 @@ program cgcDev
         combineEnd = omp_get_wtime()
         ! combineTime = combineEnd - combineStart
 
-        ! l5End = omp_get_wtime()
-        ! l5Time = l5End - l5Start
+        l5End = omp_get_wtime()
+        l5Time = l5End - l5Start
 
         !Get PV values, at half latitudes, by sweeping through latitudes:
         !LOOP 6
