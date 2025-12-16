@@ -1119,7 +1119,7 @@ program cgcDev
         ! print *, 'Loop 4...'
         l4Start = omp_get_wtime()        
 
-    !$OMP PARALLEL PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump, groupCount, ki, pairCount)
+    !$OMP PARALLEL PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump, ki, pairCount)
             !$omp do schedule(static, 1) private(i,j, pairCount)
                 do groupCount = 1, nRepeatKgroups
                     do pairCount = 1, size(RepeatK_ij_groups(groupCount)%pairs)
@@ -1217,7 +1217,7 @@ program cgcDev
         ! print *, 'Loop 5...'
         l5Start = omp_get_wtime()
 
-    !$OMP PARALLEL PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump, groupCount, ki)
+    !$OMP PARALLEL PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump, ki)
         
         !$omp do schedule(static, 1) private(i,j,k,ki)
         !groups of repeat ks are assigned cyclicly to threads
