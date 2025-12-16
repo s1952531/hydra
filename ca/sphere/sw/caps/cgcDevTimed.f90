@@ -466,57 +466,69 @@ program cgcDev
     end subroutine
 
     subroutine internalGetNonAccessedIJs
-        !get all i,j cominations that are not in RepeatK_ij_groups or NonRepeatK_ij_groups for j in range 0:ngf+1 and i in range 1:ntf
-        !dont need to declare the arrays as they are in the parent scope
-        integer :: i, j, g, found
+        ! Get all (i,j) combinations that are not in RepeatK_ij_groups
+        ! or NonRepeatK_ij_groups for j=0:ngf+1 and i=1:ntf
+        ! Arrays and nNonAccessed_ijs are in parent scope
+        integer :: i, j, g, m, found
         type(ij_pair), allocatable :: nonaccessed_pairs(:)
 
-
-        !qa is of size (0:ngf+1, ntf) so could have up to (ntf*(ngf+2)) non-accessed i,j pairs
+        ! Maximum possible size: ntf*(ngf+2)
         allocate(nonaccessed_pairs(ntf*(ngf+2)))
+        nNonAccessed_ijs = 0   ! reset parent-scope counter
 
-        do j=0,ngf+1
-            do i=1,ntf
-                !check if (i,j) is in RepeatK_ij_groups or NonRepeatK_ij_groups
+        do j = 0, ngf+1
+            do i = 1, ntf
+                ! Assume not found initially
                 found = 0
-                do g=1,nRepeatKgroups
+
+                ! Check RepeatK groups
+                do g = 1, nRepeatKgroups
                     if (found == 1) exit
                     if (allocated(RepeatK_ij_groups(g)%pairs)) then
-                        if (any( [(RepeatK_ij_groups(g)%pairs(m)%i == i .and. RepeatK_ij_groups(g)%pairs(m)%j == j, m=1,size(RepeatK_ij_groups(g)%pairs))] )) then
-                            found = 1
-                        end if
+                        do m = 1, size(RepeatK_ij_groups(g)%pairs)
+                            if (RepeatK_ij_groups(g)%pairs(m)%i == i .and. &
+                                RepeatK_ij_groups(g)%pairs(m)%j == j) then
+                                found = 1
+                                exit
+                            end if
+                        end do
                     end if
                 end do
+
+                ! Check NonRepeatK groups if not found
                 if (found == 0) then
-                    do g=1,nNonRepeatKgroups
+                    do g = 1, nNonRepeatKgroups
                         if (found == 1) exit
                         if (allocated(NonRepeatK_ij_groups(g)%pairs)) then
-                            if (any( [(NonRepeatK_ij_groups(g)%pairs(m)%i == i .and. NonRepeatK_ij_groups(g)%pairs(m)%j == j, m=1,size(NonRepeatK_ij_groups(g)%pairs))] )) then
-                                found = 1
-                            end if
+                            do m = 1, size(NonRepeatK_ij_groups(g)%pairs)
+                                if (NonRepeatK_ij_groups(g)%pairs(m)%i == i .and. &
+                                    NonRepeatK_ij_groups(g)%pairs(m)%j == j) then
+                                    found = 1
+                                    exit
+                                end if
+                            end do
                         end if
                     end do
                 end if
+
+                ! If still not found, add to nonaccessed_pairs
                 if (found == 0) then
                     nNonAccessed_ijs = nNonAccessed_ijs + 1
-
-                    !add i,j to nonaccessed_pairs
                     nonaccessed_pairs(nNonAccessed_ijs)%i = i
                     nonaccessed_pairs(nNonAccessed_ijs)%j = j
                 end if
+
             end do
         end do
 
-        !allocate(parent(x))
-        !parent(1:x) = tmp(1:x)
-
-        !allocate(groups(nGroups))
-        !allocate(groups(i)%pairs(npairs))
-
+        ! Allocate parent group and copy the results
         allocate(NonAccessed_ij_groups(1))
         allocate(NonAccessed_ij_groups(1)%pairs(nNonAccessed_ijs))
-
         NonAccessed_ij_groups(1)%pairs = nonaccessed_pairs(1:nNonAccessed_ijs)
+
+        ! Optional: deallocate temporary array
+        deallocate(nonaccessed_pairs)
+
     end subroutine
 
     subroutine checkAllKIncluded
