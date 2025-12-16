@@ -1030,7 +1030,7 @@ program cgcDev
         !Initialise PV jump array:
         !print *, 'Loop 4...'
             !LOOP 4
-            !l4Start = omp_get_wtime()        
+            l4Start = omp_get_wtime()        
 
             !$omp do schedule(static, 1)
                 do groupCount = 1, nRepeatKgroups
@@ -1103,12 +1103,12 @@ program cgcDev
             !     print *, 'Initialized qa and qa_jp1 for nonAccessed ks...'
             ! !$omp end single
 
-            !l4End = omp_get_wtime()
-            !l4Time = l4End - l4Start
+            l4End = omp_get_wtime()
+            l4Time = l4End - l4Start
 
             !Determine crossing indices:
         !LOOP 5
-            !l5Start = omp_get_wtime()
+            l5Start = omp_get_wtime()
             !print *, 'Loop 5...'
     
 
