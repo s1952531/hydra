@@ -613,33 +613,31 @@ program cgcDev
         end do
 
         ! Check RepeatK vs NonAccessed
+        g2=1
+        if (.not. allocated(NonAccessed_ij_groups(g2)%pairs)) stop 'NonAccessed_ij_groups not allocated'
         do g1 = 1, nRepeatKgroups
-            do m1 = 1, size(RepeatK_ij_groups(g1)%pairs)
-                do g2 = 1, nNonAccessed_ijs
-                    if (.not. allocated(NonAccessed_ij_groups(g2)%pairs)) cycle
-                    do m2 = 1, size(NonAccessed_ij_groups(g2)%pairs)
-                        if (RepeatK_ij_groups(g1)%pairs(m1)%i == NonAccessed_ij_groups(g2)%pairs(m2)%i .and. &
-                            RepeatK_ij_groups(g1)%pairs(m1)%j == NonAccessed_ij_groups(g2)%pairs(m2)%j) then
-                            print *, 'Error: Overlap between RepeatK and NonAccessed ij at i=', RepeatK_ij_groups(g1)%pairs(m1)%i, &
-                                     ' j=', RepeatK_ij_groups(g1)%pairs(m1)%j
-                        end if
-                    end do
+            do m2 = 1, size(NonAccessed_ij_groups(g2)%pairs)
+                do m1 = 1, size(RepeatK_ij_groups(g1)%pairs)
+                    if (RepeatK_ij_groups(g1)%pairs(m1)%i == NonAccessed_ij_groups(g2)%pairs(m2)%i .and. &
+                        RepeatK_ij_groups(g1)%pairs(m1)%j == NonAccessed_ij_groups(g2)%pairs(m2)%j) then
+                        print *, 'Error: Overlap between RepeatK and NonAccessed ij at i=', RepeatK_ij_groups(g1)%pairs(m1)%i, &
+                                    ' j=', RepeatK_ij_groups(g1)%pairs(m1)%j
+                    end if
                 end do
             end do
         end do
 
         ! Check NonRepeatK vs NonAccessed
+        g2=1
+        if (.not. allocated(NonAccessed_ij_groups(g2)%pairs)) stop 'NonAccessed_ij_groups not allocated'
         do g1 = 1, nNonRepeatKgroups
-            do m1 = 1, size(NonRepeatK_ij_groups(g1)%pairs)
-                do g2 = 1, nNonAccessed_ijs
-                    if (.not. allocated(NonAccessed_ij_groups(g2)%pairs)) cycle
-                    do m2 = 1, size(NonAccessed_ij_groups(g2)%pairs)
-                        if (NonRepeatK_ij_groups(g1)%pairs(m1)%i == NonAccessed_ij_groups(g2)%pairs(m2)%i .and. &
-                            NonRepeatK_ij_groups(g1)%pairs(m1)%j == NonAccessed_ij_groups(g2)%pairs(m2)%j) then
-                            print *, 'Error: Overlap between NonRepeatK and NonAccessed ij at i=', NonRepeatK_ij_groups(g1)%pairs(m1)%i, &
-                                     ' j=', NonRepeatK_ij_groups(g1)%pairs(m1)%j
-                        end if
-                    end do
+            do m2 = 1, size(NonAccessed_ij_groups(g2)%pairs)
+                do m1 = 1, size(NonRepeatK_ij_groups(g1)%pairs)
+                    if (NonRepeatK_ij_groups(g1)%pairs(m1)%i == NonAccessed_ij_groups(g2)%pairs(m2)%i .and. &
+                        NonRepeatK_ij_groups(g1)%pairs(m1)%j == NonAccessed_ij_groups(g2)%pairs(m2)%j) then
+                        print *, 'Error: Overlap between NonRepeatK and NonAccessed ij at i=', NonRepeatK_ij_groups(g1)%pairs(m1)%i, &
+                                    ' j=', NonRepeatK_ij_groups(g1)%pairs(m1)%j
+                    end if
                 end do
             end do
         end do
