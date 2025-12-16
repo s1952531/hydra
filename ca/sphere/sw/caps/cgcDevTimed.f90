@@ -594,7 +594,6 @@ program cgcDev
     subroutine checkNoInitIJOverlap
         ! check that there is no overlap in ij between RepeatK_ij_groups, NonRepeatK_ij_groups and NonAccessed_ij_groups
         integer :: g1, g2, m1, m2
-        print *, 'Checking no ij overlap for call ', callCount
         ! Check RepeatK vs NonRepeatK
         do g1 = 1, nRepeatKgroups
             do m1 = 1, size(RepeatK_ij_groups(g1)%pairs)
@@ -1176,8 +1175,11 @@ program cgcDev
                     i = NonAccessed_ij_groups(1)%pairs(pairCount)%i
                     j = NonAccessed_ij_groups(1)%pairs(pairCount)%j
 
-                        qa(j, i) = zero
-                        qa_jp1(j+1, i) = zero
+                    if (i<1 .or. i>ntf) stop "i out of bounds"
+                    if (j<0 .or. j>ngf+1) stop "j out of bounds"
+
+                    qa(j, i) = zero
+                    qa_jp1(j+1, i) = zero
                 enddo
             !$omp end do
 
