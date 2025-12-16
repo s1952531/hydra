@@ -144,6 +144,7 @@ program cgcDev
             ! print *, 'size(NonAccessed_ij_groups): ', size(NonAccessed_ij_groups)
 
             !call checkAllKIncluded
+            call checkNoInitIJOverlap
 
             call con2grid_firstTouch_balancedAllKs(qc)
             !call con2grid_balancedAllKs(qc)
@@ -589,6 +590,57 @@ program cgcDev
         enddo
 
     end subroutine checkAllKIncluded
+
+    subroutine checkNoInitIJOverlap
+        ! check that there is no overlap in ij between RepeatK_ij_groups, NonRepeatK_ij_groups and NonAccessed_ij_groups
+        integer :: g1, g2, m1, m2
+        print *, 'Checking no ij overlap for call ', callCount
+        ! Check RepeatK vs NonRepeatK
+        do g1 = 1, nRepeatKgroups
+            do m1 = 1, size(RepeatK_ij_groups(g1)%pairs)
+                do g2 = 1, nNonRepeatKgroups
+                    do m2 = 1, size(NonRepeatK_ij_groups(g2)%pairs)
+                        if (RepeatK_ij_groups(g1)%pairs(m1)%i == NonRepeatK_ij_groups(g2)%pairs(m2)%i .and. &
+                            RepeatK_ij_groups(g1)%pairs(m1)%j == NonRepeatK_ij_groups(g2)%pairs(m2)%j) then
+                            print *, 'Error: Overlap between RepeatK and NonRepeatK ij at i=', RepeatK_ij_groups(g1)%pairs(m1)%i, &
+                                     ' j=', RepeatK_ij_groups(g1)%pairs(m1)%j
+                        end if
+                    end do
+                end do
+            end do
+        end do
+
+        ! Check RepeatK vs NonAccessed
+        do g1 = 1, nRepeatKgroups
+            do m1 = 1, size(RepeatK_ij_groups(g1)%pairs)
+                do g2 = 1, nNonAccessed_ijs
+                    do m2 = 1, size(NonAccessed_ij_groups(g2)%pairs)
+                        if (RepeatK_ij_groups(g1)%pairs(m1)%i == NonAccessed_ij_groups(g2)%pairs(m2)%i .and. &
+                            RepeatK_ij_groups(g1)%pairs(m1)%j == NonAccessed_ij_groups(g2)%pairs(m2)%j) then
+                            print *, 'Error: Overlap between RepeatK and NonAccessed ij at i=', RepeatK_ij_groups(g1)%pairs(m1)%i, &
+                                     ' j=', RepeatK_ij_groups(g1)%pairs(m1)%j
+                        end if
+                    end do
+                end do
+            end do
+        end do
+
+        ! Check NonRepeatK vs NonAccessed
+        do g1 = 1, nNonRepeatKgroups
+            do m1 = 1, size(NonRepeatK_ij_groups(g1)%pairs)
+                do g2 = 1, nNonAccessed_ijs
+                    do m2 = 1, size(NonAccessed_ij_groups(g2)%pairs)
+                        if (NonRepeatK_ij_groups(g1)%pairs(m1)%i == NonAccessed_ij_groups(g2)%pairs(m2)%i .and. &
+                            NonRepeatK_ij_groups(g1)%pairs(m1)%j == NonAccessed_ij_groups(g2)%pairs(m2)%j) then
+                            print *, 'Error: Overlap between NonRepeatK and NonAccessed ij at i=', NonRepeatK_ij_groups(g1)%pairs(m1)%i, &
+                                     ' j=', NonRepeatK_ij_groups(g1)%pairs(m1)%j
+                        end if
+                    end do
+                end do
+            end do
+        end do
+
+    end subroutine
 
     subroutine readInput
         ! Reads in the contour data from a file "cgc_inputs.dat"
