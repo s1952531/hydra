@@ -1009,6 +1009,7 @@ program cgcDev
         ! contours (x,y,z).  Takes away Coriolis frequency (fcor).
 	
 	    use omp_lib
+        use, intrinsic :: ieee_arithmetic
 
         implicit double precision(a-h,o-z)
         implicit integer(i-n)
@@ -1083,6 +1084,10 @@ program cgcDev
                 !LOOP 3
                 l3Start = omp_get_wtime()
                 do k=1,npt
+                    if (ieee_is_nan(cz(k))) then
+                        print *, "NaN detected in cz at k =", k
+                        stop
+                    endif
                     sig=sign(one,cz(k))
                     sq(k)=dq*sig
                     ntc(k)=ntc(k)-ntf*((2*ntc(k))/ntf)
