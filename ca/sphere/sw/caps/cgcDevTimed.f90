@@ -1127,8 +1127,8 @@ program cgcDev
                         i = RepeatK_ij_groups(groupCount)%pairs(pairCount)%i
                         j = RepeatK_ij_groups(groupCount)%pairs(pairCount)%j
 
-                        if (i < 1 .or. i > ntf) stop "i out of bounds in repeatK init"
-                        if (j < 0 .or. j > ngf+1) stop "j out of bounds in repeatK init"
+                        ! if (i < 1 .or. i > ntf) stop "i out of bounds in repeatK init"
+                        ! if (j < 0 .or. j > ngf+1) stop "j out of bounds in repeatK init"
 
                         qa(j, i) = zero
                         qa_jp1(j, i) = zero
@@ -1146,8 +1146,8 @@ program cgcDev
                         i = NonRepeatK_ij_groups(groupCount)%pairs(pairCount)%i
                         j = NonRepeatK_ij_groups(groupCount)%pairs(pairCount)%j
 
-                        if (i < 1 .or. i > ntf) stop "i out of bounds in non-repeatK init"
-                        if (j < 0 .or. j > ngf+1) stop "j out of bounds in non-repeatK init"
+                        ! if (i < 1 .or. i > ntf) stop "i out of bounds in non-repeatK init"
+                        ! if (j < 0 .or. j > ngf+1) stop "j out of bounds in non-repeatK init"
 
                         qa(j, i) = zero
                         qa_jp1(j, i) = zero
@@ -1165,17 +1165,17 @@ program cgcDev
             !this version is for read in nonAccessed ijs
             !in Loop 5 these are not accessed so don't need to first touch them to a specific thread
                 do groupCount = 1, nNonAccessed_ijs
-                    if (.not.allocated(NonAccessed_ij_groups(groupCount)%pairs)) then
-                            stop 'No nonAccessed ks to initialize.'
-                    endif
+                    ! if (.not.allocated(NonAccessed_ij_groups(groupCount)%pairs)) then
+                    !         stop 'No nonAccessed ks to initialize.'
+                    ! endif
                     do pairCount = 1, size(NonAccessed_ij_groups(groupCount)%pairs)
 
                         
                         i = NonAccessed_ij_groups(groupCount)%pairs(pairCount)%i
                         j = NonAccessed_ij_groups(groupCount)%pairs(pairCount)%j
 
-                        if (i < 1 .or. i > ntf) stop "i out of bounds in non-accessedK init"
-                        if (j < 0 .or. j > ngf+1) stop "j out of bounds in non-accessedK init"
+                        ! if (i < 1 .or. i > ntf) stop "i out of bounds in non-accessedK init"
+                        ! if (j < 0 .or. j > ngf+1) stop "j out of bounds in non-accessedK init"
 
                         qa(j, i) = zero
                         qa_jp1(j, i) = zero
@@ -1224,7 +1224,7 @@ program cgcDev
         !groups of repeat ks are assigned cyclicly to threads
         !static instead of dynamic to allow deterministic thread->k to exploit first touch locality 
         do groupCount = 1, nRepeatKgroups
-            if (.not. allocated(RepeatK_groups(groupCount)%values)) stop 'No repeat ks to process.'
+            ! if (.not. allocated(RepeatK_groups(groupCount)%values)) stop 'No repeat ks to process.'
             do ki = 1, size(RepeatK_groups(groupCount)%values)
                 k = RepeatK_groups(groupCount)%values(ki)
                 if (ntc(k) .ne. 0) then
@@ -1239,8 +1239,8 @@ program cgcDev
                         j=int(rlatc)+1
                         p=rlatc-dble(j-1)
 
-                        if (i<1 .or. i>ntf) stop "i out of bounds"
-                        if (j<0 .or. j>ngf+1) stop "j out of bounds"
+                        ! if (i<1 .or. i>ntf) stop "i out of bounds"
+                        ! if (j<0 .or. j>ngf+1) stop "j out of bounds"
 
                         qa(j,i)=  qa(j,i)+(one-p)*sq(k)
                         qa_jp1(j+1,i)=qa_jp1(j+1,i)+    p*sq(k)
@@ -1253,7 +1253,7 @@ program cgcDev
         !$omp do schedule(static, 1) private(i,j,k,ki)
         !groups of non-repeat ks are assigned cyclicly to threads
         do groupCount = 1, nNonRepeatKgroups
-            if (.not. allocated(NonRepeatK_groups(groupCount)%values)) stop 'No non-repeat ks to process.'
+            ! if (.not. allocated(NonRepeatK_groups(groupCount)%values)) stop 'No non-repeat ks to process.'
             do ki = 1, size(NonRepeatK_groups(groupCount)%values)
                 k = NonRepeatK_groups(groupCount)%values(ki)
                 if (ntc(k) .ne. 0) then
@@ -1268,8 +1268,8 @@ program cgcDev
                         j=int(rlatc)+1
                         p=rlatc-dble(j-1)
 
-                        if (i<1 .or. i>ntf) stop "i out of bounds"
-                        if (j<0 .or. j>ngf+1) stop "j out of bounds"
+                        ! if (i<1 .or. i>ntf) stop "i out of bounds"
+                        ! if (j<0 .or. j>ngf+1) stop "j out of bounds"
 
                         qa(j,i)=  qa(j,i)+(one-p)*sq(k)
                         qa_jp1(j+1,i)=qa_jp1(j+1,i)+    p*sq(k)
