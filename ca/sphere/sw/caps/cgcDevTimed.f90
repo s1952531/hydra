@@ -4,7 +4,7 @@ program cgcDev
 
     !constants for the default test case
     !twopi, dlfi, pi, dq, ngf, ntf, hpi, clonf, slonf, f12, f14
-    double precision,parameter:: one=1.d0, two=2.d0, four=4.d0
+    double precision,parameter:: zero=0.d0, one=1.d0, two=2.d0, four=4.d0
     double precision,parameter:: pi=3.141592653589793238462643383279502884197169399375105820974944592307816d0
     double precision,parameter:: hpi=pi/two, twopi=two*pi
     double precision,parameter:: f12=one/two, f14=one/four
@@ -1089,10 +1089,6 @@ program cgcDev
                     ntc(k)=ntc(k)-ntf*((2*ntc(k))/ntf)
                     if (sig*dble(ntc(k)) .lt. zero) ntc(k)=-ntc(k)
                         if (abs(cz(k)) .gt. zero) then
-                            if (abs(cz(k)) < 1.0d-15) then
-                                print *, "cz is zero or too small at k=", k
-                                stop
-                            endif
                             cx(k)=cx(k)/cz(k)
                             cy(k)=cy(k)/cz(k)
                         endif
