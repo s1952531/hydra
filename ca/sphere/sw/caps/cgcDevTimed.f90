@@ -1085,6 +1085,10 @@ program cgcDev
                         print *, "NaN detected in cz at k =", k
                         stop
                     endif
+                    if (ieee_is_nan(dble(ntc(k)))) then
+                        print *, "NaN detected in ntc at k =", k
+                        stop
+                    endif
                 enddo
               
 		!print *, 'Loop 3...'
