@@ -2325,7 +2325,7 @@ program cgcDev
         ! combineStart = omp_get_wtime()
         !combine qa and qa_jp1 into qa serially
         qa = qa + qa_jp1
-        combineEnd = omp_get_wtime()
+        !combineEnd = omp_get_wtime()
         ! combineTime = combineEnd - combineStart
 
         l5End = omp_get_wtime()
@@ -2469,7 +2469,7 @@ program cgcDev
         l3TotTime = l3TotTime + l3Time
         l4TotTime = l4TotTime + l4Time
         l5TotTime = l5TotTime + l5Time
-        combineTotTime = combineTotTime + combineTime
+        !combineTotTime = combineTotTime + combineTime
         l6TotTime = l6TotTime + l6Time
         return
     end subroutine
