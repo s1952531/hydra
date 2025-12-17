@@ -1080,14 +1080,17 @@ program cgcDev
                 l2End = omp_get_wtime()
                 l2Time = l2End - l2Start
                 
-		!print *, 'Loop 3...'
-                !LOOP 3
-                l3Start = omp_get_wtime()
                 do k=1,npt
                     if (ieee_is_nan(cz(k))) then
                         print *, "NaN detected in cz at k =", k
                         stop
                     endif
+                enddo
+              
+		!print *, 'Loop 3...'
+                !LOOP 3
+                l3Start = omp_get_wtime()
+                do k=1,npt
                     sig=sign(one,cz(k))
                     sq(k)=dq*sig
                     ntc(k)=ntc(k)-ntf*((2*ntc(k))/ntf)
