@@ -133,8 +133,8 @@ program cgcDev
 
             ! print *, 'Call ', callCount, ': Post-getBalancedIJs nRepeatKgroups=', nRepeatKgroups, ' nNonRepeatKgroups=', nNonRepeatKgroups
 
-            balanced_nonAccessed_ij_filename = 'binned_nonAccessed_ijs/call_' // trim(callStr) // '.txt'
-            call getBalancedIJs(balanced_nonAccessed_ij_filename, NonAccessed_ij_groups, nNonAccessed_ijs)
+            ! balanced_nonAccessed_ij_filename = 'binned_nonAccessed_ijs/call_' // trim(callStr) // '.txt'
+            ! call getBalancedIJs(balanced_nonAccessed_ij_filename, NonAccessed_ij_groups, nNonAccessed_ijs)
 
             !call internalGetNonAccessedIJs
 
@@ -1160,27 +1160,26 @@ program cgcDev
             !     print *, 'Initialized qa and qa_jp1 for nonRepeat ks...'
             ! !$omp end single
 
-            !$omp do schedule(static) private(i,j, pairCount)
-
-            !this version is for read in nonAccessed ijs
-            !in Loop 5 these are not accessed so don't need to first touch them to a specific thread
-                do groupCount = 1, nNonAccessed_ijs
-                    ! if (.not.allocated(NonAccessed_ij_groups(groupCount)%pairs)) then
-                    !         stop 'No nonAccessed ks to initialize.'
-                    ! endif
-                    do pairCount = 1, size(NonAccessed_ij_groups(groupCount)%pairs)
+            ! !this version is for read in nonAccessed ijs
+            ! !$omp do schedule(static) private(i,j, pairCount)
+            ! !in Loop 5 these are not accessed so don't need to first touch them to a specific thread
+            !     do groupCount = 1, nNonAccessed_ijs
+            !         ! if (.not.allocated(NonAccessed_ij_groups(groupCount)%pairs)) then
+            !         !         stop 'No nonAccessed ks to initialize.'
+            !         ! endif
+            !         do pairCount = 1, size(NonAccessed_ij_groups(groupCount)%pairs)
 
                         
-                        i = NonAccessed_ij_groups(groupCount)%pairs(pairCount)%i
-                        j = NonAccessed_ij_groups(groupCount)%pairs(pairCount)%j
+            !             i = NonAccessed_ij_groups(groupCount)%pairs(pairCount)%i
+            !             j = NonAccessed_ij_groups(groupCount)%pairs(pairCount)%j
 
-                        ! if (i < 1 .or. i > ntf) stop "i out of bounds in non-accessedK init"
-                        ! if (j < 0 .or. j > ngf+1) stop "j out of bounds in non-accessedK init"
+            !             ! if (i < 1 .or. i > ntf) stop "i out of bounds in non-accessedK init"
+            !             ! if (j < 0 .or. j > ngf+1) stop "j out of bounds in non-accessedK init"
 
-                        qa(j, i) = zero
-                        qa_jp1(j, i) = zero
-                    enddo
-                enddo
+            !             qa(j, i) = zero
+            !             qa_jp1(j, i) = zero
+            !         enddo
+            !     enddo
 
             !this version is for internal calculation of nonAccessed ijs
             !     do pairCount = 1, nNonAccessed_ijs
@@ -1196,13 +1195,13 @@ program cgcDev
             ! !$omp end do
 
             !loop over all ijs to avoid slow calc of NonAccessed_ij_groups
-            ! !$omp parallel do collapse(2) schedule(static) private(i,j)
-            ! do j = 0, ngf+1
-            ! do i = 1, ntf
-            !     qa(j,i) = 0.0
-            !     qa_jp1(j,i) = 0.0
-            ! end do
-            ! end do
+            !$omp parallel do collapse(2) schedule(static) private(i,j)
+            do j = 0, ngf+1
+                do i = 1, ntf
+                    qa(j,i) = 0.0
+                    qa_jp1(j,i) = 0.0
+                end do
+            end do
 
             ! !$omp single
             !     print *, 'Initialized qa and qa_jp1 for nonAccessed ks...'
