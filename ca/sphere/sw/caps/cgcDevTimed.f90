@@ -1131,7 +1131,7 @@ program cgcDev
                         if (j < 0 .or. j > ngf+1) stop "j out of bounds in repeatK init"
 
                         qa(j, i) = zero
-                        qa_jp1(j+1, i) = zero
+                        qa_jp1(j, i) = zero
                     enddo
                 enddo
             !$omp end do
@@ -1150,7 +1150,7 @@ program cgcDev
                         if (j < 0 .or. j > ngf+1) stop "j out of bounds in non-repeatK init"
 
                         qa(j, i) = zero
-                        qa_jp1(j+1, i) = zero
+                        qa_jp1(j, i) = zero
 
                     enddo
                 enddo
@@ -1178,7 +1178,7 @@ program cgcDev
                         if (j < 0 .or. j > ngf+1) stop "j out of bounds in non-accessedK init"
 
                         qa(j, i) = zero
-                        qa_jp1(j+1, i) = zero
+                        qa_jp1(j, i) = zero
                     enddo
                 enddo
 
