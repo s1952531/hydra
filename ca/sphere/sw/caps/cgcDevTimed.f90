@@ -1079,18 +1079,7 @@ program cgcDev
                 enddo    
                 l2End = omp_get_wtime()
                 l2Time = l2End - l2Start
-                
-                do k=1,npt
-                    if (ieee_is_nan(cz(k))) then
-                        print *, "NaN detected in cz at k =", k
-                        stop
-                    endif
-                    if (ieee_is_nan(dble(ntc(k)))) then
-                        print *, "NaN detected in ntc at k =", k
-                        stop
-                    endif
-                enddo
-              
+            
 		!print *, 'Loop 3...'
                 !LOOP 3
                 l3Start = omp_get_wtime()
@@ -1100,6 +1089,10 @@ program cgcDev
                     ntc(k)=ntc(k)-ntf*((2*ntc(k))/ntf)
                     if (sig*dble(ntc(k)) .lt. zero) ntc(k)=-ntc(k)
                         if (abs(cz(k)) .gt. zero) then
+                            if (abs(cz(k)) < 1.0d-15) then
+                                print *, "cz is zero or too small at k=", k
+                                stop
+                            endif
                             cx(k)=cx(k)/cz(k)
                             cy(k)=cy(k)/cz(k)
                         endif
