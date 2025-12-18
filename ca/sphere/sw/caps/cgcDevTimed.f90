@@ -1111,18 +1111,16 @@ program cgcDev
         !!$OMP PARALLEL DEFAULT(NONE) SHARED(npt,dlfi,x,y,z,next,ilm1,cx,cy,cz,ntc,sq, zero) PRIVATE(k,ka,sig)
 	    
 	    !print *, 'Loop 1...'
-            !!$OMP DO SCHEDULE(STATIC)
-                !LOOP 1
-                l1Start = omp_get_wtime()
-                !!$OMP PARALLEL DO SCHEDULE(GUIDED)
+        !LOOP 1
+        l1Start = omp_get_wtime()
 
-        ! original serial code:
+        ! original serial code
         ! do k=1,npt
         !     ilm1(k)=int(dlfi*(pi+atan2(y(k),x(k))))
         ! enddo
                    
         !first touch aware parallel initialization of ilm1
-        !$OMP PARALLEL PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump, ki)
+        !$OMP PARALLEL PRIVATE(k, ki)
             !$omp do schedule(static, 1) private(k, ki)   
             do groupCount = 1, nRepeatKgroups
                 do ki = 1, size(RepeatK_groups(groupCount)%values)
@@ -1161,22 +1159,24 @@ program cgcDev
         l1Time = l1End - l1Start
             
         
-        !!$OMP END DO
+        !print *, 'Loop 2...'
+        !LOOP 2
+        
+        
+        l2Start = omp_get_wtime()
 
-            !print *, 'Loop 2...'
-	    !!$OMP DO SCHEDULE(STATIC)
-                !LOOP 2
-                l2Start = omp_get_wtime()
-                do k=1,npt
-                    ka=next(k)
-                    cx(k)=z(k)*y(ka)-y(k)*z(ka)
-                    cy(k)=x(k)*z(ka)-z(k)*x(ka)
-                    cz(k)=x(k)*y(ka)-y(k)*x(ka)
-                    ntc(k)=ilm1(ka)-ilm1(k)
-                enddo    
-                l2End = omp_get_wtime()
-                l2Time = l2End - l2Start
-            
+        ! original serial code
+        ! do k=1,npt
+        !     ka=next(k)
+        !     cx(k)=z(k)*y(ka)-y(k)*z(ka)
+        !     cy(k)=x(k)*z(ka)-z(k)*x(ka)
+        !     cz(k)=x(k)*y(ka)-y(k)*x(ka)
+        !     ntc(k)=ilm1(ka)-ilm1(k)
+        ! enddo    
+
+        l2End = omp_get_wtime()
+        l2Time = l2End - l2Start
+    
 		!print *, 'Loop 3...'
                 !LOOP 3
                 l3Start = omp_get_wtime()
