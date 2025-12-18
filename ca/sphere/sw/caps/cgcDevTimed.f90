@@ -2621,9 +2621,6 @@ program cgcDev
         print *, 'Loop 1 total time: ', l1TotTime
         print *, 'Loop 2/3 total time: ', l23TotTime
         print *, 'Loop 4 total time: ', l4TotTime
-        print *, 'loop 4a total time: ', l4aTotTime
-        print *, 'loop 4b total time: ', l4bTotTime
-        print *, 'loop 4c total time: ', l4cTotTime
         print *, 'Loop 5 total time: ', l5TotTime
         !print *, 'Combine time: ', combineTotTime
         print *, 'Loop 6 total time: ', l6TotTime
