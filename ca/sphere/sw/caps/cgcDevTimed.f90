@@ -107,7 +107,7 @@ program cgcDev
     !main loop
     do iterCount=1,numIters
         do callCount = 1, numInputs
-            print *, 'Processing call ', callCount
+            ! print *, 'Processing call ', callCount
             x = x_arr(:, callCount)
             y = y_arr(:, callCount)
             z = z_arr(:, callCount)
