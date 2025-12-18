@@ -149,6 +149,8 @@ program cgcDev
 
             !call checkAllInitFully
 
+            call initTrigLonf
+
             call con2grid_firstTouch_balancedAllKs(qc)
             !call con2grid_balancedAllKs(qc)
             !call con2grid_balancedRepeatKs(qc)
@@ -202,6 +204,15 @@ program cgcDev
 
         call allocateVars
 
+        return
+    end subroutine
+
+    subroutine initTrigLonf
+        do i=1,ntf
+            rlonf=dlf*dble(i-1)-pi
+            clonf(i)=cos(rlonf)
+            slonf(i)=sin(rlonf)
+        enddo
         return
     end subroutine
 
