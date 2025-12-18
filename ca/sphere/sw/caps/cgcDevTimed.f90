@@ -1160,11 +1160,22 @@ program cgcDev
 
         ! original serial code
         ! do k=1,npt
+        !     !loop2
         !     ka=next(k)
         !     cx(k)=z(k)*y(ka)-y(k)*z(ka)
         !     cy(k)=x(k)*z(ka)-z(k)*x(ka)
         !     cz(k)=x(k)*y(ka)-y(k)*x(ka)
         !     ntc(k)=ilm1(ka)-ilm1(k)
+
+        !     !loop3
+        !     sig=sign(one,cz(k))
+        !     sq(k)=dq*sig
+        !     ntc(k)=ntc(k)-ntf*((2*ntc(k))/ntf)
+        !     if (sig*dble(ntc(k)) .lt. zero) ntc(k)=-ntc(k)
+        !         if (abs(cz(k)) .gt. zero) then
+        !             cx(k)=cx(k)/cz(k)
+        !             cy(k)=cy(k)/cz(k)
+        !         endif
         ! enddo    
 
         !$OMP PARALLEL
