@@ -1089,10 +1089,6 @@ program cgcDev
 
         double precision:: l23Start, l23End, l23Time
 
-        double precision:: l4aStart, l4aEnd, l4aTime
-        double precision:: l4bStart, l4bEnd, l4bTime
-        double precision:: l4cStart, l4cEnd, l4cTime
-
         double precision:: combineStart, combineEnd, combineTime
 
         double precision:: preAvgStart, preAvgEnd, preAvgTime
@@ -1250,106 +1246,32 @@ program cgcDev
         !split k=1,npt into repeat and non-repeat ks. 
         !hard coded load of pre balanced repeat/non-repeat ks
 
-    ! type :: ij_pair
-    !    integer :: i
-    !    integer :: j
-    ! end type ij_pair
-
-    ! type :: group_ijs
-    !     type(ij_pair), allocatable :: pairs(:)
-    ! end type group_ijs
-
-    ! type(group_ijs), allocatable :: RepeatK_ij_groups(:)
-    ! type(group_ijs), allocatable :: NonRepeatK_ij_groups(:)
-    ! type(group_ijs), allocatable :: NonAccessed_ij_groups(:)
-
         !Initialise PV jump array:
         !LOOP 4
         ! print *, 'Loop 4...'
         l4Start = omp_get_wtime()        
-
-        l4aStart = omp_get_wtime()
-    !$OMP PARALLEL PRIVATE(j,i,pairCount)
+        !$OMP PARALLEL PRIVATE(j,i,pairCount)
             !$omp do schedule(static, 1) private(i,j, pairCount)
                 do groupCount = 1, nRepeatKgroups
                     do pairCount = 1, size(RepeatK_ij_groups(groupCount)%pairs)
                         i = RepeatK_ij_groups(groupCount)%pairs(pairCount)%i
                         j = RepeatK_ij_groups(groupCount)%pairs(pairCount)%j
-
-                        ! if (i < 1 .or. i > ntf) stop "i out of bounds in repeatK init"
-                        ! if (j < 0 .or. j > ngf+1) stop "j out of bounds in repeatK init"
-
                         qa(j, i) = zero
                         qa_jp1(j, i) = zero
                     enddo
                 enddo
             !$omp end do
-    !$OMP END PARALLEL
-        l4aEnd = omp_get_wtime()
 
-        l4bStart = omp_get_wtime()
-    !$OMP PARALLEL PRIVATE(j,i,pairCount)
-            ! !$omp single
-            !     print *, 'Initialized qa and qa_jp1 for repeat ks...'
-            ! !$omp end single
-            
             !$omp do schedule(static, 1) private(i,j, pairCount)
                 do groupCount = 1, nNonRepeatKgroups
                     do pairCount = 1, size(NonRepeatK_ij_groups(groupCount)%pairs)
                         i = NonRepeatK_ij_groups(groupCount)%pairs(pairCount)%i
                         j = NonRepeatK_ij_groups(groupCount)%pairs(pairCount)%j
-
-                        ! if (i < 1 .or. i > ntf) stop "i out of bounds in non-repeatK init"
-                        ! if (j < 0 .or. j > ngf+1) stop "j out of bounds in non-repeatK init"
-
                         qa(j, i) = zero
                         qa_jp1(j, i) = zero
-
                     enddo
                 enddo
             !$omp end do
-    !$OMP END PARALLEL
-        l4bEnd = omp_get_wtime()
-
-        l4cStart = omp_get_wtime()
-    !$OMP PARALLEL PRIVATE(j,i,pairCount)
-            ! !$omp single
-            !     print *, 'Initialized qa and qa_jp1 for nonRepeat ks...'
-            ! !$omp end single
-
-            ! !this version is for read in nonAccessed ijs
-            ! !$omp do schedule(static) private(i,j, pairCount)
-            ! !in Loop 5 these are not accessed so don't need to first touch them to a specific thread
-            !     do groupCount = 1, nNonAccessed_ijs
-            !         ! if (.not.allocated(NonAccessed_ij_groups(groupCount)%pairs)) then
-            !         !         stop 'No nonAccessed ks to initialize.'
-            !         ! endif
-            !         do pairCount = 1, size(NonAccessed_ij_groups(groupCount)%pairs)
-
-                        
-            !             i = NonAccessed_ij_groups(groupCount)%pairs(pairCount)%i
-            !             j = NonAccessed_ij_groups(groupCount)%pairs(pairCount)%j
-
-            !             ! if (i < 1 .or. i > ntf) stop "i out of bounds in non-accessedK init"
-            !             ! if (j < 0 .or. j > ngf+1) stop "j out of bounds in non-accessedK init"
-
-            !             qa(j, i) = zero
-            !             qa_jp1(j, i) = zero
-            !         enddo
-            !     enddo
-
-            !this version is for internal calculation of nonAccessed ijs
-            !     do pairCount = 1, nNonAccessed_ijs
-            !         i = NonAccessed_ij_groups(1)%pairs(pairCount)%i
-            !         j = NonAccessed_ij_groups(1)%pairs(pairCount)%j
-
-            !         if (i<1 .or. i>ntf) stop "i out of bounds"
-            !         if (j<0 .or. j>ngf+1) stop "j out of bounds"
-
-            !         qa(j, i) = zero
-            !         qa_jp1(j+1, i) = zero
-            !     enddo
-            ! !$omp end do
 
             !loop over all ijs to avoid slow calc of NonAccessed_ij_groups
             !$omp do schedule(static)
@@ -1359,100 +1281,67 @@ program cgcDev
                     qa_jp1(j,i) = 0.0
                 end do
             end do
-
-            ! !$omp single
-            !     print *, 'Initialized qa and qa_jp1 for nonAccessed ks...'
-            ! !$omp end single
-
-    !$OMP END PARALLEL
-        l4cEnd = omp_get_wtime()
+        !$OMP END PARALLEL
 
         l4End = omp_get_wtime()
         l4Time = l4End - l4Start
-
-        l4aTime = l4aEnd - l4aStart
-        l4bTime = l4bEnd - l4bStart
-        l4cTime = l4cEnd - l4cStart
 
         !Determine crossing indices:
         !LOOP 5
         ! print *, 'Loop 5...'
         l5Start = omp_get_wtime()
 
-    !$OMP PARALLEL PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump, ki)
-        
-        !$omp do schedule(static, 1) private(i,j,k,ki)
-        !groups of repeat ks are assigned cyclicly to threads
-        !static instead of dynamic to allow deterministic thread->k to exploit first touch locality 
-        do groupCount = 1, nRepeatKgroups
-            ! if (.not. allocated(RepeatK_groups(groupCount)%values)) stop 'No repeat ks to process.'
-            do ki = 1, size(RepeatK_groups(groupCount)%values)
-                k = RepeatK_groups(groupCount)%values(ki)
-                if (ntc(k) .ne. 0) then
-                    jump=sign(1,ntc(k))
-                    ioff=ntf+ilm1(k)+(1+jump)/2
-                    ncr=0
-                    do while (ncr .ne. ntc(k))
-                        i=1+mod(ioff+ncr,ntf)
-                        ncr=ncr+jump
-
-                        rlatc=dlfi*(hpi+atan(cx(k)*clonf(i)+cy(k)*slonf(i)))
-                        j=int(rlatc)+1
-                        p=rlatc-dble(j-1)
-
-                        ! if (i<1 .or. i>ntf) stop "i out of bounds"
-                        ! if (j<0 .or. j>ngf+1) stop "j out of bounds"
-
-                        qa(j,i)=  qa(j,i)+(one-p)*sq(k)
-                        qa_jp1(j+1,i)=qa_jp1(j+1,i)+    p*sq(k)
-                    enddo
-                endif
+        !$OMP PARALLEL PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump, ki)
+            !$omp do schedule(static, 1) private(i,j,k,ki)
+            !groups of repeat ks are assigned cyclicly to threads
+            !static instead of dynamic to allow deterministic thread->k to exploit first touch locality 
+            do groupCount = 1, nRepeatKgroups
+                do ki = 1, size(RepeatK_groups(groupCount)%values)
+                    k = RepeatK_groups(groupCount)%values(ki)
+                    if (ntc(k) .ne. 0) then
+                        jump=sign(1,ntc(k))
+                        ioff=ntf+ilm1(k)+(1+jump)/2
+                        ncr=0
+                        do while (ncr .ne. ntc(k))
+                            i=1+mod(ioff+ncr,ntf)
+                            ncr=ncr+jump
+                            rlatc=dlfi*(hpi+atan(cx(k)*clonf(i)+cy(k)*slonf(i)))
+                            j=int(rlatc)+1
+                            p=rlatc-dble(j-1)
+                            qa(j,i)=  qa(j,i)+(one-p)*sq(k)
+                            qa_jp1(j+1,i)=qa_jp1(j+1,i)+    p*sq(k)
+                        enddo
+                    endif
+                enddo
             enddo
-        enddo
-        !$omp end do
+            !$omp end do
 
-        !$omp do schedule(static, 1) private(i,j,k,ki)
-        !groups of non-repeat ks are assigned cyclicly to threads
-        do groupCount = 1, nNonRepeatKgroups
-            ! if (.not. allocated(NonRepeatK_groups(groupCount)%values)) stop 'No non-repeat ks to process.'
-            do ki = 1, size(NonRepeatK_groups(groupCount)%values)
-                k = NonRepeatK_groups(groupCount)%values(ki)
-                if (ntc(k) .ne. 0) then
-                    jump=sign(1,ntc(k))
-                    ioff=ntf+ilm1(k)+(1+jump)/2
-                    ncr=0
-                    do while (ncr .ne. ntc(k))
-                        i=1+mod(ioff+ncr,ntf)
-                        ncr=ncr+jump
-
-                        rlatc=dlfi*(hpi+atan(cx(k)*clonf(i)+cy(k)*slonf(i)))
-                        j=int(rlatc)+1
-                        p=rlatc-dble(j-1)
-
-                        ! if (i<1 .or. i>ntf) stop "i out of bounds"
-                        ! if (j<0 .or. j>ngf+1) stop "j out of bounds"
-
-                        qa(j,i)=  qa(j,i)+(one-p)*sq(k)
-                        qa_jp1(j+1,i)=qa_jp1(j+1,i)+    p*sq(k)
-                    enddo
-                endif
+            !$omp do schedule(static, 1) private(i,j,k,ki)
+            !groups of non-repeat ks are assigned cyclicly to threads
+            do groupCount = 1, nNonRepeatKgroups
+                do ki = 1, size(NonRepeatK_groups(groupCount)%values)
+                    k = NonRepeatK_groups(groupCount)%values(ki)
+                    if (ntc(k) .ne. 0) then
+                        jump=sign(1,ntc(k))
+                        ioff=ntf+ilm1(k)+(1+jump)/2
+                        ncr=0
+                        do while (ncr .ne. ntc(k))
+                            i=1+mod(ioff+ncr,ntf)
+                            ncr=ncr+jump
+                            rlatc=dlfi*(hpi+atan(cx(k)*clonf(i)+cy(k)*slonf(i)))
+                            j=int(rlatc)+1
+                            p=rlatc-dble(j-1)
+                            qa(j,i)=  qa(j,i)+(one-p)*sq(k)
+                            qa_jp1(j+1,i)=qa_jp1(j+1,i)+    p*sq(k)
+                        enddo
+                    endif
+                enddo
             enddo
-        enddo
-        !$omp end do
+            !$omp end do        
+        !$OMP END PARALLEL
 
         !combine qa and qa_jp1 into qa
         
-        ! !$omp do collapse(2)
-        ! do j = 0, ngf+1
-        !     do i = 1, ntf
-        !         qa(j,i) = qa(j,i) + qa_jp1(j,i)
-        !     end do
-        ! end do
-        ! !$omp end do
-
-        !!$OMP END PARALLEL DO
-    !$OMP END PARALLEL
-
         ! combineStart = omp_get_wtime()
         ! !$omp parallel do collapse(2)
         ! do j = 0, ngf+1
@@ -1477,11 +1366,45 @@ program cgcDev
         !LOOP 6
         ! print *, 'Loop 6...'
         l6Start = omp_get_wtime()
-        do i=1,ntf
-            do j=2,ngf
-                qa(j,i)=qa(j,i)+qa(j-1,i)
+
+        ! original serial code
+        ! do i=1,ntf
+        !     do j=2,ngf
+        !         qa(j,i)=qa(j,i)+qa(j-1,i)
+        !     enddo
+        ! enddo
+
+        !$OMP PARALLEL PRIVATE(j,i,pairCount)
+            !$omp do schedule(static, 1) private(i,j, pairCount)
+                do groupCount = 1, nRepeatKgroups
+                    do pairCount = 1, size(RepeatK_ij_groups(groupCount)%pairs)
+                        i = RepeatK_ij_groups(groupCount)%pairs(pairCount)%i
+                        j = RepeatK_ij_groups(groupCount)%pairs(pairCount)%j
+                        qa(j,i)=qa(j,i)+qa(j-1,i)
+                    enddo
+                enddo
+            !$omp end do
+
+            !$omp do schedule(static, 1) private(i,j, pairCount)
+                do groupCount = 1, nNonRepeatKgroups
+                    do pairCount = 1, size(NonRepeatK_ij_groups(groupCount)%pairs)
+                        i = NonRepeatK_ij_groups(groupCount)%pairs(pairCount)%i
+                        j = NonRepeatK_ij_groups(groupCount)%pairs(pairCount)%j
+                        qa(j,i)=qa(j,i)+qa(j-1,i)
+                    enddo
+                enddo
+            !$omp end do
+
+            !loop over all ijs to avoid slow calc of NonAccessed_ij_groups
+            !$omp do schedule(static)
+            do i=1,ntf
+                do j=2,ngf
+                    qa(j,i)=qa(j,i)+qa(j-1,i)
+                enddo
             enddo
-        enddo
+        !$OMP END PARALLEL
+
+
         l6End = omp_get_wtime()
         l6Time = l6End - l6Start
         !Here, qa(j,i) stands for the PV at latitude j-1/2,
