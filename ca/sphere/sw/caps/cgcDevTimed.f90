@@ -1588,7 +1588,7 @@ program cgcDev
         !print *, 'call', callCount, ' of con2grid took ', totalTime, ' seconds.'
 
         call accumulateTimes(totalTime, preAvgTime, avgTime, &
-                              l1Time, l2Time, l3Time, l4Time, l4aTime, l4bTime, l4cTime, l5Time, &
+                              l1Time, l23Time, l4Time, l4aTime, l4bTime, l4cTime, l5Time, &
                               l6Time, combineTime)
         
         return
@@ -2612,12 +2612,12 @@ program cgcDev
     end subroutine 
 
     subroutine accumulateTimes(totalTime, preAvgTime, avgTime, &
-                              l1Time, l2Time, l3Time, l4Time, l4aTime, l4bTime, l4cTime, l5Time, &
+                              l1Time, l23Time, l4Time, l4aTime, l4bTime, l4cTime, l5Time, &
                               l6Time, combineTime)
 
         !passed args
         double precision:: totalTime, preAvgTime, avgTime
-        double precision:: l1Time, l2Time, l3Time, l4Time, l5Time
+        double precision:: l1Time, l23Time, l4Time, l5Time
         double precision:: l4aTime, l4bTime, l4cTime
         double precision:: l6Time
         double precision:: combineTime
@@ -2627,8 +2627,7 @@ program cgcDev
         preAvgTotTime = preAvgTotTime + preAvgTime
         avgTotTime = avgTotTime + avgTime
         l1TotTime = l1TotTime + l1Time
-        l2TotTime = l2TotTime + l2Time
-        l3TotTime = l3TotTime + l3Time
+        l23TotTime = l23TotTime + l23Time
         l4TotTime = l4TotTime + l4Time
         l4aTotTime = l4aTotTime + l4aTime
         l4bTotTime = l4bTotTime + l4bTime
@@ -2701,8 +2700,7 @@ program cgcDev
         print *, 'preAvg time', preAvgTotTime
         print *, 'Avg time', avgTotTime
         print *, 'Loop 1 total time: ', l1TotTime
-        print *, 'Loop 2 total time: ', l2TotTime
-        print *, 'Loop 3 total time: ', l3TotTime
+        print *, 'Loop 2/3 total time: ', l23TotTime
         print *, 'Loop 4 total time: ', l4TotTime
         print *, 'loop 4a total time: ', l4aTotTime
         print *, 'loop 4b total time: ', l4bTotTime
