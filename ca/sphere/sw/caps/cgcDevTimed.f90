@@ -1209,9 +1209,9 @@ program cgcDev
             ! !$omp end do
 
             !loop over all ijs to avoid slow calc of NonAccessed_ij_groups
-            !$omp parallel do collapse(2) schedule(static) private(i,j)
-            do j = 0, ngf+1
-                do i = 1, ntf
+            !$omp parallel do schedule(static)
+            do i = 1, ntf
+                do j = 0, ngf+1
                     qa(j,i) = 0.0
                     qa_jp1(j,i) = 0.0
                 end do
