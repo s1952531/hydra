@@ -1183,7 +1183,6 @@ program cgcDev
             do groupCount = 1, nNonRepeatKgroups
                 do ki = 1, size(NonRepeatK_groups(groupCount)%values)
                     k = NonRepeatK_groups(groupCount)%values(ki)
-                    k = RepeatK_groups(groupCount)%values(ki)
                     ka=next(k) !Slow memory access?
                     cx(k)=z(k)*y(ka)-y(k)*z(ka)
                     cy(k)=x(k)*z(ka)-z(k)*x(ka)
@@ -1208,9 +1207,26 @@ program cgcDev
         l2Time = l2End - l2Start
     
 		!print *, 'Loop 3...'
-                !LOOP 3
-                l3Start = omp_get_wtime()
-                do k=1,npt
+        !LOOP 3
+        l3Start = omp_get_wtime()
+
+        ! original serial code
+        ! do k=1,npt
+        !     sig=sign(one,cz(k))
+        !     sq(k)=dq*sig
+        !     ntc(k)=ntc(k)-ntf*((2*ntc(k))/ntf)
+        !     if (sig*dble(ntc(k)) .lt. zero) ntc(k)=-ntc(k)
+        !         if (abs(cz(k)) .gt. zero) then
+        !             cx(k)=cx(k)/cz(k)
+        !             cy(k)=cy(k)/cz(k)
+        !         endif
+        ! enddo
+
+        !$OMP PARALLEL
+            !$omp do schedule(static, 1) private(k, ki, sig)   
+            do groupCount = 1, nRepeatKgroups
+                do ki = 1, size(RepeatK_groups(groupCount)%values)
+                    k = RepeatK_groups(groupCount)%values(ki)
                     sig=sign(one,cz(k))
                     sq(k)=dq*sig
                     ntc(k)=ntc(k)-ntf*((2*ntc(k))/ntf)
@@ -1220,10 +1236,41 @@ program cgcDev
                             cy(k)=cy(k)/cz(k)
                         endif
                 enddo
-                l3End = omp_get_wtime()
-                l3Time = l3End - l3Start
-            !!$OMP END DO
-        !!$OMP END PARALLEL
+            enddo   
+            !$omp end do
+
+            !$omp do schedule(static, 1) private(k, ki, sig)     
+            do groupCount = 1, nNonRepeatKgroups
+                do ki = 1, size(NonRepeatK_groups(groupCount)%values)
+                    k = NonRepeatK_groups(groupCount)%values(ki)
+                    sig=sign(one,cz(k))
+                    sq(k)=dq*sig
+                    ntc(k)=ntc(k)-ntf*((2*ntc(k))/ntf)
+                    if (sig*dble(ntc(k)) .lt. zero) ntc(k)=-ntc(k)
+                        if (abs(cz(k)) .gt. zero) then
+                            cx(k)=cx(k)/cz(k)
+                            cy(k)=cy(k)/cz(k)
+                        endif
+                enddo
+            enddo
+            !$omp end do
+
+            !$omp do schedule(static) private(sig)
+            do k=1,npt
+            sig=sign(one,cz(k))
+            sq(k)=dq*sig
+            ntc(k)=ntc(k)-ntf*((2*ntc(k))/ntf)
+            if (sig*dble(ntc(k)) .lt. zero) ntc(k)=-ntc(k)
+                if (abs(cz(k)) .gt. zero) then
+                    cx(k)=cx(k)/cz(k)
+                    cy(k)=cy(k)/cz(k)
+                endif
+            enddo
+            !$omp end do
+        !$OMP END PARALLEL
+
+        l3End = omp_get_wtime()
+        l3Time = l3End - l3Start
 
         !----------------------------------------------------------------------
         !split k=1,npt into repeat and non-repeat ks. 
