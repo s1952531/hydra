@@ -59,6 +59,7 @@ program cgcDev
     double precision:: l6TotTime=0.0d0
     double precision:: combineTotTime=0.0d0
     double precision:: l4aTotTime=0.0d0, l4bTotTime=0.0d0, l4cTotTime=0.0d0
+    double precision:: l23TotTime=0.0d0
 
     !hard coded repeat ks
     integer, allocatable :: callsRepeatKs(:)
@@ -1086,6 +1087,8 @@ program cgcDev
         double precision:: l5Start, l5End, l5Time
         double precision:: l6Start, l6End, l6Time
 
+        double precision:: l23Start, l23End, l23Time
+
         double precision:: l4aStart, l4aEnd, l4aTime
         double precision:: l4bStart, l4bEnd, l4bTime
         double precision:: l4cStart, l4cEnd, l4cTime
@@ -1151,10 +1154,9 @@ program cgcDev
             
         
         !print *, 'Loop 2...'
-        !LOOP 2
+        !LOOP 2/3 merged
         
-        
-        l2Start = omp_get_wtime()
+        l23Start = omp_get_wtime()
 
         ! original serial code
         ! do k=1,npt
@@ -1166,7 +1168,7 @@ program cgcDev
         ! enddo    
 
         !$OMP PARALLEL
-            !$omp do schedule(static, 1) private(k, ka, ki)   
+            !$omp do schedule(static, 1) private(k, ka, ki, sig)   
             do groupCount = 1, nRepeatKgroups
                 do ki = 1, size(RepeatK_groups(groupCount)%values)
                     k = RepeatK_groups(groupCount)%values(ki)
@@ -1175,11 +1177,20 @@ program cgcDev
                     cy(k)=x(k)*z(ka)-z(k)*x(ka)
                     cz(k)=x(k)*y(ka)-y(k)*x(ka)
                     ntc(k)=ilm1(ka)-ilm1(k)
+
+                    sig=sign(one,cz(k))
+                    sq(k)=dq*sig
+                    ntc(k)=ntc(k)-ntf*((2*ntc(k))/ntf)
+                    if (sig*dble(ntc(k)) .lt. zero) ntc(k)=-ntc(k)
+                        if (abs(cz(k)) .gt. zero) then
+                            cx(k)=cx(k)/cz(k)
+                            cy(k)=cy(k)/cz(k)
+                        endif
                 enddo
             enddo   
             !$omp end do
 
-            !$omp do schedule(static, 1) private(k, ka, ki)   
+            !$omp do schedule(static, 1) private(k, ka, ki, sig)   
             do groupCount = 1, nNonRepeatKgroups
                 do ki = 1, size(NonRepeatK_groups(groupCount)%values)
                     k = NonRepeatK_groups(groupCount)%values(ki)
@@ -1188,89 +1199,41 @@ program cgcDev
                     cy(k)=x(k)*z(ka)-z(k)*x(ka)
                     cz(k)=x(k)*y(ka)-y(k)*x(ka)
                     ntc(k)=ilm1(ka)-ilm1(k)
+
+                    sig=sign(one,cz(k))
+                    sq(k)=dq*sig
+                    ntc(k)=ntc(k)-ntf*((2*ntc(k))/ntf)
+                    if (sig*dble(ntc(k)) .lt. zero) ntc(k)=-ntc(k)
+                        if (abs(cz(k)) .gt. zero) then
+                            cx(k)=cx(k)/cz(k)
+                            cy(k)=cy(k)/cz(k)
+                        endif
                 enddo
             enddo
             !$omp end do
 
-            !$omp do schedule(static) private(ka)
+            !$omp do schedule(static) private(ka, sig)
             do k=1,npt
                 ka=next(k)
                 cx(k)=z(k)*y(ka)-y(k)*z(ka)
                 cy(k)=x(k)*z(ka)-z(k)*x(ka)
                 cz(k)=x(k)*y(ka)-y(k)*x(ka)
                 ntc(k)=ilm1(ka)-ilm1(k)
+
+                sig=sign(one,cz(k))
+                sq(k)=dq*sig
+                ntc(k)=ntc(k)-ntf*((2*ntc(k))/ntf)
+                if (sig*dble(ntc(k)) .lt. zero) ntc(k)=-ntc(k)
+                    if (abs(cz(k)) .gt. zero) then
+                        cx(k)=cx(k)/cz(k)
+                        cy(k)=cy(k)/cz(k)
+                    endif
             enddo    
             !$omp end do
         !$OMP END PARALLEL
 
-        l2End = omp_get_wtime()
-        l2Time = l2End - l2Start
-    
-		!print *, 'Loop 3...'
-        !LOOP 3
-        l3Start = omp_get_wtime()
-
-        ! original serial code
-        ! do k=1,npt
-        !     sig=sign(one,cz(k))
-        !     sq(k)=dq*sig
-        !     ntc(k)=ntc(k)-ntf*((2*ntc(k))/ntf)
-        !     if (sig*dble(ntc(k)) .lt. zero) ntc(k)=-ntc(k)
-        !         if (abs(cz(k)) .gt. zero) then
-        !             cx(k)=cx(k)/cz(k)
-        !             cy(k)=cy(k)/cz(k)
-        !         endif
-        ! enddo
-
-        !$OMP PARALLEL
-            !$omp do schedule(static, 1) private(k, ki, sig)   
-            do groupCount = 1, nRepeatKgroups
-                do ki = 1, size(RepeatK_groups(groupCount)%values)
-                    k = RepeatK_groups(groupCount)%values(ki)
-                    sig=sign(one,cz(k))
-                    sq(k)=dq*sig
-                    ntc(k)=ntc(k)-ntf*((2*ntc(k))/ntf)
-                    if (sig*dble(ntc(k)) .lt. zero) ntc(k)=-ntc(k)
-                        if (abs(cz(k)) .gt. zero) then
-                            cx(k)=cx(k)/cz(k)
-                            cy(k)=cy(k)/cz(k)
-                        endif
-                enddo
-            enddo   
-            !$omp end do
-
-            !$omp do schedule(static, 1) private(k, ki, sig)     
-            do groupCount = 1, nNonRepeatKgroups
-                do ki = 1, size(NonRepeatK_groups(groupCount)%values)
-                    k = NonRepeatK_groups(groupCount)%values(ki)
-                    sig=sign(one,cz(k))
-                    sq(k)=dq*sig
-                    ntc(k)=ntc(k)-ntf*((2*ntc(k))/ntf)
-                    if (sig*dble(ntc(k)) .lt. zero) ntc(k)=-ntc(k)
-                        if (abs(cz(k)) .gt. zero) then
-                            cx(k)=cx(k)/cz(k)
-                            cy(k)=cy(k)/cz(k)
-                        endif
-                enddo
-            enddo
-            !$omp end do
-
-            !$omp do schedule(static) private(sig)
-            do k=1,npt
-            sig=sign(one,cz(k))
-            sq(k)=dq*sig
-            ntc(k)=ntc(k)-ntf*((2*ntc(k))/ntf)
-            if (sig*dble(ntc(k)) .lt. zero) ntc(k)=-ntc(k)
-                if (abs(cz(k)) .gt. zero) then
-                    cx(k)=cx(k)/cz(k)
-                    cy(k)=cy(k)/cz(k)
-                endif
-            enddo
-            !$omp end do
-        !$OMP END PARALLEL
-
-        l3End = omp_get_wtime()
-        l3Time = l3End - l3Start
+        l23End = omp_get_wtime()
+        l23Time = l23End - l23Start
 
         !----------------------------------------------------------------------
         !split k=1,npt into repeat and non-repeat ks. 
