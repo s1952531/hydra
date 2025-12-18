@@ -1368,41 +1368,41 @@ program cgcDev
         l6Start = omp_get_wtime()
 
         ! original serial code
-        ! do i=1,ntf
-        !     do j=2,ngf
-        !         qa(j,i)=qa(j,i)+qa(j-1,i)
-        !     enddo
-        ! enddo
-
-        !$OMP PARALLEL PRIVATE(j,i,pairCount)
-            !$omp do schedule(static, 1) private(i,j, pairCount)
-                do groupCount = 1, nRepeatKgroups
-                    do pairCount = 1, size(RepeatK_ij_groups(groupCount)%pairs)
-                        i = RepeatK_ij_groups(groupCount)%pairs(pairCount)%i
-                        j = RepeatK_ij_groups(groupCount)%pairs(pairCount)%j
-                        qa(j,i)=qa(j,i)+qa(j-1,i)
-                    enddo
-                enddo
-            !$omp end do
-
-            !$omp do schedule(static, 1) private(i,j, pairCount)
-                do groupCount = 1, nNonRepeatKgroups
-                    do pairCount = 1, size(NonRepeatK_ij_groups(groupCount)%pairs)
-                        i = NonRepeatK_ij_groups(groupCount)%pairs(pairCount)%i
-                        j = NonRepeatK_ij_groups(groupCount)%pairs(pairCount)%j
-                        qa(j,i)=qa(j,i)+qa(j-1,i)
-                    enddo
-                enddo
-            !$omp end do
-
-            !loop over all ijs to avoid slow calc of NonAccessed_ij_groups
-            !$omp do schedule(static)
-            do i=1,ntf
-                do j=2,ngf
-                    qa(j,i)=qa(j,i)+qa(j-1,i)
-                enddo
+        do i=1,ntf
+            do j=2,ngf
+                qa(j,i)=qa(j,i)+qa(j-1,i)
             enddo
-        !$OMP END PARALLEL
+        enddo
+
+        ! !$OMP PARALLEL PRIVATE(j,i,pairCount)
+        !     !$omp do schedule(static, 1) private(i,j, pairCount)
+        !         do groupCount = 1, nRepeatKgroups
+        !             do pairCount = 1, size(RepeatK_ij_groups(groupCount)%pairs)
+        !                 i = RepeatK_ij_groups(groupCount)%pairs(pairCount)%i
+        !                 j = RepeatK_ij_groups(groupCount)%pairs(pairCount)%j
+        !                 qa(j,i)=qa(j,i)+qa(j-1,i)
+        !             enddo
+        !         enddo
+        !     !$omp end do
+
+        !     !$omp do schedule(static, 1) private(i,j, pairCount)
+        !         do groupCount = 1, nNonRepeatKgroups
+        !             do pairCount = 1, size(NonRepeatK_ij_groups(groupCount)%pairs)
+        !                 i = NonRepeatK_ij_groups(groupCount)%pairs(pairCount)%i
+        !                 j = NonRepeatK_ij_groups(groupCount)%pairs(pairCount)%j
+        !                 qa(j,i)=qa(j,i)+qa(j-1,i)
+        !             enddo
+        !         enddo
+        !     !$omp end do
+
+        !     !loop over all ijs to avoid slow calc of NonAccessed_ij_groups
+        !     !$omp do schedule(static)
+        !     do i=1,ntf
+        !         do j=2,ngf
+        !             qa(j,i)=qa(j,i)+qa(j-1,i)
+        !         enddo
+        !     enddo
+        ! !$OMP END PARALLEL
 
 
         l6End = omp_get_wtime()
