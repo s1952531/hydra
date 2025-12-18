@@ -65,14 +65,14 @@ program cgcDev
     integer, allocatable :: nonRepeatKs(:)
 
     !for load balancing repeat Ks
-    type :: group_t
+    type :: group_k
         integer, allocatable :: values(:)
-    end type group_t
+    end type group_k
 
-    type(group_t), allocatable :: RepeatK_groups(:)
+    type(group_k), allocatable :: RepeatK_groups(:)
     integer :: nRepeatKgroups = 0
 
-    type(group_t), allocatable :: NonRepeatK_groups(:)
+    type(group_k), allocatable :: NonRepeatK_groups(:)
     integer :: nNonRepeatKgroups = 0
 
     character(len=256) :: balanced_RepeatK_filename
@@ -332,7 +332,7 @@ program cgcDev
         integer, allocatable :: tmp(:)
         character(len=256) :: filename
 
-        type(group_t), allocatable :: groups(:)
+        type(group_k), allocatable :: groups(:)
         integer :: nGroups
 
         ! Build filename from global callCount
