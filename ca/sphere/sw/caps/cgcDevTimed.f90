@@ -1511,7 +1511,7 @@ program cgcDev
         !print *, 'call', callCount, ' of con2grid took ', totalTime, ' seconds.'
 
         call accumulateTimes(totalTime, preAvgTime, avgTime, &
-                              l1Time, l23Time, l4Time, l4aTime, l4bTime, l4cTime, l5Time, &
+                              l1Time, l23Time, l4Time, l5Time, &
                               l6Time, combineTime)
         
         return
@@ -2535,13 +2535,12 @@ program cgcDev
     end subroutine 
 
     subroutine accumulateTimes(totalTime, preAvgTime, avgTime, &
-                              l1Time, l23Time, l4Time, l4aTime, l4bTime, l4cTime, l5Time, &
+                              l1Time, l23Time, l4Time, l5Time, &
                               l6Time, combineTime)
 
         !passed args
         double precision:: totalTime, preAvgTime, avgTime
         double precision:: l1Time, l23Time, l4Time, l5Time
-        double precision:: l4aTime, l4bTime, l4cTime
         double precision:: l6Time
         double precision:: combineTime
 
@@ -2552,9 +2551,6 @@ program cgcDev
         l1TotTime = l1TotTime + l1Time
         l23TotTime = l23TotTime + l23Time
         l4TotTime = l4TotTime + l4Time
-        l4aTotTime = l4aTotTime + l4aTime
-        l4bTotTime = l4bTotTime + l4bTime
-        l4cTotTime = l4cTotTime + l4cTime
         l5TotTime = l5TotTime + l5Time
         !combineTotTime = combineTotTime + combineTime
         l6TotTime = l6TotTime + l6Time
