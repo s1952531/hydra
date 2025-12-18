@@ -997,9 +997,9 @@ program cgcDev
         totalTime = endTime - startTime
         !print *, 'call', callCount, ' of con2grid took ', totalTime, ' seconds.'
 
-        call accumulateTimes(totalTime, preAvgTime, avgTime, &
-                              l1Time, l2Time, l3Time, l4Time, l5Time, &
-                              l6Time, combineTime)
+        ! call accumulateTimes(totalTime, preAvgTime, avgTime, &
+        !                       l1Time, l2Time, l3Time, l4Time, l5Time, &
+        !                       l6Time, combineTime)
         
         return
         
@@ -1784,9 +1784,9 @@ program cgcDev
         totalTime = endTime - startTime
         !print *, 'call', callCount, ' of con2grid took ', totalTime, ' seconds.'
 
-        call accumulateTimes(totalTime, preAvgTime, avgTime, &
-                              l1Time, l2Time, l3Time, l4Time, l5Time, &
-                              l6Time, combineTime)
+        ! call accumulateTimes(totalTime, preAvgTime, avgTime, &
+        !                       l1Time, l2Time, l3Time, l4Time, l5Time, &
+        !                       l6Time, combineTime)
         
         return
         
@@ -2110,9 +2110,9 @@ program cgcDev
         totalTime = endTime - startTime
         !print *, 'call', callCount, ' of con2grid took ', totalTime, ' seconds.'
 
-        call accumulateTimes(totalTime, preAvgTime, avgTime, &
-                              l1Time, l2Time, l3Time, l4Time, l5Time, &
-                              l6Time, combineTime)
+        ! call accumulateTimes(totalTime, preAvgTime, avgTime, &
+        !                       l1Time, l2Time, l3Time, l4Time, l5Time, &
+        !                       l6Time, combineTime)
         
         return
         
@@ -2460,9 +2460,9 @@ program cgcDev
         totalTime = endTime - startTime
         !print *, 'call', callCount, ' of con2grid took ', totalTime, ' seconds.'
 
-        call accumulateTimes(totalTime, preAvgTime, avgTime, &
-                              l1Time, l2Time, l3Time, l4Time, l5Time, &
-                              l6Time, combineTime)
+        ! call accumulateTimes(totalTime, preAvgTime, avgTime, &
+        !                       l1Time, l2Time, l3Time, l4Time, l5Time, &
+        !                       l6Time, combineTime)
         
         return
         
