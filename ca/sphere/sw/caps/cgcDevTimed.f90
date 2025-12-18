@@ -58,6 +58,7 @@ program cgcDev
     double precision:: l1TotTime=0.0d0, l2TotTime=0.0d0, l3TotTime=0.0d0, l4TotTime=0.0d0, l5TotTime=0.0d0
     double precision:: l6TotTime=0.0d0
     double precision:: combineTotTime=0.0d0
+    double precision:: l4aTotTime=0.0d0, l4bTotTime=0.0d0, l4cTotTime=0.0d0
 
     !hard coded repeat ks
     integer, allocatable :: callsRepeatKs(:)
@@ -1033,6 +1034,10 @@ program cgcDev
         double precision:: l5Start, l5End, l5Time
         double precision:: l6Start, l6End, l6Time
 
+        double precision:: l4aStart, l4aEnd, l4aTime
+        double precision:: l4bStart, l4bEnd, l4bTime
+        double precision:: l4cStart, l4cEnd, l4cTime
+
         double precision:: combineStart, combineEnd, combineTime
 
         double precision:: preAvgStart, preAvgEnd, preAvgTime
@@ -1120,7 +1125,8 @@ program cgcDev
         ! print *, 'Loop 4...'
         l4Start = omp_get_wtime()        
 
-    !$OMP PARALLEL PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump, ki, pairCount)
+        l4aStart = omp_get_wtime()
+    !$OMP PARALLEL PRIVATE(j,i,pairCount)
             !$omp do schedule(static, 1) private(i,j, pairCount)
                 do groupCount = 1, nRepeatKgroups
                     do pairCount = 1, size(RepeatK_ij_groups(groupCount)%pairs)
@@ -1135,7 +1141,11 @@ program cgcDev
                     enddo
                 enddo
             !$omp end do
+    !$OMP END PARALLEL
+        l4aEnd = omp_get_wtime()
 
+        l4bStart = omp_get_wtime()
+    !$OMP PARALLEL PRIVATE(j,i,pairCount)
             ! !$omp single
             !     print *, 'Initialized qa and qa_jp1 for repeat ks...'
             ! !$omp end single
@@ -1155,7 +1165,11 @@ program cgcDev
                     enddo
                 enddo
             !$omp end do
+    !$OMP END PARALLEL
+        l4bEnd = omp_get_wtime()
 
+        l4cStart = omp_get_wtime()
+    !$OMP PARALLEL PRIVATE(j,i,pairCount)
             ! !$omp single
             !     print *, 'Initialized qa and qa_jp1 for nonRepeat ks...'
             ! !$omp end single
@@ -1208,9 +1222,14 @@ program cgcDev
             ! !$omp end single
 
     !$OMP END PARALLEL
+        l4cEnd = omp_get_wtime()
 
         l4End = omp_get_wtime()
         l4Time = l4End - l4Start
+
+        l4aTime = l4aEnd - l4aStart
+        l4bTime = l4bEnd - l4bStart
+        l4cTime = l4cEnd - l4cStart
 
         !Determine crossing indices:
         !LOOP 5
@@ -1426,7 +1445,7 @@ program cgcDev
         !print *, 'call', callCount, ' of con2grid took ', totalTime, ' seconds.'
 
         call accumulateTimes(totalTime, preAvgTime, avgTime, &
-                              l1Time, l2Time, l3Time, l4Time, l5Time, &
+                              l1Time, l2Time, l3Time, l4Time, l4aTime, l4bTime, l4cTime, l5Time, &
                               l6Time, combineTime)
         
         return
@@ -2450,12 +2469,13 @@ program cgcDev
     end subroutine 
 
     subroutine accumulateTimes(totalTime, preAvgTime, avgTime, &
-                              l1Time, l2Time, l3Time, l4Time, l5Time, &
+                              l1Time, l2Time, l3Time, l4Time, l4aTime, l4bTime, l4cTime, l5Time, &
                               l6Time, combineTime)
 
         !passed args
         double precision:: totalTime, preAvgTime, avgTime
         double precision:: l1Time, l2Time, l3Time, l4Time, l5Time
+        double precision:: l4aTime, l4bTime, l4cTime
         double precision:: l6Time
         double precision:: combineTime
 
@@ -2467,6 +2487,9 @@ program cgcDev
         l2TotTime = l2TotTime + l2Time
         l3TotTime = l3TotTime + l3Time
         l4TotTime = l4TotTime + l4Time
+        l4aTime = l4aTotTime + l4aTime
+        l4bTime = l4bTotTime + l4bTime
+        l4cTime = l4cTotTime + l4cTime
         l5TotTime = l5TotTime + l5Time
         !combineTotTime = combineTotTime + combineTime
         l6TotTime = l6TotTime + l6Time
@@ -2538,6 +2561,9 @@ program cgcDev
         print *, 'Loop 2 total time: ', l2TotTime
         print *, 'Loop 3 total time: ', l3TotTime
         print *, 'Loop 4 total time: ', l4TotTime
+        print *, 'loop 4a total time: ', l4aTotTime
+        print *, 'loop 4b total time: ', l4bTotTime
+        print *, 'loop 4c total time: ', l4cTotTime
         print *, 'Loop 5 total time: ', l5TotTime
         !print *, 'Combine time: ', combineTotTime
         print *, 'Loop 6 total time: ', l6TotTime
