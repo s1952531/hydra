@@ -1120,7 +1120,7 @@ program cgcDev
         ! enddo
                    
         !first touch aware parallel initialization of ilm1
-        !$OMP PARALLEL PRIVATE(k, ki)
+        !$OMP PARALLEL
             !$omp do schedule(static, 1) private(k, ki)   
             do groupCount = 1, nRepeatKgroups
                 do ki = 1, size(RepeatK_groups(groupCount)%values)
@@ -1138,17 +1138,8 @@ program cgcDev
                 enddo
             enddo
             !$omp end do
-     
-            !$omp do schedule(static, 1) private(k, ki)
-            do groupCount = 1, nNonRepeatKgroups
-                do ki = 1, size(NonRepeatK_groups(groupCount)%values)
-                    k = NonRepeatK_groups(groupCount)%values(ki)
-                    ilm1(k)=int(dlfi*(pi+atan2(y(k),x(k))))
-                enddo
-            enddo
-            !$omp end do
 
-            !$omp do schedule(static) private(k)
+            !$omp do schedule(static)
             do k=1,npt
                 ilm1(k)=int(dlfi*(pi+atan2(y(k),x(k))))
             enddo
@@ -1173,6 +1164,45 @@ program cgcDev
         !     cz(k)=x(k)*y(ka)-y(k)*x(ka)
         !     ntc(k)=ilm1(ka)-ilm1(k)
         ! enddo    
+
+        !$OMP PARALLEL
+            !$omp do schedule(static, 1) private(k, ka, ki)   
+            do groupCount = 1, nRepeatKgroups
+                do ki = 1, size(RepeatK_groups(groupCount)%values)
+                    k = RepeatK_groups(groupCount)%values(ki)
+                    ka=next(k) !Slow memory access?
+                    cx(k)=z(k)*y(ka)-y(k)*z(ka)
+                    cy(k)=x(k)*z(ka)-z(k)*x(ka)
+                    cz(k)=x(k)*y(ka)-y(k)*x(ka)
+                    ntc(k)=ilm1(ka)-ilm1(k)
+                enddo
+            enddo   
+            !$omp end do
+
+            !$omp do schedule(static, 1) private(k, ka, ki)   
+            do groupCount = 1, nNonRepeatKgroups
+                do ki = 1, size(NonRepeatK_groups(groupCount)%values)
+                    k = NonRepeatK_groups(groupCount)%values(ki)
+                    k = RepeatK_groups(groupCount)%values(ki)
+                    ka=next(k) !Slow memory access?
+                    cx(k)=z(k)*y(ka)-y(k)*z(ka)
+                    cy(k)=x(k)*z(ka)-z(k)*x(ka)
+                    cz(k)=x(k)*y(ka)-y(k)*x(ka)
+                    ntc(k)=ilm1(ka)-ilm1(k)
+                enddo
+            enddo
+            !$omp end do
+
+            !$omp do schedule(static) private(ka)
+            do k=1,npt
+                ka=next(k)
+                cx(k)=z(k)*y(ka)-y(k)*z(ka)
+                cy(k)=x(k)*z(ka)-z(k)*x(ka)
+                cz(k)=x(k)*y(ka)-y(k)*x(ka)
+                ntc(k)=ilm1(ka)-ilm1(k)
+            enddo    
+            !$omp end do
+        !$OMP END PARALLEL
 
         l2End = omp_get_wtime()
         l2Time = l2End - l2Start
