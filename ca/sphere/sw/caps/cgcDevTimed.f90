@@ -208,12 +208,57 @@ program cgcDev
     end subroutine
 
     subroutine initTrigLonf
-        do i=1,ntf
-            rlonf=dlf*dble(i-1)-pi
-            clonf(i)=cos(rlonf)
-            slonf(i)=sin(rlonf)
-        enddo
+        ! original serial code
+        ! do i=1,ntf
+        !     rlonf=dlf*dble(i-1)-pi
+        !     clonf(i)=cos(rlonf)
+        !     slonf(i)=sin(rlonf)
+        ! enddo
+
+        integer:: groupCount, pairCount
+
+        !first touch aware parallel initialization of clonf and slonf
+        !$OMP PARALLEL PRIVATE(j,i,pairCount)
+        !$omp do schedule(static, 1) private(i,j, pairCount)
+                    do groupCount = 1, nRepeatKgroups
+                        do pairCount = 1, size(RepeatK_ij_groups(groupCount)%pairs)
+                            i = RepeatK_ij_groups(groupCount)%pairs(pairCount)%i
+                            rlonf=dlf*dble(i-1)-pi
+                            clonf(i)=cos(rlonf)
+                            slonf(i)=sin(rlonf)
+                        enddo
+                    enddo
+                !$omp end do
+        !$OMP END PARALLEL
+        
+        !$OMP PARALLEL PRIVATE(j,i,pairCount)
+                ! !$omp single
+                !     print *, 'Initialized qa and qa_jp1 for repeat ks...'
+                ! !$omp end single
+                
+                !$omp do schedule(static, 1) private(i,j, pairCount)
+                    do groupCount = 1, nNonRepeatKgroups
+                        do pairCount = 1, size(NonRepeatK_ij_groups(groupCount)%pairs)
+                            i = NonRepeatK_ij_groups(groupCount)%pairs(pairCount)%i
+                            rlonf=dlf*dble(i-1)-pi
+                            clonf(i)=cos(rlonf)
+                            slonf(i)=sin(rlonf)
+                        enddo
+                    enddo
+                !$omp end do
+        !$OMP END PARALLEL
+
+        !$OMP PARALLEL PRIVATE(j,i,pairCount)
+                !loop over all is to avoid slow calc of NonAccessed_ij_groups
+                !$omp parallel do schedule(static)
+                do i = 1, ntf
+                    rlonf=dlf*dble(i-1)-pi
+                    clonf(i)=cos(rlonf)
+                    slonf(i)=sin(rlonf)
+                end do
+        !$OMP END PARALLEL
         return
+    
     end subroutine
 
     subroutine allocateVars
