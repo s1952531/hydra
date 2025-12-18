@@ -2487,9 +2487,9 @@ program cgcDev
         l2TotTime = l2TotTime + l2Time
         l3TotTime = l3TotTime + l3Time
         l4TotTime = l4TotTime + l4Time
-        l4aTime = l4aTotTime + l4aTime
-        l4bTime = l4bTotTime + l4bTime
-        l4cTime = l4cTotTime + l4cTime
+        l4aTotTime = l4aTotTime + l4aTime
+        l4bTotTime = l4bTotTime + l4bTime
+        l4cTotTime = l4cTotTime + l4cTime
         l5TotTime = l5TotTime + l5Time
         !combineTotTime = combineTotTime + combineTime
         l6TotTime = l6TotTime + l6Time
