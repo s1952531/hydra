@@ -1115,13 +1115,53 @@ program cgcDev
                 !LOOP 1
                 l1Start = omp_get_wtime()
                 !!$OMP PARALLEL DO SCHEDULE(GUIDED)
-                do k=1,npt
+
+        ! original serial code:
+        ! do k=1,npt
+        !     ilm1(k)=int(dlfi*(pi+atan2(y(k),x(k))))
+        ! enddo
+                   
+        !first touch aware parallel initialization of ilm1
+        !$OMP PARALLEL PRIVATE(k,j,i,ioff,ncr,rlatc,p,jump, ki)
+            !$omp do schedule(static, 1) private(k, ki)   
+            do groupCount = 1, nRepeatKgroups
+                do ki = 1, size(RepeatK_groups(groupCount)%values)
+                    k = RepeatK_groups(groupCount)%values(ki)
                     ilm1(k)=int(dlfi*(pi+atan2(y(k),x(k))))
                 enddo
-                !!$OMP END PARALLEL DO
-                l1End = omp_get_wtime()
-                l1Time = l1End - l1Start
-            !!$OMP END DO
+            enddo   
+            !$omp end do
+
+            !$omp do schedule(static, 1) private(k, ki)
+            do groupCount = 1, nNonRepeatKgroups
+                do ki = 1, size(NonRepeatK_groups(groupCount)%values)
+                    k = NonRepeatK_groups(groupCount)%values(ki)
+                    ilm1(k)=int(dlfi*(pi+atan2(y(k),x(k))))
+                enddo
+            enddo
+            !$omp end do
+     
+            !$omp do schedule(static, 1) private(k, ki)
+            do groupCount = 1, nNonRepeatKgroups
+                do ki = 1, size(NonRepeatK_groups(groupCount)%values)
+                    k = NonRepeatK_groups(groupCount)%values(ki)
+                    ilm1(k)=int(dlfi*(pi+atan2(y(k),x(k))))
+                enddo
+            enddo
+            !$omp end do
+
+            !$omp do schedule(static) private(k)
+            do k=1,npt
+                ilm1(k)=int(dlfi*(pi+atan2(y(k),x(k))))
+            enddo
+            !$omp end do
+        !$OMP END PARALLEL
+
+        l1End = omp_get_wtime()
+        l1Time = l1End - l1Start
+            
+        
+        !!$OMP END DO
 
             !print *, 'Loop 2...'
 	    !!$OMP DO SCHEDULE(STATIC)
@@ -1261,7 +1301,7 @@ program cgcDev
             ! !$omp end do
 
             !loop over all ijs to avoid slow calc of NonAccessed_ij_groups
-            !$omp parallel do schedule(static)
+            !$omp do schedule(static)
             do i = 1, ntf
                 do j = 0, ngf+1
                     qa(j,i) = 0.0
