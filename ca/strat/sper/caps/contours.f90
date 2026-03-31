@@ -59,6 +59,9 @@ double precision,parameter:: dm=amu**2*ell/four,dm2=dm**2,d4small=small*glx**4
 double precision,parameter:: dmsq=four*dm2,dmi=two/dm
 double precision,parameter:: elf=one/ell**2,densf=one/(amu*sqrt(ell))
 
+ !Toggle baseline logging for con2grid input/output:
+logical,parameter:: log_con2grid=.true.
+
 contains 
 
 !=======================================================================
@@ -349,6 +352,52 @@ enddo
 
 return
 end subroutine
+!=======================================================================
+
+subroutine write_con2grid_input(xq,yq,dqin,qavgin,nextq,nptqin,ioptin)
+
+implicit none
+
+ !Passed arrays:
+double precision, intent(in):: xq(npm),yq(npm)
+integer, intent(in):: nextq(npm)
+
+ !Passed scalars:
+double precision, intent(in):: dqin,qavgin
+integer, intent(in):: nptqin,ioptin
+
+ !Local:
+integer:: iu
+
+open(newunit=iu,file='c2g_inputs.dat',status='unknown',position='append', &
+ & action='write',access='stream',form='unformatted')
+write(iu) nptqin,dqin,qavgin,ioptin
+write(iu) xq(1:nptqin)
+write(iu) yq(1:nptqin)
+write(iu) nextq(1:nptqin)
+close(iu)
+end subroutine
+
+!=======================================================================
+
+!=======================================================================
+
+subroutine write_con2grid_output(qq)
+
+implicit none
+
+ !Passed arrays:
+double precision, intent(in):: qq(0:ny,0:nxm1)
+
+ !Local:
+integer:: iu
+
+open(newunit=iu,file='c2g_outputs.dat',status='unknown',position='append', &
+ & action='write',access='stream',form='unformatted')
+write(iu) qq
+close(iu)
+
+end subroutine
 
 !=======================================================================
 
@@ -390,14 +439,20 @@ if (nptq .eq. 0) then
       qq(iy,ix)=zero
     enddo
   enddo
+  if (log_con2grid) then
+    call write_con2grid_input(xq,yq,dq,qavg,nextq,nptq,iopt)
+    call write_con2grid_output(qq)
+  endif
   return
 endif  
+
+if (log_con2grid) call write_con2grid_input(xq,yq,dq,qavg,nextq,nptq,iopt)
 
 !------------------------------------------------------------------
  !Initialise interior x grid line crossing information and fill the
  !q jump array along lower boundary:
 do i=1,nptq
-  ixc(i)=1+int(glxfi*(xq(i)-xmin))
+  ixc(i)=1+int(glxfi*(xq(i)-xmin)) !ixc(i) gives the index of the x grid line (vertical, constant x) to the right of node i 
 enddo
 
 do ix=0,nxfm1
@@ -407,13 +462,13 @@ enddo
 do i=1,nptq
   ia=nextq(i)
   if (ia .gt. 0) then
-     !A node with ia = 0 terminates a contour at a boundary
+     !A node with ia = 0 terminates a contour at a boundary 
     xx=xq(ia)-xq(i)
-    dx(i)=xx-ellx*dble(int(xx*hlxi))
-    dy(i)=yq(ia)-yq(i)
-    ixdif=ixc(ia)-ixc(i)
-    nxc(i)=ixdif-nxf*((2*ixdif)/nxf)
-    crossx(i)=(nxc(i) .ne. 0)
+    dx(i)=xx-ellx*dble(int(xx*hlxi)) !shortest distance in x between i and ia (periodicity considered)
+    dy(i)=yq(ia)-yq(i) !raw distance since no periodicity in y direction
+    ixdif=ixc(ia)-ixc(i) !number of x grid lines between i and ia; can be positive, negative or zero
+    nxc(i)=ixdif-nxf*((2*ixdif)/nxf) !gets the number of x grid lines crossed for the shortest distance between nodes (periodicity considered)
+    crossx(i)=(nxc(i) .ne. 0) !logical: true when the contour segment (i,ia) crosses at least one x grid line
     if ((yq(ia)-ybeg)*(ybeg-yq(i)) .gt. zero) then
        !The contour segment (i,ia) crosses y = ybeg; find x location:
       py0=(ybeg-yq(i))/dy(i)
@@ -493,6 +548,8 @@ do ix=0,nxm1
   enddo
 enddo
  !Now qq has the correct average
+
+if (log_con2grid) call write_con2grid_output(qq)
 
 return
 end subroutine
