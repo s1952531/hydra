@@ -70,7 +70,7 @@ do while (t .le. tsim)
       zc=zd
       call spctop_fc(nx,ny,zc,za,xfactors,yfactors,xtrig,ytrig)
       call l2norm(za,zdl2)
-      call con2grid(za,xz,yz,zjump,zavg,nextz,nptz,-1)
+      call con2grid(za,xz,yz,zjump,zavg,nextz,nptz,-1,t)
       call l2norm(za,zsl2)
       zrat=zdl2/zsl2
     else
@@ -132,7 +132,7 @@ csave=.false.
 
 !--------------------------------------------------------------
  !Convert vorticity contours to gridded values (zc):
-call con2grid(za,xz,yz,zjump,zavg,nextz,nptz,-1)
+call con2grid(za,xz,yz,zjump,zavg,nextz,nptz,-1,t)
 call ptospc_fc(nx,ny,za,zc,xfactors,yfactors,xtrig,ytrig)
  !zc must be in spectral space for use below; za is overwritten
 
@@ -196,7 +196,7 @@ zjump=zzl2/(zzl1*dble(ncontz))
 
 !--------------------------------------------------------------
  !Convert vorticity contours to gridded values (zc):
-call con2grid(za,xz,yz,zjump,zavg,nextz,nptz,-1)
+call con2grid(za,xz,yz,zjump,zavg,nextz,nptz,-1,t)
 call ptospc_fc(nx,ny,za,zc,xfactors,yfactors,xtrig,ytrig)
  !zc must be in spectral space for use below; za is overwritten
 
@@ -228,7 +228,7 @@ double precision:: za(0:ny,0:nxm1)
 
 !------------------------------------------------------------
  !Call con2grid to get updated contour vorticity (zc):
-call con2grid(za,xz,yz,zjump,zavg,nextz,nptz,-1)
+call con2grid(za,xz,yz,zjump,zavg,nextz,nptz,-1,t)
 call ptospc_fc(nx,ny,za,zc,xfactors,yfactors,xtrig,ytrig)
  !zc must be in spectral space for use below; za is overwritten
 
@@ -360,7 +360,7 @@ do iter=1,niter
 enddo
 
  !Update gridded buoyancy field (bb) from contours (xb,yb):
-call con2grid(bb,xb,yb,bjump,bavg,nextb,nptb,-1)
+call con2grid(bb,xb,yb,bjump,bavg,nextb,nptb,-1,t)
 
  !Advance time:
 t=t+dt
@@ -575,7 +575,7 @@ integer:: k
 igrids=igrids+1
 
  !Compute available potential energy (ape) by calling con2grid:
-call con2grid(bb,xb,yb,bjump,bavg,nextb,nptb,iene)
+call con2grid(bb,xb,yb,bjump,bavg,nextb,nptb,iene,t)
  !If iene = 0, this also computes the reference PE (usually at t = 0).
 iene=1
 

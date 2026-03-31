@@ -61,6 +61,7 @@ double precision,parameter:: elf=one/ell**2,densf=one/(amu*sqrt(ell))
 
  !Toggle baseline logging for con2grid input/output:
 logical,parameter:: log_con2grid=.true.
+integer,parameter:: n_con2grid_samples=100
 
 contains 
 
@@ -401,7 +402,32 @@ end subroutine
 
 !=======================================================================
 
-subroutine con2grid(qq,xq,yq,dq,qavg,nextq,nptq,iopt)
+logical function con2grid_save_time(tnow)
+
+implicit none
+
+double precision, intent(in):: tnow
+double precision:: dts,tsamp,tol
+integer:: isamp
+
+if (n_con2grid_samples .le. 1) then
+  con2grid_save_time=.false.
+  return
+endif
+
+dts=tsim/dble(n_con2grid_samples-1)
+isamp=nint(tnow/dts)
+isamp=max(0,min(n_con2grid_samples-1,isamp))
+tsamp=dble(isamp)*dts
+tol=1.d-10*max(one,abs(tsim))
+
+con2grid_save_time=(abs(tnow-tsamp) .le. tol)
+
+end function
+
+!=======================================================================
+
+subroutine con2grid(qq,xq,yq,dq,qavg,nextq,nptq,iopt,tnow)
 ! Contour -> grid conversion.  The contours are represented by
 ! nodes (xq(i),yq(i)), i = 1, ..., nptq, where nextq(i) gives the
 ! index of the node following i, dq is the jump in q across all
@@ -423,6 +449,7 @@ implicit integer(i-n)
 double precision:: qq(0:ny,0:nxm1)
 double precision:: xq(npm),yq(npm)
 integer:: nextq(npm)
+double precision, optional, intent(in):: tnow
 
  !Local arrays:
 double precision:: qa(0:nyfp1,0:nxfm1)
@@ -431,6 +458,10 @@ double precision:: dx(nptq),dy(nptq)
 double precision:: ybar(0:nlevm),area(nlevm)
 integer:: ixc(nptq),nxc(nptq)
 logical:: crossx(nptq)
+logical:: saveTime
+
+saveTime=.false.
+if (present(tnow)) saveTime=con2grid_save_time(tnow)
 
 if (nptq .eq. 0) then 
    !No contours to convert: return qq = 0:
@@ -439,14 +470,14 @@ if (nptq .eq. 0) then
       qq(iy,ix)=zero
     enddo
   enddo
-  if (log_con2grid) then
+  if (log_con2grid .and. saveTime) then
     call write_con2grid_input(xq,yq,dq,qavg,nextq,nptq,iopt)
     call write_con2grid_output(qq)
   endif
   return
 endif  
 
-if (log_con2grid) call write_con2grid_input(xq,yq,dq,qavg,nextq,nptq,iopt)
+if (log_con2grid .and. saveTime) call write_con2grid_input(xq,yq,dq,qavg,nextq,nptq,iopt)
 
 !------------------------------------------------------------------
  !Initialise interior x grid line crossing information and fill the
@@ -549,7 +580,7 @@ do ix=0,nxm1
 enddo
  !Now qq has the correct average
 
-if (log_con2grid) call write_con2grid_output(qq)
+if (log_con2grid .and. saveTime) call write_con2grid_output(qq)
 
 return
 end subroutine
