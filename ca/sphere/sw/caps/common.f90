@@ -7,7 +7,7 @@ use constants
 use contours
 use spectral
 use force
-
+!use globals
 !-----------------------------------------------------------------------
  !Define quantities to be preserved between recontouring and evolution:
 !-----------------------------------------------------------------------
@@ -26,8 +26,10 @@ double precision:: bb(ng,nt)
 
  !Time and twist variable:
 double precision:: t,twist
+!double precision:: twist
 
  !Number of time steps between grid and contour saves:
 double precision:: ngsave,ncsave
+double precision:: writeStepSpace
 
 end module

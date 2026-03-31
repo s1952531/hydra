@@ -312,6 +312,33 @@ integer:: icrtab(ntng,2)
 integer(kind=halfint):: noctab(ntng)
 logical:: free(ncrm),keep
 
+!write corner timing
+! integer:: dt_curr
+! integer:: numSteps
+! integer:: saveStepSpace
+
+! numSteps = tsim / dt
+! dt_curr = t / dt
+! ! print *, 'Current time step: ', dt_curr
+! saveStepSpace = numSteps / 100
+! if (dt_curr .eq. 1) then
+!   print *, 'Writing CGC every ', saveStepSpace, ' steps. There are ', numSteps, ' steps in total.'
+! end if
+! if (mod(dt_curr, saveStepSpace) == 0) then
+!    saveTime = .true.
+! else
+!    saveTime = .false.
+! endif
+
+!using writeStepSpace from common module
+itime = nint(t/dt)
+jtime = itime / writeStepSpace
+if (writeStepSpace*jtime .eq. itime) then
+  saveTime = .true.
+else
+  saveTime = .false.
+endif
+
 !--------------------------------------------------------
  !First get the beginning and ending contour levels:
 qamax=max(qa(0,1),qa(ngu,1))
@@ -458,6 +485,11 @@ do lev=levbeg,levend
       enddo
 
       if (keep) then 
+        !if saveTime, write corners to file
+        if (saveTime) then
+          call write_corners(t)
+        end if
+        
         npt=npt+np(n)
         iend=ibeg+np(n)-1
         i2(n)=iend

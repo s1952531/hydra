@@ -35,6 +35,7 @@
 program caps
 
 use common
+!use globals
 
 implicit none
 
@@ -199,6 +200,8 @@ open(83,file='contours/qqresi.r4',form='unformatted',access='direct', &
 ngsave=nint(tgsave/dt)
 ncsave=nint(tcsave/dt)
  !*** WARNING: tgsave and tcsave should be an integer multiple of dt
+
+writeStepSpace = ngsave
 
 return
 end subroutine initialise

@@ -4,6 +4,7 @@ module contours
 ! spe suite of f90 codes.
 
 use constants
+!use globals
 
 implicit none
 
@@ -43,6 +44,14 @@ double precision:: fcor(ng)
 
 !Basic parameters:
 double precision:: qoff
+
+!Array to store corner npt indices during renoding:
+  integer, allocatable :: corners(:) 
+integer:: cornerWriteCount
+double precision:: con2gridCallTime
+
+!boolean to signal if writing CGC inputs/outputs
+logical:: saveTime
 
 contains 
 
@@ -183,6 +192,7 @@ implicit integer(i-n)
 
  !Passed arrays:
 double precision:: xd(nprm),yd(nprm),zd(nprm),xr(nprm),yr(nprm),zr(nprm)
+
  !Local parameters and arrays:
 double precision:: dx(npd),dy(npd),dz(npd),a(npd),b(npd),c(npd),d(npd),e(npd)
 double precision:: dsa(npd),dsb(npd)
@@ -223,7 +233,7 @@ do i=1,npd
   if (corner(i)) then 
      !Keep track of corner locations for use in renoding below:
     ncorn=ncorn+1
-    node(ncorn)=i
+    node(ncorn)=i !node stores local indices of corners
      !Set curvature to zero at corners:
     d(i)=zero
   else
@@ -235,6 +245,14 @@ do i=1,npd
        &       (c(i)*dsa(i)-dz(i)*dsb(i))**2+small3)
   endif
 enddo
+
+! store corner indices
+if (allocated(corners)) deallocate(corners) !reset corners array
+
+if (ncorn > 0) then
+    allocate(corners(ncorn))
+    corners = node(1:ncorn) + npt !get corners in global indexing
+endif
 
  !Calculate the cubic interpolation coefficients:
 do i=1,npd
@@ -518,22 +536,60 @@ end subroutine
 
 !==========================================================================
 
-subroutine con2grid(qc)
+subroutine con2grid(qc, t, writeStepSpace)
 ! Calculates the PV anomaly field (stored in qc) from the PV 
 ! contours (x,y,z).  Takes away Coriolis frequency (fcor).
 
-implicit double precision(a-h,o-z)
-implicit integer(i-n)
+!implicit double precision(a-h,o-z)
+!implicit integer(i-n)
+
+!previously implicit:
+  integer:: i, j, k, ka, jump, ioff, ncr, ngh, nth, nthh, nghp1, ic, nghh, je, ip1, io, ie
+  double precision:: sig, rlatc, p
 
  !Passed arrays:
 double precision:: qc(ng,nt)
+double precision:: t
+double precision:: writeStepSpace
+
  !Local arrays:
 double precision:: qa(0:ngf+1,ntf)
 double precision:: qaend(ngf/2)
 integer:: ilm1(npt),ntc(npt)
 double precision:: cx(npt),cy(npt),cz(npt)
 double precision:: sq(npt)
+! integer:: dt_curr
+! integer:: numSteps
+! integer:: saveStepSpace
 
+! numSteps = tsim / dt
+! dt_curr = t / dt
+! ! print *, 'Current time step: ', dt_curr
+! saveStepSpace = numSteps / 100
+! if (dt_curr .eq. 1) then
+!   print *, 'Writing CGC every ', saveStepSpace, ' steps. There are ', numSteps, ' steps in total.'
+! end if
+! if (mod(dt_curr, saveStepSpace) == 0) then
+!    saveTime = .true.
+! else
+!    saveTime = .false.
+! endif
+
+integer itime, jtime
+
+itime = nint(t/dt)
+jtime = itime / writeStepSpace
+if (writeStepSpace*jtime .eq. itime) then
+  saveTime = .true.
+else
+  saveTime = .false.
+endif
+
+con2gridCallTime = t
+!----------------------------------------------------------------
+if (saveTime) then
+  !call writeCGCInputs
+endif
 !----------------------------------------------------------------
  !Initialise crossing information:
 do k=1,npt
@@ -670,12 +726,41 @@ do i=1,nt
     qc(j,i)=qa(j,i)-fcor(j)
   enddo
 enddo
+!----------------------------------------------------------------
+if (saveTime) then
+  !call writeCGCOutputs(qc)
+endif
+!----------------------------------------------------------------
 
 return
 end subroutine
 
 !========================================================================
-subroutine surgery
+subroutine writeCGCInputs
+  open(100, file="cgc_inputs.dat", status='unknown', position='append', action='write', access='stream', form='unformatted')
+  write(100) x
+  write(100) y
+  write(100) z
+  write(100) next
+  write(100) npt
+  close(100)
+
+  open(110, file="cgc_time.dat", status='unknown', position='append', action='write', form='formatted')
+  write(110,*) con2gridCallTime
+  close(110)
+end subroutine
+
+!========================================================================
+subroutine writeCGCOutputs(qc)
+   !Passed arrays:
+  double precision:: qc(ng,nt)
+  open(101, file="cgc_outputs.dat",  status='unknown', position='append', action='write', access='stream', form='unformatted')
+  write(101) qc
+  close(101)
+end subroutine
+
+!========================================================================
+subroutine surgery(writeStepSpace, t)
 ! Performs surgery and, afterwards, redistributes nodes
 
 ! Major revision 01/01/2001 by D. G. Dritschel to accelerate surgery
@@ -714,6 +799,36 @@ integer:: loc(nsegm),list(nsegm),node(nsegm)
 integer:: i1a(nm),i2a(nm),nexta(npm)
  !Logicals:
 logical:: avail(npt)
+
+!passed args:
+double precision:: writeStepSpace
+double precision:: t
+
+!corner write timing
+! integer:: dt_curr
+! integer:: numSteps
+! integer:: saveStepSpace
+
+! numSteps = tsim / dt
+! dt_curr = t / dt
+! ! print *, 'Current time step: ', dt_curr
+! saveStepSpace = numSteps / 100
+! if (dt_curr .eq. 1) then
+!   print *, 'Writing CGC every ', saveStepSpace, ' steps. There are ', numSteps, ' steps in total.'
+! end if
+! if (mod(dt_curr, saveStepSpace) == 0) then
+!    saveTime = .true.
+! else
+!    saveTime = .false.
+! endif
+
+itime = nint(t/dt)
+jtime = itime / writeStepSpace
+if (writeStepSpace*jtime .eq. itime) then
+  saveTime = .true.
+else
+  saveTime = .false.
+endif
 
 !------------------------------------------------------------
 ! Calculate beginning and ending contours (jq1,jq2) for each 
@@ -964,6 +1079,12 @@ do lev=1,nlev
             dza=f12*delz
           endif
            !Move node i & is to a common node; first deal with node i:
+          
+          !print i and is and check if these are equal to repeat ks
+          !if (saveTime) then
+          call writeCommon(i, is, t)
+          !endif    
+
           x(i)=x(i)+dxa
           y(i)=y(i)+dya
           z(i)=z(i)+dza
@@ -1041,6 +1162,10 @@ do lev=1,nlev
       np(n)=npd
       if (npd .gt. 3) call renode(xd,yd,zd,npd,xa(npt+1),ya(npt+1),za(npt+1),np(n))
       if (np(n) .gt. 3) then
+        !if saveTime, write corners to file
+        !if (saveTime) then
+        call write_corners(t)
+        !endif           
         i1a(n)=npt+1
         npt=npt+np(n)
         i2a(n)=npt
@@ -1077,6 +1202,52 @@ enddo
 return
 end subroutine
 
+subroutine writeCommon(node1, node2, t)
+    implicit none
+    integer :: node1, node2
+    double precision :: t
+
+    ! Open the file in append mode
+    open(200, file="common_nodes.dat", status='unknown', position='append', &
+         action='write', form='formatted')
+
+    !Write con2grid call time
+    write(200,*) "t: ", t
+
+    ! Write the common nodes
+    write(200,*) "Common nodes:", node1, node2
+
+    ! Close the file
+    close(200)
+end subroutine writeCommon
+
+subroutine write_corners(t)
+    implicit none
+    integer :: i
+    double precision :: t
+
+    ! Only proceed if corners exists and has data
+    if (.not. allocated(corners)) return
+    if (size(corners) == 0) return
+
+    ! Increment call count (assume cornerWriteCount is saved)
+    cornerWriteCount = cornerWriteCount + 1
+
+    ! Open the file in append mode
+    open(150, file="corners.dat", status='unknown', position='append', &
+         action='write', form='formatted')
+
+    ! Write the call number
+    write(150,*) "t: ", t
+
+    ! Write each corner on a new line
+    do i = 1, size(corners)
+        write(150,*) corners(i)
+    end do
+
+    ! Close the file
+    close(150)
+end subroutine write_corners
 
 
 !==========================================================================
