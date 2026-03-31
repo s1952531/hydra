@@ -30,10 +30,13 @@ caps: $(objects) $(fft_lib) caps.f90
 variance: $(objects) $(sourcedir)/variance.f90
 	$(f90) parameters.o constants.o $(sourcedir)/variance.f90 -o variance $(flags)
 
+test_con2grid: $(objects) $(sourcedir)/test_con2grid_driver.f90
+	$(f90) $(objects) $(sourcedir)/test_con2grid_driver.f90 -o test_con2grid $(flags)
+
 $(objects): $(fft_lib) $(sources) 
 	$(f90) $(fft_lib) $(sources) -c $(flags)
 
-.PHONY: clean setup install
+.PHONY: clean setup install test_con2grid
 clean:
 	rm -f *.o *.mod
 setup:
