@@ -1,0 +1,10 @@
+#!/bin/csh
+
+#copied from scripts/tide and editted to run straka instead
+
+#=========================================================================#
+#   Job setup script for the tide initial condition
+#=========================================================================#
+
+# Here we just set up a state at rest with linear stratification b = Y:
+./straka

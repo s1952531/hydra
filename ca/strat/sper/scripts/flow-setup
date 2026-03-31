@@ -93,9 +93,12 @@ echo ' ' >> job_info
 # Ask for the data generation routine to be used:
 echo
 echo ' Choose one of the following flow initialisation methods:'
+echo '    (0) straka,'
 echo '    (1) a modon or several modons (a semi-circular vortex),'
 echo '    (2) a slug (a semi-elliptical buoyancy anomaly),'
 echo '    (3) pre-existing data files containing buoyancy and vorticity, or'
+
+
 if ($topogr == "1") then
    echo '    (4) a tidal flow initially at rest.'
    echo
@@ -109,7 +112,9 @@ else
    if ($dataopt == "") set dataopt="1"
 endif
 
-if ($dataopt == "1") then 
+if ($dataopt == "0") then
+   set datagen = "straka"
+else if ($dataopt == "1") then 
    set datagen = "modon"
 else if ($dataopt == "2") then 
    set datagen = "slug"
