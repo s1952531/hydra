@@ -7,11 +7,11 @@ use constants
 implicit none
 
  !Toggle baseline logging for con2grid input/output:
-logical,parameter:: log_con2grid=.true.
+logical,parameter:: log_con2grid=.false.
 integer,parameter:: n_con2grid_samples=100
 
  !Toggle baseline logging for ugrid2con input/output:
-logical,parameter:: log_ugrid2con=.true.
+logical,parameter:: log_ugrid2con=.false.
 integer,parameter:: n_ugrid2con_samples=100
 
 contains
