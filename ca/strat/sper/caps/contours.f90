@@ -193,7 +193,7 @@ saveTime=.false.
 if (log_getzzsrc .and. present(tnow)) saveTime=getzzsrc_save_time(tnow, tsim)
 
 if (log_getzzsrc .and. saveTime) &
-  call write_getzzsrc_input(xb, yb, nextb, i1b, i2b, nptb, nb)
+  call write_getzzsrc_input(xb, yb, nextb, i1b, i2b, nptb, nb, bjump)
 !--------------------------------------------------------------------
  !Initialise dzdtf to zero everywhere:
 do ix=0,nxfm1

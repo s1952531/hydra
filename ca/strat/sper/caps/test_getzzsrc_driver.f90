@@ -10,6 +10,7 @@ implicit none
 integer:: iu_in, iu_out, ios, case_num
 integer:: i, j
 double precision:: rmsdiff, maxdiff, rel_rms
+double precision:: bjump_read
 double precision:: dzdt_computed(0:ny,0:nxm1), dzdt_baseline(0:ny,0:nxm1)
 double precision:: global_maxdiff, global_rmsdiff
 integer:: total_cases, cases_with_error
@@ -69,7 +70,7 @@ print *, "-----  ---------  ---------  --------  --------"
 ! Main loop: read cases and verify
 do
    ! Read input metadata
-   read(iu_in, iostat=ios) nptb_read, nb_read
+   read(iu_in, iostat=ios) nptb_read, nb_read, bjump_read
    if (ios /= 0) exit  ! End of file or read error
 
    if (nptb_read < 0 .or. nptb_read > npm) then
@@ -125,6 +126,8 @@ do
    ! Set module variables and call getzzsrc
    nptb = nptb_read
    nb = nb_read
+   bjump = bjump_read
+   wdzdt = bjump/gareaf
    dzdt_computed = 0.d0
    call getzzsrc(dzdt_computed)
    

@@ -289,7 +289,7 @@ end function
 
 !=======================================================================
 
-subroutine write_getzzsrc_input(xb, yb, nextb, i1b, i2b, nptb, nb)
+subroutine write_getzzsrc_input(xb, yb, nextb, i1b, i2b, nptb, nb, bjumpin)
 
 implicit none
 
@@ -299,6 +299,7 @@ integer, intent(in):: nextb(:), i1b(:), i2b(:)
 
  !Passed scalars:
 integer, intent(in):: nptb, nb
+double precision, intent(in):: bjumpin
 
  !Local:
 integer:: iu
@@ -312,7 +313,7 @@ endif
 
 open(newunit=iu,file='getzzsrc_inputs.dat',status=fstatus,position='append', &
  & action='write',access='stream',form='unformatted')
-write(iu) nptb, nb
+write(iu) nptb, nb, bjumpin
 write(iu) xb(1:nptb)
 write(iu) yb(1:nptb)
 write(iu) nextb(1:nptb)
