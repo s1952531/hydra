@@ -96,6 +96,8 @@ do
    endif
 
    qa = qa_input
+   npta = 0
+   na = 0
    nextq_work = 0
    call ugrid2con(dq, nextq_work)
    npta_work = npta
