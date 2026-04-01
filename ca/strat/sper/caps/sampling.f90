@@ -14,9 +14,14 @@ integer,parameter:: n_con2grid_samples=100
 logical,parameter:: log_ugrid2con=.false.
 integer,parameter:: n_ugrid2con_samples=100
 
+ !Toggle baseline logging for getzzsrc input/output:
+logical,parameter:: log_getzzsrc=.false.
+integer,parameter:: n_getzzsrc_samples=100
+
  !Internal sampling cursors to ensure exactly N writes when times advance:
 integer,save:: con2grid_next_sample=0
 integer,save:: ugrid2con_next_sample=0
+integer,save:: getzzsrc_next_sample=0
 
 contains
 
@@ -231,6 +236,114 @@ write(iu) npta
 write(iu) xa(1:npta)
 write(iu) ya(1:npta)
 write(iu) nextq(1:npta)
+close(iu)
+
+end subroutine
+
+!=======================================================================
+
+logical function getzzsrc_save_time(tnow, tsim)
+! Determines if current time tnow corresponds to a getzzsrc sample time.
+! Sample times are evenly spaced over [0, tsim], with deterministic
+! monotonic triggering so exactly n_getzzsrc_samples writes are produced
+! (provided tnow advances through tsim).
+
+implicit none
+
+double precision, intent(in):: tnow, tsim
+double precision:: dts, tsamp, tol
+
+if (n_getzzsrc_samples .le. 0) then
+  getzzsrc_save_time=.false.
+  return
+endif
+
+if (n_getzzsrc_samples .eq. 1) then
+  if (getzzsrc_next_sample .eq. 0) then
+    getzzsrc_save_time=(tnow .ge. 0.d0)
+    if (getzzsrc_save_time) getzzsrc_next_sample=1
+  else
+    getzzsrc_save_time=.false.
+  endif
+  return
+endif
+
+dts=tsim/dble(n_getzzsrc_samples-1)
+tol=1.d-12*max(one,abs(tsim))
+
+if (getzzsrc_next_sample .ge. n_getzzsrc_samples) then
+  getzzsrc_save_time=.false.
+  return
+endif
+
+tsamp=dble(getzzsrc_next_sample)*dts
+
+if (tnow .ge. tsamp-tol) then
+  getzzsrc_save_time=.true.
+  getzzsrc_next_sample=getzzsrc_next_sample+1
+else
+  getzzsrc_save_time=.false.
+endif
+
+end function
+
+!=======================================================================
+
+subroutine write_getzzsrc_input(xb, yb, nextb, i1b, i2b, nptb, nb)
+
+implicit none
+
+ !Passed arrays:
+double precision, intent(in):: xb(:), yb(:)
+integer, intent(in):: nextb(:), i1b(:), i2b(:)
+
+ !Passed scalars:
+integer, intent(in):: nptb, nb
+
+ !Local:
+integer:: iu
+character(len=7):: fstatus
+
+if (getzzsrc_next_sample .eq. 1) then
+  fstatus='replace'
+else
+  fstatus='unknown'
+endif
+
+open(newunit=iu,file='g2s_inputs.dat',status=fstatus,position='append', &
+ & action='write',access='stream',form='unformatted')
+write(iu) nptb, nb
+write(iu) xb
+write(iu) yb
+write(iu) nextb
+write(iu) i1b
+write(iu) i2b
+close(iu)
+
+end subroutine
+
+!=======================================================================
+
+subroutine write_getzzsrc_output(dzdt)
+
+implicit none
+
+ !Passed arrays:
+double precision, intent(in):: dzdt(:,:)
+
+ !Local:
+integer:: iu
+character(len=7):: fstatus
+
+if (getzzsrc_next_sample .eq. 1) then
+  fstatus='replace'
+else
+  fstatus='unknown'
+endif
+
+open(newunit=iu,file='g2s_outputs.dat',status=fstatus,position='append', &
+ & action='write',access='stream',form='unformatted')
+write(iu) dzdt
 close(iu)
 
 end subroutine
