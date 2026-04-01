@@ -1,7 +1,7 @@
 #!/bin/bash
-#SBATCH --job-name=test_g2s_straka    # Name of the job
-#SBATCH --output=g2s_test_%j.log                    # Stdout will go to log
-#SBATCH --error=g2s_test_%j.err             # Stderr will go to err
+#SBATCH --job-name=test_getzzsrc_straka    # Name of the job
+#SBATCH --output=getzzsrc_test_%j.log                    # Stdout will go to log
+#SBATCH --error=getzzsrc_test_%j.err             # Stderr will go to err
 #SBATCH --ntasks=1                      # Number of MPI tasks (processes)
 #SBATCH --cpus-per-task=48              # Number of CPU cores for this task
 #SBATCH --time=03:00:00                 # Maximum runtime (HH:MM:SS)
