@@ -12,7 +12,7 @@ implicit none
 integer:: iu_in, iu_out, ios, case_num
 integer:: i, npta_base, npta_work
 double precision:: dq, rmsdiff, maxdiff
-double precision:: qa_input(0:nyu,0:nxum1)
+double precision:: qa_input(0:nyup1,0:nxum1)
 double precision:: xa_base(npm), ya_base(npm)
 integer:: nextq_base(npm), nextq_work(npm)
 double precision:: global_maxdiff, global_rmsdiff
