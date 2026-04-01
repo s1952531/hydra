@@ -42,6 +42,9 @@ if (.not. file_exists) then
    stop
 endif
 
+! Ensure contour geometry/interpolation tables are initialised.
+call init_contours
+
 ! Open baseline files
 open(newunit=iu_in, file='c2g_inputs.dat', form='unformatted', access='stream', &
      action='read', status='old', iostat=ios)
