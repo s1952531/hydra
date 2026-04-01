@@ -5,6 +5,7 @@ module contours
 
 use constants
 use generic
+use sampling
 
 implicit none
 
@@ -58,10 +59,6 @@ double precision,parameter:: amu=0.2d0,ell=6.25d0*glx
 double precision,parameter:: dm=amu**2*ell/four,dm2=dm**2,d4small=small*glx**4
 double precision,parameter:: dmsq=four*dm2,dmi=two/dm
 double precision,parameter:: elf=one/ell**2,densf=one/(amu*sqrt(ell))
-
- !Toggle baseline logging for con2grid input/output:
-logical,parameter:: log_con2grid=.true.
-integer,parameter:: n_con2grid_samples=100
 
 contains 
 
@@ -355,78 +352,6 @@ return
 end subroutine
 !=======================================================================
 
-subroutine write_con2grid_input(xq,yq,dqin,qavgin,nextq,nptqin,ioptin)
-
-implicit none
-
- !Passed arrays:
-double precision, intent(in):: xq(npm),yq(npm)
-integer, intent(in):: nextq(npm)
-
- !Passed scalars:
-double precision, intent(in):: dqin,qavgin
-integer, intent(in):: nptqin,ioptin
-
- !Local:
-integer:: iu
-
-open(newunit=iu,file='c2g_inputs.dat',status='unknown',position='append', &
- & action='write',access='stream',form='unformatted')
-write(iu) nptqin,dqin,qavgin,ioptin
-write(iu) xq(1:nptqin)
-write(iu) yq(1:nptqin)
-write(iu) nextq(1:nptqin)
-close(iu)
-end subroutine
-
-!=======================================================================
-
-!=======================================================================
-
-subroutine write_con2grid_output(qq)
-
-implicit none
-
- !Passed arrays:
-double precision, intent(in):: qq(0:ny,0:nxm1)
-
- !Local:
-integer:: iu
-
-open(newunit=iu,file='c2g_outputs.dat',status='unknown',position='append', &
- & action='write',access='stream',form='unformatted')
-write(iu) qq
-close(iu)
-
-end subroutine
-
-!=======================================================================
-
-logical function con2grid_save_time(tnow)
-
-implicit none
-
-double precision, intent(in):: tnow
-double precision:: dts,tsamp,tol
-integer:: isamp
-
-if (n_con2grid_samples .le. 1) then
-  con2grid_save_time=.false.
-  return
-endif
-
-dts=tsim/dble(n_con2grid_samples-1)
-isamp=nint(tnow/dts)
-isamp=max(0,min(n_con2grid_samples-1,isamp))
-tsamp=dble(isamp)*dts
-tol=1.d-10*max(one,abs(tsim))
-
-con2grid_save_time=(abs(tnow-tsamp) .le. tol)
-
-end function
-
-!=======================================================================
-
 subroutine con2grid(qq,xq,yq,dq,qavg,nextq,nptq,iopt,tnow)
 ! Contour -> grid conversion.  The contours are represented by
 ! nodes (xq(i),yq(i)), i = 1, ..., nptq, where nextq(i) gives the
@@ -461,7 +386,7 @@ logical:: crossx(nptq)
 logical:: saveTime
 
 saveTime=.false.
-if (present(tnow)) saveTime=con2grid_save_time(tnow)
+if (log_con2grid .and. present(tnow)) saveTime=con2grid_save_time(tnow, tsim)
 
 if (nptq .eq. 0) then 
    !No contours to convert: return qq = 0:

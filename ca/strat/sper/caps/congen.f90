@@ -9,6 +9,7 @@ module congen
 
 use common
 use generic
+use sampling
 
 implicit none
 
@@ -149,7 +150,7 @@ end subroutine
 subroutine ugrid2con(dq,nextq)
 ! Generates contours (xa,ya) from the gridded field qa for the levels
 ! +/-dq/2, +/-3*dq/2, ....
-
+-
 implicit double precision(a-h,o-z)
 implicit integer(i-n)
 
@@ -170,7 +171,13 @@ integer:: isx(0:nxu),isy(0:nyu)
 integer:: kib(ncrm),icre(nm)
 integer:: icrtab(nxny,2)
 integer*1:: noctab(nxny)
-logical:: free(ncrm),keep
+logical:: free(ncrm),keep,saveTime
+
+ !Check if this is a ugrid2con save time:
+saveTime=.false.
+if (log_ugrid2con) saveTime=ugrid2con_save_time(t, tsim)
+
+if (log_ugrid2con .and. saveTime) call write_ugrid2con_input(qa,dq)
 
  !initialise constants and arrays:
 dqi=one/dq
@@ -486,6 +493,8 @@ enddo
  !End of loop over contour levels
  !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 endif
+
+if (log_ugrid2con .and. saveTime) call write_ugrid2con_output(xa,ya,nextq,npta)
 
 return
 end subroutine
