@@ -130,7 +130,7 @@ double precision, intent(in):: dq
  !Local:
 integer:: iu
 
-open(newunit=iu,file='g2c_inputs.dat',status='unknown',position='append', &
+open(newunit=iu,file='ug2c_inputs.dat',status='unknown',position='append', &
  & action='write',access='stream',form='unformatted')
 write(iu) dq
 write(iu) qa
@@ -153,7 +153,7 @@ integer, intent(in):: npta
  !Local:
 integer:: iu
 
-open(newunit=iu,file='g2c_outputs.dat',status='unknown',position='append', &
+open(newunit=iu,file='ug2c_outputs.dat',status='unknown',position='append', &
  & action='write',access='stream',form='unformatted')
 write(iu) npta
 write(iu) xa(1:npta)
