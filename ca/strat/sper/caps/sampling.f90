@@ -310,7 +310,7 @@ else
   fstatus='unknown'
 endif
 
-open(newunit=iu,file='g2s_inputs.dat',status=fstatus,position='append', &
+open(newunit=iu,file='getzzsrc_inputs.dat',status=fstatus,position='append', &
  & action='write',access='stream',form='unformatted')
 write(iu) nptb, nb
 write(iu) xb
@@ -341,7 +341,7 @@ else
   fstatus='unknown'
 endif
 
-open(newunit=iu,file='g2s_outputs.dat',status=fstatus,position='append', &
+open(newunit=iu,file='getzzsrc_outputs.dat',status=fstatus,position='append', &
  & action='write',access='stream',form='unformatted')
 write(iu) dzdt
 close(iu)

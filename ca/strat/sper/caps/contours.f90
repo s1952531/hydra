@@ -176,7 +176,7 @@ end subroutine
 
 !=======================================================================
 
-subroutine getzzsrc(dzdt)
+subroutine getzzsrc(dzdt, tnow)
 
 implicit double precision(a-h,o-z)
 implicit integer(i-n)
@@ -186,7 +186,14 @@ double precision:: a(nptb),b(nptb),c(nptb),e(nptb)
 double precision:: u(nptb),v(nptb),dx(nptb),dy(nptb)
 double precision:: dzdt(0:ny,0:nxm1)
 double precision:: dzdtf(0:nyfp1,0:nxfm1)
+double precision, optional, intent(in):: tnow
+logical:: saveTime
 
+saveTime=.false.
+if (log_getzzsrc .and. present(tnow)) saveTime=getzzsrc_save_time(tnow, tsim)
+
+if (log_getzzsrc .and. saveTime) &
+  call write_getzzsrc_input(xb, yb, nextb, i1b, i2b, nptb, nb)
 !--------------------------------------------------------------------
  !Initialise dzdtf to zero everywhere:
 do ix=0,nxfm1
@@ -310,6 +317,9 @@ enddo
 
  !Average to inversion grid by repeated 1-2-1 averages in each direction:
 call coarsen(dzdtf,dzdt)
+
+if (log_getzzsrc .and. saveTime) &
+  call write_getzzsrc_output(dzdt)
 
 return
 end subroutine

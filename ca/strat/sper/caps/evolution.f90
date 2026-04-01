@@ -395,7 +395,7 @@ double precision:: dzdys(0:nxm1,ny),dzdyp(ny,0:nxm1)
  !Residual vorticity source zd_t = bb_x - (u,v)*grad(zd):
 
  !Get bb_x directly from buoyancy contours (see contours.f90):
-call getzzsrc(dzdt) !dzdt is in physical space
+call getzzsrc(dzdt, t) !dzdt is in physical space
 
  !Obtain x & y derivatives of zd -> (px,py) in physical space:
 call xderiv_fc(nx,ny,hrkx,zd,sx)

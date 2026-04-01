@@ -31,13 +31,13 @@ on_exit() {
 
 trap on_exit EXIT
 
-if [[ ! -f g2s_inputs.dat ]]; then
-    echo "ERROR: g2s_inputs.dat not found in $CAPS_DIR"
+if [[ ! -f getzzsrc_inputs.dat ]]; then
+    echo "ERROR: getzzsrc_inputs.dat not found in $CAPS_DIR"
     exit 1
 fi
 
-if [[ ! -f g2s_outputs.dat ]]; then
-    echo "ERROR: g2s_outputs.dat not found in $CAPS_DIR"
+if [[ ! -f getzzsrc_outputs.dat ]]; then
+    echo "ERROR: getzzsrc_outputs.dat not found in $CAPS_DIR"
     exit 1
 fi
 

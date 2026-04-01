@@ -37,10 +37,13 @@ test_con2grid: $(objects) $(sourcedir)/test_con2grid_driver.f90
 test_ugrid2con: $(objects) $(sourcedir)/test_ugrid2con_driver.f90
 	$(f90) $(fft_lib) $(objects) $(sourcedir)/test_ugrid2con_driver.f90 -o test_ugrid2con $(flags)
 
+test_getzzsrc: $(objects) $(sourcedir)/test_getzzsrc_driver.f90
+	$(f90) $(fft_lib) $(objects) $(sourcedir)/test_getzzsrc_driver.f90 -o test_getzzsrc $(flags)
+
 $(objects): $(fft_lib) $(sources) 
 	$(f90) $(fft_lib) $(sources) -c $(flags)
 
-.PHONY: clean setup install test_con2grid test_ugrid2con
+.PHONY: clean setup install test_con2grid test_ugrid2con test_getzzsrc
 clean:
 	rm -f *.o *.mod
 setup:

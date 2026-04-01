@@ -31,15 +31,15 @@ print *, "=========================================="
 print *, ""
 
 ! Check if baseline files exist
-inquire(file='g2s_inputs.dat', exist=file_exists)
+inquire(file='getzzsrc_inputs.dat', exist=file_exists)
 if (.not. file_exists) then
-   print *, "ERROR: g2s_inputs.dat not found!"
+   print *, "ERROR: getzzsrc_inputs.dat not found!"
    stop
 endif
 
-inquire(file='g2s_outputs.dat', exist=file_exists)
+inquire(file='getzzsrc_outputs.dat', exist=file_exists)
 if (.not. file_exists) then
-   print *, "ERROR: g2s_outputs.dat not found!"
+   print *, "ERROR: getzzsrc_outputs.dat not found!"
    stop
 endif
 
@@ -47,14 +47,14 @@ endif
 call init_contours
 
 ! Open baseline files
-open(newunit=iu_in, file='g2s_inputs.dat', form='unformatted', access='stream', &
+open(newunit=iu_in, file='getzzsrc_inputs.dat', form='unformatted', access='stream', &
      action='read', status='old', iostat=ios)
 if (ios /= 0) then
    print *, "ERROR opening g2s_inputs.dat: iostat =", ios
    stop
 endif
 
-open(newunit=iu_out, file='g2s_outputs.dat', form='unformatted', access='stream', &
+open(newunit=iu_out, file='getzzsrc_outputs.dat', form='unformatted', access='stream', &
      action='read', status='old', iostat=ios)
 if (ios /= 0) then
    print *, "ERROR opening g2s_outputs.dat: iostat =", ios
