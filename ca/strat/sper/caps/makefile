@@ -15,10 +15,11 @@ fft_lib = ~/hydra/lib/stafft/stafft.f90 ~/hydra/lib/stafft/sta2dfft.f90
  # Set flag options: 
 norm_flags = -O3 -mcmodel=medium #Compiler flags
 test_flags = -O3 -mcmodel=medium -fbounds-check -fbacktrace  #Compiler flags
+gprof_flags = -O3 -mcmodel=medium -pg
 
  # Set compiler and flag used:
 f90=gfortran
-flags=$(norm_flags)
+flags=$(gprof_flags)
 
 #----------------------------------------------------------------------
  # Rules:
