@@ -34,10 +34,13 @@ variance: $(objects) $(sourcedir)/variance.f90
 test_con2grid: $(objects) $(sourcedir)/test_con2grid_driver.f90
 	$(f90) $(objects) $(sourcedir)/test_con2grid_driver.f90 -o test_con2grid $(flags)
 
+test_ugrid2con: $(objects) $(sourcedir)/test_ugrid2con_driver.f90
+	$(f90) $(objects) $(sourcedir)/test_ugrid2con_driver.f90 -o test_ugrid2con $(flags)
+
 $(objects): $(fft_lib) $(sources) 
 	$(f90) $(fft_lib) $(sources) -c $(flags)
 
-.PHONY: clean setup install test_con2grid
+.PHONY: clean setup install test_con2grid test_ugrid2con
 clean:
 	rm -f *.o *.mod
 setup:
