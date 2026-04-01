@@ -102,7 +102,7 @@ do
 
    if (npta_work /= npta_base) then
       cases_with_error = cases_with_error + 1
-      write(*,'(I5,2X,I4,2X,A,2X,A,2X,A)') case_num, npta_work, "   n/a   ", "   n/a   ", "MISMATCH", "FAIL"
+      write(*,'(I5,2X,I8,2X,A,2X,A,2X,A)') case_num, npta_work, "   n/a   ", "   n/a   ", "MISMATCH", "FAIL"
       cycle
    endif
 
@@ -124,15 +124,15 @@ do
    if (npta_base > 0) then
       if (any(nextq_work(1:npta_base) /= nextq_base(1:npta_base))) then
          cases_with_error = cases_with_error + 1
-         write(*,'(I5,2X,I4,2X,E9.2,2X,E9.2,2X,A,2X,A)') case_num, npta_base, maxdiff, rmsdiff, "MISMATCH", "FAIL"
+         write(*,'(I5,2X,I8,2X,E9.2,2X,E9.2,2X,A,2X,A)') case_num, npta_base, maxdiff, rmsdiff, "MISMATCH", "FAIL"
       else if (maxdiff > small*100.d0 .or. rmsdiff > small*100.d0) then
          cases_with_error = cases_with_error + 1
-         write(*,'(I5,2X,I4,2X,E9.2,2X,E9.2,2X,A,2X,A)') case_num, npta_base, maxdiff, rmsdiff, "OK", "FAIL"
+         write(*,'(I5,2X,I8,2X,E9.2,2X,E9.2,2X,A,2X,A)') case_num, npta_base, maxdiff, rmsdiff, "OK", "FAIL"
       else
-         write(*,'(I5,2X,I4,2X,E9.2,2X,E9.2,2X,A,2X,A)') case_num, npta_base, maxdiff, rmsdiff, "OK", "PASS"
+         write(*,'(I5,2X,I8,2X,E9.2,2X,E9.2,2X,A,2X,A)') case_num, npta_base, maxdiff, rmsdiff, "OK", "PASS"
       endif
    else
-      write(*,'(I5,2X,I4,2X,E9.2,2X,E9.2,2X,A,2X,A)') case_num, npta_base, maxdiff, rmsdiff, "OK", "PASS"
+      write(*,'(I5,2X,I8,2X,E9.2,2X,E9.2,2X,A,2X,A)') case_num, npta_base, maxdiff, rmsdiff, "OK", "PASS"
    endif
 enddo
 

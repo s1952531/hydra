@@ -11,7 +11,6 @@ integer:: iu_in, iu_out, ios, case_num
 integer:: nptq, iopt, i, j
 double precision:: dq, qavg, rmsdiff, maxdiff, rel_rms, qq_baseline_val
 double precision:: xq_work(npm), yq_work(npm)
-double precision:: nextq_int(npm)
 integer:: nextq_work(npm)
 double precision:: qq_computed(0:ny,0:nxm1), qq_baseline(0:ny,0:nxm1)
 double precision:: global_maxdiff, global_rmsdiff
@@ -73,14 +72,11 @@ do
    total_cases = total_cases + 1
    
    ! Read input arrays (only first nptq elements)
-   read(iu_in, iostat=ios) xq_work(1:nptq), yq_work(1:nptq), nextq_int(1:nptq)
+   read(iu_in, iostat=ios) xq_work(1:nptq), yq_work(1:nptq), nextq_work(1:nptq)
    if (ios /= 0) then
       print *, "ERROR reading input arrays for case", case_num
       exit
    endif
-   
-   ! Convert nextq to integer (in case there's numerical type mismatch)
-   nextq_work(1:nptq) = nint(nextq_int(1:nptq))
    
    ! Read baseline output
    read(iu_out, iostat=ios) qq_baseline
@@ -122,10 +118,10 @@ do
    ! Print case result
    if (maxdiff > small*100.d0 .or. rmsdiff > small*100.d0) then
       cases_with_error = cases_with_error + 1
-      write(*, '(I5,2X,I4,2X,E9.2,2X,E9.2,2X,E8.2,2X,A)') &
+      write(*, '(I5,2X,I8,2X,E9.2,2X,E9.2,2X,E8.2,2X,A)') &
          case_num, nptq, maxdiff, rmsdiff, rel_rms, "FAIL"
    else
-      write(*, '(I5,2X,I4,2X,E9.2,2X,E9.2,2X,E8.2,2X,A)') &
+      write(*, '(I5,2X,I8,2X,E9.2,2X,E9.2,2X,E8.2,2X,A)') &
          case_num, nptq, maxdiff, rmsdiff, rel_rms, "PASS"
    endif
    
