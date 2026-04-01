@@ -102,7 +102,7 @@ do
 
    if (npta_work /= npta_base) then
       cases_with_error = cases_with_error + 1
-      write(*,'(I5,2X,I8,2X,A,2X,A,2X,A)') case_num, npta_work, "   n/a   ", "   n/a   ", "MISMATCH", "FAIL"
+      write(*,'(I5,2X,I8,2X,A,2X,A,2X,A,2X,A)') case_num, npta_work, "   n/a   ", "   n/a   ", "MISMATCH", "FAIL"
       cycle
    endif
 
