@@ -150,7 +150,6 @@ end subroutine
 subroutine ugrid2con(dq,nextq)
 ! Generates contours (xa,ya) from the gridded field qa for the levels
 ! +/-dq/2, +/-3*dq/2, ....
--
 implicit double precision(a-h,o-z)
 implicit integer(i-n)
 
