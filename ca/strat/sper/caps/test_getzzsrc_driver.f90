@@ -50,14 +50,14 @@ call init_contours
 open(newunit=iu_in, file='getzzsrc_inputs.dat', form='unformatted', access='stream', &
      action='read', status='old', iostat=ios)
 if (ios /= 0) then
-   print *, "ERROR opening g2s_inputs.dat: iostat =", ios
+   print *, "ERROR opening getzzsrc_inputs.dat: iostat =", ios
    stop
 endif
 
 open(newunit=iu_out, file='getzzsrc_outputs.dat', form='unformatted', access='stream', &
      action='read', status='old', iostat=ios)
 if (ios /= 0) then
-   print *, "ERROR opening g2s_outputs.dat: iostat =", ios
+   print *, "ERROR opening getzzsrc_outputs.dat: iostat =", ios
    stop
 endif
 
@@ -71,6 +71,15 @@ do
    ! Read input metadata
    read(iu_in, iostat=ios) nptb_read, nb_read
    if (ios /= 0) exit  ! End of file or read error
+
+   if (nptb_read < 0 .or. nptb_read > npm) then
+      print *, "ERROR: invalid nptb in baseline case", case_num+1, ":", nptb_read
+      exit
+   endif
+   if (nb_read < 0 .or. nb_read > nm) then
+      print *, "ERROR: invalid nb in baseline case", case_num+1, ":", nb_read
+      exit
+   endif
    
    case_num = case_num + 1
    total_cases = total_cases + 1

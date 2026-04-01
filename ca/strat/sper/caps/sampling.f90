@@ -313,11 +313,11 @@ endif
 open(newunit=iu,file='getzzsrc_inputs.dat',status=fstatus,position='append', &
  & action='write',access='stream',form='unformatted')
 write(iu) nptb, nb
-write(iu) xb
-write(iu) yb
-write(iu) nextb
-write(iu) i1b
-write(iu) i2b
+write(iu) xb(1:nptb)
+write(iu) yb(1:nptb)
+write(iu) nextb(1:nptb)
+write(iu) i1b(1:nb)
+write(iu) i2b(1:nb)
 close(iu)
 
 end subroutine
