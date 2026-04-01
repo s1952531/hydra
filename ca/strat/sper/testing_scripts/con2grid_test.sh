@@ -20,7 +20,16 @@ restore_parameters() {
     fi
 }
 
-trap restore_parameters EXIT
+cleanup_build() {
+    make clean >/dev/null 2>&1 || true
+}
+
+on_exit() {
+    restore_parameters
+    cleanup_build
+}
+
+trap on_exit EXIT
 
 if [[ ! -f c2g_inputs.dat ]]; then
     echo "ERROR: c2g_inputs.dat not found in $CAPS_DIR"
