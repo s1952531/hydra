@@ -4,5 +4,12 @@ scripts/workdir
 ca/sphere/bt/dev/diffuse
 ca/strat/clyde/mapgen/mapgen
 
+ca/strat/sper/caps/c2g_inputs.dat
+ca/strat/sper/caps/c2g_outputs.dat
+ca/strat/sper/caps/ug2c_inputs.dat
+ca/strat/sper/caps/ug2c_outputs.dat
+
+
+
 *.pdf
 *.pyc
