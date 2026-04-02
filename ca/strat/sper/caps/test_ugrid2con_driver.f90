@@ -7,6 +7,7 @@ use constants
 use contours
 use common
 use congen
+use timing
 implicit none
 
 integer:: iu_in, iu_out, ios, case_num
@@ -44,6 +45,8 @@ endif
 
 ! Ensure contour geometry/interpolation tables are initialised.
 call init_contours
+timing_on = .true.
+call timing_reset()
 
 ! Keep ugrid2con sampling disabled during test runs (t outside [0,tsim]).
 t = -1.d0
@@ -161,5 +164,7 @@ endif
 
 close(iu_in)
 close(iu_out)
+
+call timing_report()
 
 end program test_ugrid2con_driver

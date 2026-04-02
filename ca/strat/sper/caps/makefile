@@ -5,9 +5,9 @@ installdir = ..
 
  # Set main source and object files:
 sources = $(sourcedir)/parameters.f90 $(sourcedir)/constants.f90 $(sourcedir)/spectral.f90 \
-          $(sourcedir)/generic.f90 $(sourcedir)/sampling.f90 $(sourcedir)/contours.f90 $(sourcedir)/common.f90 $(sourcedir)/congen.f90 $(sourcedir)/evolution.f90 #Main f90 sources
+		  $(sourcedir)/generic.f90 $(sourcedir)/sampling.f90 $(sourcedir)/timing.f90 $(sourcedir)/contours.f90 $(sourcedir)/common.f90 $(sourcedir)/congen.f90 $(sourcedir)/evolution.f90 #Main f90 sources
 objects = parameters.o constants.o spectral.o \
-          generic.o sampling.o contours.o common.o congen.o evolution.o #Main .o files 
+		  generic.o sampling.o timing.o contours.o common.o congen.o evolution.o #Main .o files 
 
  # Set location of fft library:
 fft_lib = ~/hydra/lib/stafft/stafft.f90 ~/hydra/lib/stafft/sta2dfft.f90 
@@ -15,11 +15,12 @@ fft_lib = ~/hydra/lib/stafft/stafft.f90 ~/hydra/lib/stafft/sta2dfft.f90
  # Set flag options: 
 norm_flags = -O3 -mcmodel=medium #Compiler flags
 test_flags = -O3 -mcmodel=medium -fbounds-check -fbacktrace  #Compiler flags
-gprof_flags = -O3 -mcmodel=medium -pg
+omp_flags = -O3 -mcmodel=medium -fopenmp
+gprof_flags = -O3 -mcmodel=medium -pg -fopenmp
 
  # Set compiler and flag used:
 f90=gfortran
-flags=$(gprof_flags)
+flags=$(omp_flags)
 
 #----------------------------------------------------------------------
  # Rules:
