@@ -11,7 +11,7 @@ double precision,parameter:: ellx=51200d0
 double precision,parameter:: ymin=0.d0,ymax=6400d0
 
  !Simulation duration and data save interval:
-double precision,parameter:: tsim=900.d0,tgsave=10.d0,tcsave=100.d0
+double precision,parameter:: tsim=900.d0,tgsave=9.d0,tcsave=90.d0
 
  !Number of contours used for representing buoyancy and vorticity:
 integer,parameter:: ncontb=100,ncontz=20
