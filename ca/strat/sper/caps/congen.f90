@@ -512,6 +512,7 @@ enddo
 if (timing_on) call timer_stop(t0,t2,t3,l8TotTime)
 
 enddo
+if (timing_on) call timer_stop(t0,t2,t3,l0TotTime)
  !End of loop over contour levels
  !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 endif
