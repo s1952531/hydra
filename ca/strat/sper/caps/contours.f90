@@ -6,6 +6,7 @@ module contours
 use constants
 use generic
 use sampling
+use timing
 
 implicit none
 
@@ -188,21 +189,31 @@ double precision:: dzdt(0:ny,0:nxm1)
 double precision:: dzdtf(0:nyfp1,0:nxfm1)
 double precision, optional, intent(in):: tnow
 logical:: saveTime
+double precision:: g0Start,g0End,g0Time
+double precision:: g1Start,g1End,g1Time
+double precision:: g2Start,g2End,g2Time
+double precision:: g3Start,g3End,g3Time
+double precision:: g4Start,g4End,g4Time
 
 saveTime=.false.
 if (log_getzzsrc .and. present(tnow)) saveTime=getzzsrc_save_time(tnow, tsim)
+
+if (timing_on) call timer_start(g0Start)
 
 if (log_getzzsrc .and. saveTime) &
   call write_getzzsrc_input(xb, yb, nextb, i1b, i2b, nptb, nb, bjump)
 !--------------------------------------------------------------------
  !Initialise dzdtf to zero everywhere:
+if (timing_on) call timer_start(g1Start)
 do ix=0,nxfm1
   do iy=0,nyf
     dzdtf(iy,ix)=zero
   enddo
 enddo
+if (timing_on) call timer_stop(g1Start,g1End,g1Time,g1TotTime)
 
  !Process each contour in turn:
+if (timing_on) call timer_start(g2Start)
 do j=1,nb
   is=i1b(j)
   ie=i2b(j)
@@ -308,18 +319,25 @@ do j=1,nb
     enddo
   enddo
 enddo
+if (timing_on) call timer_stop(g2Start,g2End,g2Time,g2TotTime)
 
  !Double the edge values at y = ymin and ymax (by symmetry of b):
+if (timing_on) call timer_start(g3Start)
 do ix=0,nxfm1
   dzdtf(0,  ix)=two*dzdtf(0,  ix)
   dzdtf(nyf,ix)=two*dzdtf(nyf,ix)  
 enddo
+if (timing_on) call timer_stop(g3Start,g3End,g3Time,g3TotTime)
 
  !Average to inversion grid by repeated 1-2-1 averages in each direction:
+if (timing_on) call timer_start(g4Start)
 call coarsen(dzdtf,dzdt)
+if (timing_on) call timer_stop(g4Start,g4End,g4Time,g4TotTime)
 
 if (log_getzzsrc .and. saveTime) &
   call write_getzzsrc_output(dzdt)
+
+if (timing_on) call timer_stop(g0Start,g0End,g0Time,g0TotTime)
 
 return
 end subroutine

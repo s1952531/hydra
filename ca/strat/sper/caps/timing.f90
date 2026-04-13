@@ -16,6 +16,11 @@ real(8), save :: l6TotTime = 0.d0  ! open contour assembly
 real(8), save :: l7TotTime = 0.d0  ! open contour renoding
 real(8), save :: l8TotTime = 0.d0  ! closed contour assembly
 real(8), save :: l9TotTime = 0.d0  ! closed contour renoding
+real(8), save :: g0TotTime = 0.d0  ! getzzsrc overall
+real(8), save :: g1TotTime = 0.d0  ! getzzsrc init dzdtf
+real(8), save :: g2TotTime = 0.d0  ! getzzsrc contour processing
+real(8), save :: g3TotTime = 0.d0  ! getzzsrc edge doubling
+real(8), save :: g4TotTime = 0.d0  ! getzzsrc coarsen
 
 contains
 
@@ -47,11 +52,17 @@ l6TotTime = 0.d0
 l7TotTime = 0.d0
 l8TotTime = 0.d0
 l9TotTime = 0.d0
+g0TotTime = 0.d0
+g1TotTime = 0.d0
+g2TotTime = 0.d0
+g3TotTime = 0.d0
+g4TotTime = 0.d0
 end subroutine timing_reset
 
 subroutine timing_report()
 implicit none
 real(8) :: totalTime
+real(8) :: getzzsrcTotalTime
 
 if (.not. timing_on) return
 
@@ -71,6 +82,20 @@ write(*,'(a,f12.6)') '  closed assembly total:      ', l8TotTime
 write(*,'(a,f12.6)') '    of which renoding:        ', l9TotTime
 write(*,'(a,f12.6)') '  total (excl. nested):       ', totalTime
 write(*,'(a)') '=========================================='
+
+getzzsrcTotalTime = g1TotTime + g2TotTime + g3TotTime + g4TotTime
+
+if (g0TotTime .gt. 0.d0) then
+  write(*,'(a)') '=========================================='
+  write(*,'(a)') 'GetZZSrc timing totals'
+  write(*,'(a,f12.6)') '  OUTER total:               ', g0TotTime
+  write(*,'(a,f12.6)') '  init dzdtf total:          ', g1TotTime
+  write(*,'(a,f12.6)') '  contour processing total:  ', g2TotTime
+  write(*,'(a,f12.6)') '  edge doubling total:       ', g3TotTime
+  write(*,'(a,f12.6)') '  coarsen total:             ', g4TotTime
+  write(*,'(a,f12.6)') '  total (excl. nested):      ', getzzsrcTotalTime
+  write(*,'(a)') '=========================================='
+endif
 end subroutine timing_report
 
 end module timing

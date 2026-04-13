@@ -5,6 +5,7 @@ program test_getzzsrc_driver
 use parameters
 use constants
 use contours
+use timing
 implicit none
 
 integer:: iu_in, iu_out, ios, case_num
@@ -46,6 +47,8 @@ endif
 
 ! Ensure contour geometry/interpolation tables are initialised
 call init_contours
+timing_on = .true.
+call timing_reset()
 
 ! Open baseline files
 open(newunit=iu_in, file='getzzsrc_inputs.dat', form='unformatted', access='stream', &
@@ -190,5 +193,7 @@ if (cases_with_error == 0) then
 else
    print *, "RESULT: SOME TESTS FAILED ✗"
 endif
+
+call timing_report()
 
 end program test_getzzsrc_driver

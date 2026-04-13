@@ -241,46 +241,46 @@ if (timing_on) call timer_start(t2Start)
 do ix=0,nxum1 !loop over x grid lines (x = constant) 
   xgt=xgu(ix) !the x coordinate of the grid line being crossed (xgu is the x coordinate of the u-grid)
 
-  ! do iy=0,nyu !work up the grid line in y (at the constant x=ix)
-  !   qdy(iy)=qa(iy,ix)-qtmp ! the value of the (gridded) field relative to the contour level at this grid point
-  !   isy(iy)=sign(one,qdy(iy)) ! the sign of the field relative to the contour level at this point
-  ! enddo
-
-  ! do iy=0,nyu-1 !loop over pairs of adjacent grid points in y (iy and iy+1) to find crossings 
-  !   if (isy(iy) .ne. isy(iy+1)) then ! if the field changes sign between these two points, there is a crossing
-  !     ncr=ncr+1 !increment total number of crossings for this contour level
-  !     inc=(1-isy(iy))/2 ! 0 if isy(iy)=1, 1 if isy(iy)=-1
-  !     kaa=iy*nxu !this is used to access the row of the grid box containing the crossing
-  !     kib(ncr)=kaa+ibx(ix+inc) !the box the contour enters at this crossing is in the row begin kaa and is column ix or ix+1
-  !     kob=kaa+ibx(ix+1-inc) !the box the contour exits at this crossing is in the row beginning kaa and is in column ix+1 or ix
-  !     noctab(kob)=noctab(kob)+1 !increment the number of crossings in the box the contour is exiting
-  !     icrtab(kob,noctab(kob))=ncr !allows the contour cross number (ncr) to be found from the box number (kob) and the crossing number in that box (noctab(kob)) 
-  !     xcr(ncr)=xgt !the x coordinate of the crossing is the x coordinate of the grid line being crossed
-  !     ycr(ncr)=ygu(iy)-glyu*qdy(iy)/(qdy(iy+1)-qdy(iy)) !the y coordinate of the crossing is found by linear interpolation between the two grid points
-  !   endif
-  ! enddo
-
-  qdy_prev=qa(0,ix)-qtmp
-  isy_prev=sign(one,qdy_prev)
-
-  do iy=1,nyu
-    qdy_curr=qa(iy,ix)-qtmp
-    isy_curr=sign(one,qdy_curr)
-    if (isy_prev .ne. isy_curr) then
-       !A crossing has been missed above due to qa being exactly equal to qtmp at iy-1 or iy:
-      ncr=ncr+1
-      inc=(1-isy_prev)/2
-      kaa=(iy-1)*nxu
-      kib(ncr)=kaa+ibx(ix+inc)
-      kob=kaa+ibx(ix+1-inc)
-      noctab(kob)=noctab(kob)+1
-      icrtab(kob,noctab(kob))=ncr
-      xcr(ncr)=xgt
-      ycr(ncr)=ygu(iy-1)-glyu*qdy_prev/(qdy_curr-qdy_prev)
-    endif
-    qdy_prev=qdy_curr
-    isy_prev=isy_curr
+  do iy=0,nyu !work up the grid line in y (at the constant x=ix)
+    qdy(iy)=qa(iy,ix)-qtmp ! the value of the (gridded) field relative to the contour level at this grid point
+    isy(iy)=sign(one,qdy(iy)) ! the sign of the field relative to the contour level at this point
   enddo
+
+  do iy=0,nyu-1 !loop over pairs of adjacent grid points in y (iy and iy+1) to find crossings 
+    if (isy(iy) .ne. isy(iy+1)) then ! if the field changes sign between these two points, there is a crossing
+      ncr=ncr+1 !increment total number of crossings for this contour level
+      inc=(1-isy(iy))/2 ! 0 if isy(iy)=1, 1 if isy(iy)=-1
+      kaa=iy*nxu !this is used to access the row of the grid box containing the crossing
+      kib(ncr)=kaa+ibx(ix+inc) !the box the contour enters at this crossing is in the row begin kaa and is column ix or ix+1
+      kob=kaa+ibx(ix+1-inc) !the box the contour exits at this crossing is in the row beginning kaa and is in column ix+1 or ix
+      noctab(kob)=noctab(kob)+1 !increment the number of crossings in the box the contour is exiting
+      icrtab(kob,noctab(kob))=ncr !allows the contour cross number (ncr) to be found from the box number (kob) and the crossing number in that box (noctab(kob)) 
+      xcr(ncr)=xgt !the x coordinate of the crossing is the x coordinate of the grid line being crossed
+      ycr(ncr)=ygu(iy)-glyu*qdy(iy)/(qdy(iy+1)-qdy(iy)) !the y coordinate of the crossing is found by linear interpolation between the two grid points
+    endif
+  enddo
+
+  ! qdy_prev=qa(0,ix)-qtmp
+  ! isy_prev=sign(one,qdy_prev)
+
+  ! do iy=1,nyu
+  !   qdy_curr=qa(iy,ix)-qtmp
+  !   isy_curr=sign(one,qdy_curr)
+  !   if (isy_prev .ne. isy_curr) then
+  !      !A crossing has been missed above due to qa being exactly equal to qtmp at iy-1 or iy:
+  !     ncr=ncr+1
+  !     inc=(1-isy_prev)/2
+  !     kaa=(iy-1)*nxu
+  !     kib(ncr)=kaa+ibx(ix+inc)
+  !     kob=kaa+ibx(ix+1-inc)
+  !     noctab(kob)=noctab(kob)+1
+  !     icrtab(kob,noctab(kob))=ncr
+  !     xcr(ncr)=xgt
+  !     ycr(ncr)=ygu(iy-1)-glyu*qdy_prev/(qdy_curr-qdy_prev)
+  !   endif
+  !   qdy_prev=qdy_curr
+  !   isy_prev=isy_curr
+  ! enddo
 
 enddo
 if (timing_on) call timer_stop(t2Start,t2End,t2Time,l2TotTime)
