@@ -192,6 +192,9 @@ logical:: saveTime
 double precision:: g0Start,g0End,g0Time
 double precision:: g1Start,g1End,g1Time
 double precision:: g2Start,g2End,g2Time
+double precision:: g2OpenStart,g2OpenEnd,g2OpenTime
+double precision:: g2ClosedStart,g2ClosedEnd,g2ClosedTime
+double precision:: g2AccumStart,g2AccumEnd,g2AccumTime
 double precision:: g3Start,g3End,g3Time
 double precision:: g4Start,g4End,g4Time
 
@@ -220,6 +223,7 @@ do j=1,nb
 
    !Compute cubic interpolation coefficients:
   if (nextb(ie) .eq. 0) then
+    if (timing_on) call timer_start(g2OpenStart)
      !Contour j is open; it starts and ends at an edge
     ie=ie-1
     do i=is,ie
@@ -250,7 +254,9 @@ do j=1,nb
       b(i)=f12*(bsum-bdif)
       c(i)=f13*bdif
     enddo
+    if (timing_on) call timer_stop(g2OpenStart,g2OpenEnd,g2OpenTime,g2OpenTotTime)
   else
+    if (timing_on) call timer_start(g2ClosedStart)
      !Contour j is closed
     do i=is,ie
       ia=nextb(i)
@@ -283,9 +289,11 @@ do j=1,nb
       b(i)=f12*(bsum-bdif)
       c(i)=f13*bdif
     enddo
+    if (timing_on) call timer_stop(g2ClosedStart,g2ClosedEnd,g2ClosedTime,g2ClosedTotTime)
   endif
 
    !Accumulate vorticity source (db/dx):
+  if (timing_on) call timer_start(g2AccumStart)
   do i=is,ie
     x1=xb(i)
     y1=yb(i)
@@ -318,6 +326,7 @@ do j=1,nb
       y1=y2
     enddo
   enddo
+  if (timing_on) call timer_stop(g2AccumStart,g2AccumEnd,g2AccumTime,g2AccumTotTime)
 enddo
 if (timing_on) call timer_stop(g2Start,g2End,g2Time,g2TotTime)
 

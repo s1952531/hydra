@@ -19,6 +19,9 @@ real(8), save :: l9TotTime = 0.d0  ! closed contour renoding
 real(8), save :: g0TotTime = 0.d0  ! getzzsrc overall
 real(8), save :: g1TotTime = 0.d0  ! getzzsrc init dzdtf
 real(8), save :: g2TotTime = 0.d0  ! getzzsrc contour processing
+real(8), save :: g2OpenTotTime = 0.d0  ! getzzsrc open contour coeffs
+real(8), save :: g2ClosedTotTime = 0.d0  ! getzzsrc closed contour coeffs
+real(8), save :: g2AccumTotTime = 0.d0  ! getzzsrc source accumulation
 real(8), save :: g3TotTime = 0.d0  ! getzzsrc edge doubling
 real(8), save :: g4TotTime = 0.d0  ! getzzsrc coarsen
 
@@ -55,6 +58,9 @@ l9TotTime = 0.d0
 g0TotTime = 0.d0
 g1TotTime = 0.d0
 g2TotTime = 0.d0
+g2OpenTotTime = 0.d0
+g2ClosedTotTime = 0.d0
+g2AccumTotTime = 0.d0
 g3TotTime = 0.d0
 g4TotTime = 0.d0
 end subroutine timing_reset
@@ -93,6 +99,9 @@ if (g0TotTime .gt. 0.d0) then
   write(*,'(a,f12.6)') '  OUTER total:               ', g0TotTime
   write(*,'(a,f12.6)') '  init dzdtf total:          ', g1TotTime
   write(*,'(a,f12.6)') '  contour processing total:  ', g2TotTime
+  write(*,'(a,f12.6)') '    open coeff total:        ', g2OpenTotTime
+  write(*,'(a,f12.6)') '    closed coeff total:      ', g2ClosedTotTime
+  write(*,'(a,f12.6)') '    source accum total:      ', g2AccumTotTime
   write(*,'(a,f12.6)') '  edge doubling total:       ', g3TotTime
   write(*,'(a,f12.6)') '  coarsen total:             ', g4TotTime
   write(*,'(a,f12.6)') '  total (excl. nested):      ', getzzsrcTotalTime
