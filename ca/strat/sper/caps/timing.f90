@@ -68,20 +68,22 @@ if (.not. timing_on) return
 
 totalTime = l1TotTime + l2TotTime + l3TotTime + l4TotTime + l5TotTime + l6TotTime + l8TotTime
 
-write(*,'(a)') '=========================================='
-write(*,'(a)') 'UGrid2Con timing totals'
-write(*,'(a,f12.6)') '  OUTER loop total:           ', l0TotTime
-write(*,'(a,f12.6)') '  q-range scan total:         ', l1TotTime
-write(*,'(a,f12.6)') '  x-crossings total:          ', l2TotTime
-write(*,'(a,f12.6)') '  bottom edge crossings total:', l3TotTime
-write(*,'(a,f12.6)') '  top edge crossings total:   ', l4TotTime
-write(*,'(a,f12.6)') '  interior y crossings total: ', l5TotTime
-write(*,'(a,f12.6)') '  open assembly total:        ', l6TotTime
-write(*,'(a,f12.6)') '    of which renoding:        ', l7TotTime
-write(*,'(a,f12.6)') '  closed assembly total:      ', l8TotTime
-write(*,'(a,f12.6)') '    of which renoding:        ', l9TotTime
-write(*,'(a,f12.6)') '  total (excl. nested):       ', totalTime
-write(*,'(a)') '=========================================='
+if (l0TotTime .gt. 0.d0) then
+  write(*,'(a)') '=========================================='
+  write(*,'(a)') 'UGrid2Con timing totals'
+  write(*,'(a,f12.6)') '  OUTER loop total:           ', l0TotTime
+  write(*,'(a,f12.6)') '  q-range scan total:         ', l1TotTime
+  write(*,'(a,f12.6)') '  x-crossings total:          ', l2TotTime
+  write(*,'(a,f12.6)') '  bottom edge crossings total:', l3TotTime
+  write(*,'(a,f12.6)') '  top edge crossings total:   ', l4TotTime
+  write(*,'(a,f12.6)') '  interior y crossings total: ', l5TotTime
+  write(*,'(a,f12.6)') '  open assembly total:        ', l6TotTime
+  write(*,'(a,f12.6)') '    of which renoding:        ', l7TotTime
+  write(*,'(a,f12.6)') '  closed assembly total:      ', l8TotTime
+  write(*,'(a,f12.6)') '    of which renoding:        ', l9TotTime
+  write(*,'(a,f12.6)') '  total (excl. nested):       ', totalTime
+  write(*,'(a)') '=========================================='
+endif
 
 getzzsrcTotalTime = g1TotTime + g2TotTime + g3TotTime + g4TotTime
 
