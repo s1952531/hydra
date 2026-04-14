@@ -213,7 +213,7 @@ if (levbeg .le. levend) then
  if (timing_on) call timer_start(t0Start)
 
 !memory stress test
- !$OMP PARALLEL DO PRIVATE(lev,indq,qtmp,ncr,npe,ix,iy,k,kaa,kob,inc,icr,icrn,noc,ie,i,ibeg,iend,npd,keep,xx,xgt,ygt, &
+ !$OMP PARALLEL PRIVATE(lev,indq,qtmp,ncr,npe,ix,iy,k,kaa,kob,inc,icr,icrn,noc,ie,i,ibeg,iend,npd,keep,xx,xgt,ygt, &
 !$OMP& qdx,qdy,isx,isy,xcr,ycr,kib,icre,icrtab,noctab,free,xd,yd,t2Start,t2End,t2Time,t3Start,t3End,t3Time, &
 !$OMP& t4Start,t4End,t4Time,t5Start,t5End,t5Time,t6Start,t6End,t6Time,t7Start,t7End,t7Time,t8Start,t8End,t8Time, &
 !$OMP& t9Start,t9End,t9Time) &
@@ -222,7 +222,7 @@ if (levbeg .le. levend) then
   !$OMP CRITICAL
     print *, "Thread: ", omp_get_thread_num()
   !$OMP END CRITICAL
-!$OMP END PARALLEL DO 
+!$OMP END PARALLEL 
 
 ! !$OMP PARALLEL DO PRIVATE(lev,indq,qtmp,ncr,npe,ix,iy,k,kaa,kob,inc,icr,icrn,noc,ie,i,ibeg,iend,npd,keep,xx,xgt,ygt, &
 ! !$OMP& qdx,qdy,isx,isy,xcr,ycr,kib,icre,icrtab,noctab,free,xd,yd,t2Start,t2End,t2Time,t3Start,t3End,t3Time, &
