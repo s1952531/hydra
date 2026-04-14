@@ -549,7 +549,7 @@ enddo
 if (timing_on) call timer_stop(t8Start,t8End,t8Time,l8TotTime)
 
 enddo
-!OMP END PARALLEL
+!$OMP END PARALLEL DO
 if (timing_on) call timer_stop(t0Start,t0End,t0Time,l0TotTime)
  !End of loop over contour levels
  !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
