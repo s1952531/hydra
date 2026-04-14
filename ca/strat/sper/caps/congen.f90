@@ -216,7 +216,8 @@ if (levbeg .le. levend) then
 !$OMP& qdx,qdy,isx,isy,xcr,ycr,kib,icre,icrtab,noctab,free,xd,yd,t2Start,t2End,t2Time,t3Start,t3End,t3Time, &
 !$OMP& t4Start,t4End,t4Time,t5Start,t5End,t5Time,t6Start,t6End,t6Time,t7Start,t7End,t7Time,t8Start,t8End,t8Time, &
 !$OMP& t9Start,t9End,t9Time) &
-!$OMP& SHARED(levbeg,levend,dq,qoff,qa,ibx,xgu,ygu,xa,ya,inda,npa,i1a,i2a,na,npta,nextq,timing_on) &
+!$OMP& SHARED(levbeg,levend,dq,qoff,qa,ibx,xgu,ygu,glxu,glyu,ellx,hlxi,oms,ymin,ymax,nxu,nyu,nxum1,nxny,koff,f12,one, &
+!$OMP& xa,ya,inda,npa,i1a,i2a,na,npta,nextq,timing_on) &
 !$OMP& REDUCTION(+:l2TotTime,l3TotTime,l4TotTime,l5TotTime,l6TotTime,l7TotTime,l8TotTime,l9TotTime) DEFAULT(none)
 do lev=levbeg,levend
  !Integer index giving contour level:
@@ -401,6 +402,8 @@ enddo
 
  !First deal with any open contours attached to boundaries:
 if (timing_on) call timer_start(t6Start)
+
+!$OMP CRITICAL
 if (npe .gt. 0) then
   do ie=1,npe
      !A new contour (indexed na) starts here:
@@ -543,10 +546,11 @@ do icr=1,ncr
     free(icr)=.false.
   endif
 enddo
+!$OMP END CRITICAL
 if (timing_on) call timer_stop(t8Start,t8End,t8Time,l8TotTime)
 
 enddo
-!OMP END PARALLEL DO
+!OMP END PARALLEL
 if (timing_on) call timer_stop(t0Start,t0End,t0Time,l0TotTime)
  !End of loop over contour levels
  !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
