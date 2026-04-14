@@ -298,11 +298,18 @@ do j=1,nb
     x1=xb(i)
     y1=yb(i)
     do k=1,ndiv
+      ! Divide the contour segment into ndiv sub-segments and evaluate the
+      ! cubic contour position at the current subdivision point.
       eta=div(k)*(a(i)+div(k)*(b(i)+div(k)*c(i)))
       x2=xb(i)+div(k)*dx(i)-eta*dy(i)
       y2=yb(i)+div(k)*dy(i)+eta*dx(i)
+
+      ! Source contribution from this sub-segment, proportional to the local
+      ! vertical displacement across the piece.
       avgsrc=wdzdt*(y1-y2)
 
+      ! Deposit that contribution at the midpoint of the piece onto the
+      ! surrounding fine-grid cells using bilinear weights.
       xx=f12*(x1+x2)
       xx=oms*(xx-ellx*dble(int(xx*hlxi)))
       xx=glxfi*(xx-xmin)
@@ -322,6 +329,7 @@ do j=1,nb
       dzdtf(iy1,ix0)=dzdtf(iy1,ix0)+py*pxc*avgsrc
       dzdtf(iy1,ix1)=dzdtf(iy1,ix1)+py*px*avgsrc
 
+      ! Advance to the next sub-segment.
       x1=x2
       y1=y2
     enddo
