@@ -150,14 +150,16 @@ do
       cycle
    endif
 
-   call build_contour_list(na_base, npta_base, xa_base, ya_base, nextq_base, inda_base, npa_base, i1_base, i2_base, base_contours, contour_match_ok)
+   call build_contour_list(na_base, npta_base, xa_base, ya_base, nextq_base, inda_base, npa_base, i1_base, i2_base, &
+                           base_contours, contour_match_ok)
    if (.not. contour_match_ok) then
       cases_with_error = cases_with_error + 1
       write(*,'(I5,2X,I8,2X,I8,2X,A,2X,A,2X,A,2X,A)') case_num, npta_base, na_base, "   n/a   ", "   n/a   ", "INVALID ", "FAIL"
       cycle
    endif
 
-   call build_contour_list(na_work, npta_work, xa, ya, nextq_work, inda_work, npa_work, i1_work, i2_work, work_contours, contour_match_ok)
+   call build_contour_list(na_work, npta_work, xa, ya, nextq_work, inda_work, npa_work, i1_work, i2_work, &
+                           work_contours, contour_match_ok)
    if (.not. contour_match_ok) then
       cases_with_error = cases_with_error + 1
       call free_contour_list(base_contours)
