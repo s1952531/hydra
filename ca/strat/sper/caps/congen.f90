@@ -403,9 +403,9 @@ do icr=1,ncr
 enddo
 
  !First deal with any open contours attached to boundaries:
-if (timing_on) call timer_start(t6Start)
 
 !$OMP CRITICAL
+if (timing_on) call timer_start(t6Start)
 if (npe .gt. 0) then
   do ie=1,npe
      !A new contour (indexed na) starts here:
@@ -548,8 +548,8 @@ do icr=1,ncr
     free(icr)=.false.
   endif
 enddo
-!$OMP END CRITICAL
 if (timing_on) call timer_stop(t8Start,t8End,t8Time,l8TotTime)
+!$OMP END CRITICAL
 
 enddo
 !$OMP END PARALLEL DO
