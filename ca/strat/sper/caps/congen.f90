@@ -21,7 +21,7 @@ integer:: na,npta
 double precision:: t0Start,t0End,t0Time,t1Start,t1End,t1Time,t2Start,t2End,t2Time
 double precision:: t3Start,t3End,t3Time,t4Start,t4End,t4Time,t5Start,t5End,t5Time
 double precision:: t6Start,t6End,t6Time,t7Start,t7End,t7Time,t8Start,t8End,t8Time
-double precision:: t9Start,t9End,t9Time
+double precision:: t9Start,t9End,t9Time,t10Start,t10End,t10Time
 
 contains
 
@@ -172,9 +172,12 @@ double precision:: ycr(ncrm),xcr(ncrm)
 double precision:: qdx(0:nxu),qdy(0:nyu)
 double precision:: qdy_prev, qdy_curr
 double precision:: xd(nprm),yd(nprm)
+double precision:: xnew(npm),ynew(npm)
 integer:: isx(0:nxu),isy(0:nyu)
 integer:: isy_prev, isy_curr
 integer:: kib(ncrm),icre(nm)
+integer:: perm(nm),indanew(nm),npanew(nm),i1anew(nm),i2anew(nm)
+integer:: nextnew(npm)
 integer:: icrtab(nxny,2)
 integer*1:: noctab(nxny)
 logical:: free(ncrm),keep,saveTime
@@ -556,6 +559,78 @@ enddo
 if (timing_on) call timer_stop(t0Start,t0End,t0Time,l0TotTime)
  !End of loop over contour levels
  !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+endif
+
+ !Repack contours and nodes in increasing contour-level order so that
+ !all contours at a level remain contiguous in both contour and node index.
+if (na .gt. 1) then
+  if (timing_on) call timer_start(t10Start)
+
+  do j=1,na
+    perm(j)=j
+  enddo
+
+   !Stable insertion sort of contour indices by inda:
+  do j=2,na
+    jp=perm(j)
+    levtmp=inda(jp)
+    k=j-1
+    do while (k .ge. 1 .and. inda(perm(k)) .gt. levtmp)
+      perm(k+1)=perm(k)
+      k=k-1
+    enddo
+    perm(k+1)=jp
+  enddo
+
+  nptnew=0
+  do j=1,na
+    jo=perm(j)
+    np=npa(jo)
+    npanew(j)=np
+
+    ibeg=nptnew+1
+    iend=ibeg+np-1
+
+    indanew(j)=inda(jo)
+    i1anew(j)=ibeg
+    i2anew(j)=iend
+
+    iold=i1a(jo)
+    do i=0,np-1
+      xnew(ibeg+i)=xa(iold+i)
+      ynew(ibeg+i)=ya(iold+i)
+    enddo
+
+    if (nextq(i2a(jo)) .eq. 0) then
+      do i=ibeg,iend-1
+        nextnew(i)=i+1
+      enddo
+      nextnew(iend)=0
+    else
+      do i=ibeg,iend-1
+        nextnew(i)=i+1
+      enddo
+      nextnew(iend)=ibeg
+    endif
+
+    nptnew=iend
+  enddo
+
+  do i=1,nptnew
+    xa(i)=xnew(i)
+    ya(i)=ynew(i)
+    nextq(i)=nextnew(i)
+  enddo
+
+  do j=1,na
+    inda(j)=indanew(j)
+    npa(j)=npanew(j)
+    i1a(j)=i1anew(j)
+    i2a(j)=i2anew(j)
+  enddo
+
+  npta=nptnew
+  if (timing_on) call timer_stop(t10Start,t10End,t10Time,l10TotTime)
 endif
 
 if (log_ugrid2con .and. saveTime) call write_ugrid2con_output(xa,ya,nextq,npta,inda,npa,i1a,i2a,na)

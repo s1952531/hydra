@@ -16,6 +16,7 @@ real(8), save :: l6TotTime = 0.d0  ! open contour assembly
 real(8), save :: l7TotTime = 0.d0  ! open contour renoding
 real(8), save :: l8TotTime = 0.d0  ! closed contour assembly
 real(8), save :: l9TotTime = 0.d0  ! closed contour renoding
+real(8), save :: l10TotTime = 0.d0  ! level reorder/repack
 real(8), save :: g0TotTime = 0.d0  ! getzzsrc overall
 real(8), save :: g1TotTime = 0.d0  ! getzzsrc init dzdtf
 real(8), save :: g2TotTime = 0.d0  ! getzzsrc contour processing
@@ -55,6 +56,7 @@ l6TotTime = 0.d0
 l7TotTime = 0.d0
 l8TotTime = 0.d0
 l9TotTime = 0.d0
+l10TotTime = 0.d0
 g0TotTime = 0.d0
 g1TotTime = 0.d0
 g2TotTime = 0.d0
@@ -72,7 +74,7 @@ real(8) :: getzzsrcTotalTime
 
 if (.not. timing_on) return
 
-totalTime = l1TotTime + l2TotTime + l3TotTime + l4TotTime + l5TotTime + l6TotTime + l8TotTime
+totalTime = l1TotTime + l2TotTime + l3TotTime + l4TotTime + l5TotTime + l6TotTime + l8TotTime + l10TotTime
 
 if (l0TotTime .gt. 0.d0) then
   write(*,'(a)') '=========================================='
@@ -87,6 +89,7 @@ if (l0TotTime .gt. 0.d0) then
   write(*,'(a,f12.6)') '    of which renoding:        ', l7TotTime
   write(*,'(a,f12.6)') '  closed assembly total:      ', l8TotTime
   write(*,'(a,f12.6)') '    of which renoding:        ', l9TotTime
+  write(*,'(a,f12.6)') '  reorder/repack total:       ', l10TotTime
   write(*,'(a,f12.6)') '  total (excl. nested):       ', totalTime
   write(*,'(a)') '=========================================='
 endif
