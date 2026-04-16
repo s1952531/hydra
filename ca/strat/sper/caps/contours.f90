@@ -217,6 +217,11 @@ if (timing_on) call timer_stop(g1Start,g1End,g1Time,g1TotTime)
 
  !Process each contour in turn:
 if (timing_on) call timer_start(g2Start)
+!$OMP PARALLEL DO DEFAULT(NONE) PRIVATE(j,i,is,ie,ia,xx,dx,dy,v,u,e,a,b,c,eta,x1,y1,x2,y2,avgsrc,ix0,ix1,px,py,pxc,pyc, yy, &
+!$OMP& bsum,bdif,iy0,iy1, &
+!$OMP& g2OpenStart,g2OpenEnd,g2OpenTime,g2ClosedStart,g2ClosedEnd,g2ClosedTime,g2AccumStart,g2AccumEnd,g2AccumTime, &
+!$OMP& g2opentottime, g2closedtottime, g2accumtottime) &
+!$OMP SHARED(xb,yb,nextb,i1b,i2b,nb,div,wdzdt,dzdtf,ixfp,iyfp,timing_on)
 do j=1,nb
   is=i1b(j)
   ie=i2b(j)
@@ -298,18 +303,11 @@ do j=1,nb
     x1=xb(i)
     y1=yb(i)
     do k=1,ndiv
-      ! Divide the contour segment into ndiv sub-segments and evaluate the
-      ! cubic contour position at the current subdivision point.
       eta=div(k)*(a(i)+div(k)*(b(i)+div(k)*c(i)))
       x2=xb(i)+div(k)*dx(i)-eta*dy(i)
       y2=yb(i)+div(k)*dy(i)+eta*dx(i)
-
-      ! Source contribution from this sub-segment, proportional to the local
-      ! vertical displacement across the piece.
       avgsrc=wdzdt*(y1-y2)
 
-      ! Deposit that contribution at the midpoint of the piece onto the
-      ! surrounding fine-grid cells using bilinear weights.
       xx=f12*(x1+x2)
       xx=oms*(xx-ellx*dble(int(xx*hlxi)))
       xx=glxfi*(xx-xmin)
@@ -324,18 +322,25 @@ do j=1,nb
       py=yy-dble(iy0)
       pyc=one-py
 
+      !$OMP ATOMIC
       dzdtf(iy0,ix0)=dzdtf(iy0,ix0)+pyc*pxc*avgsrc
+      
+      !$OMP ATOMIC
       dzdtf(iy0,ix1)=dzdtf(iy0,ix1)+pyc*px*avgsrc
+      
+      !$OMP ATOMIC
       dzdtf(iy1,ix0)=dzdtf(iy1,ix0)+py*pxc*avgsrc
+      
+      !$OMP ATOMIC
       dzdtf(iy1,ix1)=dzdtf(iy1,ix1)+py*px*avgsrc
 
-      ! Advance to the next sub-segment.
       x1=x2
       y1=y2
     enddo
   enddo
   if (timing_on) call timer_stop(g2AccumStart,g2AccumEnd,g2AccumTime,g2AccumTotTime)
 enddo
+!$OMP END PARALLEL DO
 if (timing_on) call timer_stop(g2Start,g2End,g2Time,g2TotTime)
 
  !Double the edge values at y = ymin and ymax (by symmetry of b):
