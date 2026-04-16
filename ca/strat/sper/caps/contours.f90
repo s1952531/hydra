@@ -322,17 +322,12 @@ do j=1,nb
       py=yy-dble(iy0)
       pyc=one-py
 
-      !$OMP ATOMIC
+      !$OMP CRITICAL
       dzdtf(iy0,ix0)=dzdtf(iy0,ix0)+pyc*pxc*avgsrc
-      
-      !$OMP ATOMIC
       dzdtf(iy0,ix1)=dzdtf(iy0,ix1)+pyc*px*avgsrc
-      
-      !$OMP ATOMIC
       dzdtf(iy1,ix0)=dzdtf(iy1,ix0)+py*pxc*avgsrc
-      
-      !$OMP ATOMIC
       dzdtf(iy1,ix1)=dzdtf(iy1,ix1)+py*px*avgsrc
+      !$OMP END CRITICAL
 
       x1=x2
       y1=y2
