@@ -17,6 +17,7 @@ norm_flags = -O3 -mcmodel=medium #Compiler flags
 test_flags = -O3 -mcmodel=medium -fbounds-check -fbacktrace  #Compiler flags
 omp_flags = -O3 -mcmodel=medium -fopenmp
 gprof_flags = -O3 -mcmodel=medium -pg -fopenmp
+perf_flags = -O3 -mcmodel=medium -fopenmp -g -fno-omit-frame-pointer
 
  # Set compiler and flag used:
 f90=gfortran
