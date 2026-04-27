@@ -177,16 +177,14 @@ integer:: isy_prev, isy_curr
 integer:: kib(ncrm),icre(nm)
 integer:: icrtab(nxny,2)
 integer*1:: noctab(nxny)
+integer:: kobcr(ncrm)
 logical:: free(ncrm),keep
 
 !new parameters
 logical:: saveTime
-integer:: kib_ix(nxum1, ncrm), xcr_ix(nxum1, ncrm), ycr_ix(nxum1, ncrm)
 integer:: ncr_ix_arr(0:nxum1)
 integer:: ncr_offset(0:nxum1)
 integer:: qdy_ix(nyu)
-integer:: icrtab_inc1(nxny,2)
-integer*1:: noctab_inc1(nxny)
 
  !Check if this is a ugrid2con save time:
 saveTime=.false.
@@ -242,15 +240,14 @@ qtmp=(dble(lev)-f12)*dq-qoff
  !Initialise number of crossings per box:
 do k=1,nxny
   noctab(k)=0
-  noctab_inc1(k)=0
 enddo
 
  !-----------------------------------------------------------
  !Find x grid line crossings first:
 if (timing_on) call timer_start(t2Start)
 !$OMP PARALLEL DEFAULT(none) PRIVATE(qdy, isy, iy, inc, ncr_ix, kob, kaa, ncr_index, xgt) &
-!$OMP& SHARED(xgu, qa, ibx, ygu, qtmp, kib, icrtab, xcr, ycr, ncr, noctab, &
-!$OMP&        ncr_ix_arr, ncr_offset, noctab_inc1, icrtab_inc1)
+!$OMP& SHARED(xgu, qa, ibx, ygu, qtmp, kib, xcr, ycr, ncr, &
+!$OMP&        ncr_ix_arr, ncr_offset, kobcr)
 
 !compute ncr for each grid line
 !$OMP DO
@@ -296,7 +293,7 @@ if (timing_on) call timer_start(t2Start)
     do iy=0,nyu-1 !loop over pairs of adjacent grid points in y (iy and iy+1) to find crossings 
       if (isy(iy) .ne. isy(iy+1)) then ! if the field changes sign between these two points, there is a crossing
         ncr_ix=ncr_ix+1
-        ncr_index=ncr_offset(ix)+ncr_ix 
+        ncr_index=ncr_offset(ix)+ncr_ix
 
         inc=(1-isy(iy))/2 ! 0 if isy(iy)=1, 1 if isy(iy)=-1
         
@@ -304,15 +301,7 @@ if (timing_on) call timer_start(t2Start)
         
         kib(ncr_index)=kaa+ibx(ix+inc) !the box the contour enters at this crossing is in the row begin kaa and is column ix or ix+1
         kob=kaa+ibx(ix+1-inc) !the box the contour exits at this crossing is in the row beginning kaa and is in column ix+1 or ix
-        
-        !contention when {ix, inc} is the same for two threads
-        if (inc .eq. 1) then 
-          noctab_inc1(kob)=noctab_inc1(kob)+1 
-          icrtab_inc1(kob,noctab_inc1(kob))=ncr_index  
-        else
-          noctab(kob)=noctab(kob)+1 
-          icrtab(kob,noctab(kob))=ncr_index  
-        endif
+        kobcr(ncr_index)=kob
 
         xcr(ncr_index)=xgt !the x coordinate of the crossing is the x coordinate of the grid line being crossed
         ycr(ncr_index)=ygu(iy)-glyu*qdy(iy)/(qdy(iy+1)-qdy(iy)) !the y coordinate of the crossing is found by linear interpolation between the two grid points
@@ -323,17 +312,14 @@ if (timing_on) call timer_start(t2Start)
   enddo
 !$OMP END DO
 
-!combine/reduce the noctab and icrtab updates from the different threads
-!$OMP DO
-do kob=1, nxny
-  do i=1, noctab_inc1(kob)
-    icrtab(kob,noctab(kob)+i)=icrtab_inc1(kob,i) 
-  enddo
-  noctab(kob)=noctab(kob)+noctab_inc1(kob)
-enddo
-!$OMP END DO
-
 !$OMP END PARALLEL
+
+!Populate box crossing stacks in deterministic global crossing order:
+do icr=1,ncr
+  kob=kobcr(icr)
+  noctab(kob)=noctab(kob)+1
+  icrtab(kob,noctab(kob))=icr
+enddo
 
 !!!!!!
 ! !$OMP PARALLEL DO DEFAULT(none) PRIVATE(qdy, isy, iy, inc) SHARED(xgu, qa, ibx, ygu, qtmp, kib, icrtab, xcr, ycr, ncr, noctab)
