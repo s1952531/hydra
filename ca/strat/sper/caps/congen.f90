@@ -9,8 +9,6 @@ module congen
 
 use common
 use generic
-use sampling
-use timing
 
 implicit none
 
@@ -18,10 +16,9 @@ double precision:: qa(0:nyup1,0:nxum1)
 double precision:: xa(npm),ya(npm)
 integer:: inda(nm),npa(nm),i1a(nm),i2a(nm)
 integer:: na,npta
-double precision:: t0Start,t0End,t0Time,t1Start,t1End,t1Time,t2Start,t2End,t2Time
-double precision:: t3Start,t3End,t3Time,t4Start,t4End,t4Time,t5Start,t5End,t5Time
-double precision:: t6Start,t6End,t6Time,t7Start,t7End,t7Time,t8Start,t8End,t8Time
-double precision:: t9Start,t9End,t9Time
+
+!Marching squares definitions:
+integer, parameter:: LEFT=1, RIGHT=2, BOTTOM=3, TOP=4
 
 contains
 
@@ -152,464 +149,880 @@ end subroutine
 
 !==========================================================================
 
-subroutine ugrid2con(dq,nextq)
-! Generates contours (xa,ya) from the gridded field qa for the levels
-! +/-dq/2, +/-3*dq/2, ....
-implicit double precision(a-h,o-z)
-implicit integer(i-n)
+! subroutine ugrid2con(dq,nextq)
+! ! Generates contours (xa,ya) from the gridded field qa for the levels
+! ! +/-dq/2, +/-3*dq/2, ....
 
- !Passed array:
-integer:: nextq(npm)
+! implicit double precision(a-h,o-z)
+! implicit integer(i-n)
 
- !Local parameters and arrays:
-integer,parameter:: ncrm=3*nplm/4
- !ncrm:  max number of contour crossings of a single contour level
- !nplm:  max number of nodes in any contour level
+!  !Passed array:
+! integer:: nextq(npm)
+
+!  !Local parameters and arrays:
+! integer,parameter:: ncrm=3*nplm/4
+!  !ncrm:  max number of contour crossings of a single contour level
+!  !nplm:  max number of nodes in any contour level
  
-integer,parameter:: nxny=nxu*nyu, koff=nxu*(nyu-1)
+! integer,parameter:: nxny=nxu*nyu, koff=nxu*(nyu-1)
  
-double precision:: ycr(ncrm),xcr(ncrm)
-double precision:: qdx(0:nxu),qdy(0:nyu)
-double precision:: qdy_prev, qdy_curr
-double precision:: xd(nprm),yd(nprm)
-integer:: isx(0:nxu),isy(0:nyu)
-integer:: isy_prev, isy_curr
-integer:: kib(ncrm),icre(nm)
-integer:: icrtab(nxny,2)
-integer*1:: noctab(nxny)
-integer:: kobcr(ncrm)
-logical:: free(ncrm),keep
+! double precision:: ycr(ncrm),xcr(ncrm)
+! double precision:: qdx(0:nxu),qdy(0:nyu)
+! double precision:: xd(nprm),yd(nprm)
+! integer:: isx(0:nxu),isy(0:nyu)
+! integer:: kib(ncrm),icre(nm)
+! integer:: icrtab(nxny,2)
+! integer*1:: noctab(nxny)
+! logical:: free(ncrm),keep
 
-!new parameters
-logical:: saveTime
-integer:: ncr_ix_arr(0:nxum1)
-integer:: ncr_offset(0:nxum1)
-integer:: qdy_ix(nyu)
+!  !initialise constants and arrays:
+! dqi=one/dq
+! qoff=dq*dble(nlevm)
+!  !qoff: should be a large integer multiple of the contour interval, dq.  
+!  !The multiple should exceed the maximum expected number of contour levels.
 
- !Check if this is a ugrid2con save time:
-saveTime=.false.
-if (log_ugrid2con) saveTime=ugrid2con_save_time(t, tsim)
+!  !--------------------------------------------------------
+!  !First get the beginning and ending contour levels:
+! qamax=qa(0,0)
+! qamin=qa(0,0)
+! do ix=0,nxum1
+!   do iy=0,nyu
+!     qamax=max(qamax,qa(iy,ix))
+!     qamin=min(qamin,qa(iy,ix))
+!   enddo
+! enddo
 
-if (log_ugrid2con .and. saveTime) call write_ugrid2con_input(qa,dq)
+! levbeg=int((qoff+qamin)*dqi+f12)+1
+! levend=int((qoff+qamax)*dqi+f12)
 
- !initialise constants and arrays:
-dqi=one/dq
-qoff=dq*dble(nlevm)
- !qoff: should be a large integer multiple of the contour interval, dq.  
- !The multiple should exceed the maximum expected number of contour levels.
+! if (levbeg .le. levend) then
+!  !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+!  !Loop over contour levels and process:
+! do lev=levbeg,levend
+!  !Integer index giving contour level:
+! indq=lev-nlevm+(lev-1)/nlevm-1
 
- !--------------------------------------------------------
- !First get the beginning and ending contour levels:
-qamax=qa(0,0)
-qamin=qa(0,0)
-if (timing_on) call timer_start(t1Start)
-do ix=0,nxum1
-  do iy=0,nyu
-    qamax=max(qamax,qa(iy,ix))
-    qamin=min(qamin,qa(iy,ix))
-  enddo
-enddo
-if (timing_on) call timer_stop(t1Start,t1End,t1Time,l1TotTime)
+!  !Counter for total number of grid line crossings:
+! ncr=0
 
-levbeg=int((qoff+qamin)*dqi+f12)+1
-levend=int((qoff+qamax)*dqi+f12)
+!  !Counter for total number of open contours originating in an edge:
+! npe=0
 
-if (levbeg .le. levend) then
- !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
- !Loop over contour levels and process:
- if (timing_on) call timer_start(t0Start)
-do lev=levbeg,levend
- !Integer index giving contour level:
-indq=lev-nlevm+(lev-1)/nlevm-1
+!  !Contour level being sought:
+! qtmp=(dble(lev)-f12)*dq-qoff
 
- !Counter for total number of grid line crossings:
-ncr=0
+!  !Below, kib = grid box into which the contour (containing ncr) is going
+!  !       kob =   "   "  out of "    "     "         "       "    " coming
+!  !      [kob -> ncr -> kib:  ncr lies at the boundary between kob & kib]
 
- !Counter for total number of open contours originating in an edge:
-npe=0
+!  !   *** grid boxes are numbered 1 (lower left) to nxu*nyu (upper right) ***
 
- !Contour level being sought:
-qtmp=(dble(lev)-f12)*dq-qoff
+!  !Initialise number of crossings per box:
+! do k=1,nxny
+!   noctab(k)=0
+! enddo
 
- !Below, kib = grid box into which the contour (containing ncr) is going
- !       kob =   "   "  out of "    "     "         "       "    " coming
- !      [kob -> ncr -> kib:  ncr lies at the boundary between kob & kib]
+!  !-----------------------------------------------------------
+!  !Find x grid line crossings first:
+! do ix=0,nxum1
+!   xgt=xgu(ix)
 
- !   *** grid boxes are numbered 1 (lower left) to nxu*nyu (upper right) ***
+!   do iy=0,nyu
+!     qdy(iy)=qa(iy,ix)-qtmp
+!     isy(iy)=sign(one,qdy(iy))
+!   enddo
 
- !Initialise number of crossings per box:
-do k=1,nxny
-  noctab(k)=0
-enddo
+!   do iy=0,nyu-1
+!     if (isy(iy) .ne. isy(iy+1)) then
+!       ncr=ncr+1
+!       inc=(1-isy(iy))/2
+!       kaa=iy*nxu
+!       kib(ncr)=kaa+ibx(ix+inc)
+!       kob=kaa+ibx(ix+1-inc)
+!       noctab(kob)=noctab(kob)+1
+!       icrtab(kob,noctab(kob))=ncr
+!       xcr(ncr)=xgt
+!       ycr(ncr)=ygu(iy)-glyu*qdy(iy)/(qdy(iy+1)-qdy(iy))
+!     endif
+!   enddo
 
- !-----------------------------------------------------------
- !Find x grid line crossings first:
-if (timing_on) call timer_start(t2Start)
-!$OMP PARALLEL DEFAULT(none) PRIVATE(qdy, isy, iy, inc, ncr_ix, kob, kaa, ncr_index, xgt) &
-!$OMP& SHARED(xgu, qa, ibx, ygu, qtmp, kib, xcr, ycr, ncr, &
-!$OMP&        ncr_ix_arr, ncr_offset, kobcr)
+! enddo
 
-!compute ncr for each grid line
-!$OMP DO
-  do ix=0, nxum1
-    do iy=0,nyu !work up the grid line in y (at the constant x=ix)
-      qdy(iy)=qa(iy,ix)-qtmp ! the value of the (gridded) field relative to the contour level at this grid point
-      isy(iy)=sign(one,qdy(iy)) ! the sign of the field relative to the contour level at this point
-    enddo
+!  !----------------------------------------------------------
+!  !Find y grid line crossings next (edge values are special):
+!  !Bottom edge:
+! iy=0
+! ygt=ygu(iy)
 
-    ncr_ix=0
+! do ix=0,nxum1
+!   qdx(ix)=qa(iy,ix)-qtmp
+!   isx(ix)=sign(one,qdx(ix))
+! enddo
+! qdx(nxu)=qdx(0)
+! isx(nxu)=isx(0)
 
-    do iy=0,nyu-1 !loop over pairs of adjacent grid points in y (iy and iy+1) to find crossings 
-      if (isy(iy) .ne. isy(iy+1)) then ! if the field changes sign between these two points, there is a crossing
-        ncr_ix=ncr_ix+1
-      endif
-    enddo
+! do ix=0,nxum1
+!   if (isx(ix) .ne. isx(ix+1)) then
+!     ncr=ncr+1
+!     if (isx(ix) .gt. 0) then
+!        !A contour comes out of the boundary at this point:
+!       kib(ncr)=ix+1
+!       npe=npe+1
+!       icre(npe)=ncr
+!     else
+!        !A contour goes into the boundary at this point:
+!       kib(ncr)=0
+!       kob=ix+1
+!       noctab(kob)=noctab(kob)+1
+!       icrtab(kob,noctab(kob))=ncr
+!     endif
+!     ycr(ncr)=ymin
+!     xx=xgu(ix)-glxu*qdx(ix)/(qdx(ix+1)-qdx(ix))
+!     xcr(ncr)=oms*(xx-ellx*dble(int(xx*hlxi)))
+!   endif
+! enddo
 
-    ncr_ix_arr(ix)=ncr_ix
+!  !Top edge:
+! iy=nyu
+! ygt=ygu(iy)
 
-  enddo
-!$OMP END DO
+! do ix=0,nxum1
+!   qdx(ix)=qa(iy,ix)-qtmp
+!   isx(ix)=sign(one,qdx(ix))
+! enddo
+! qdx(nxu)=qdx(0)
+! isx(nxu)=isx(0)
 
-!compute offset into any (global) ncr indexed array 
-!$OMP SINGLE
-  ncr_offset(0)=0
-  do ix=1, nxum1
-    ncr_offset(ix)=ncr_offset(ix-1)+ncr_ix_arr(ix-1)
-  enddo
+! do ix=0,nxum1
+!   if (isx(ix) .ne. isx(ix+1)) then
+!     ncr=ncr+1
+!     if (isx(ix) .lt. 0) then
+!        !A contour comes out of the boundary at this point:
+!       kib(ncr)=koff+ix+1
+!       npe=npe+1
+!       icre(npe)=ncr
+!     else
+!        !A contour goes into the boundary at this point:
+!       kib(ncr)=0
+!       kob=koff+ix+1
+!       noctab(kob)=noctab(kob)+1
+!       icrtab(kob,noctab(kob))=ncr
+!     endif
+!     ycr(ncr)=ymax
+!     xx=xgu(ix)-glxu*qdx(ix)/(qdx(ix+1)-qdx(ix))
+!     xcr(ncr)=oms*(xx-ellx*dble(int(xx*hlxi)))
+!   endif
+! enddo
+!  !koff = nxu*(nyu-1) above
 
-  ncr = ncr_offset(nxum1) + ncr_ix_arr(nxum1)
-!$OMP END SINGLE
+!  !Interior y = constant grid lines:
+! do iy=1,nyu-1
+!   ygt=ygu(iy)
 
-!$OMP DO
-  do ix=0,nxum1
-    do iy=0,nyu !work up the grid line in y (at the constant x=ix)
-      qdy(iy)=qa(iy,ix)-qtmp ! the value of the (gridded) field relative to the contour level at this grid point
-      isy(iy)=sign(one,qdy(iy)) ! the sign of the field relative to the contour level at this point
-    enddo
+!   do ix=0,nxum1
+!     qdx(ix)=qa(iy,ix)-qtmp
+!     isx(ix)=sign(one,qdx(ix))
+!   enddo
+!   qdx(nxu)=qdx(0)
+!   isx(nxu)=isx(0)
 
-    xgt=xgu(ix) !the x coordinate of the grid line being crossed (xgu is the x coordinate of the u-grid)
-    ncr_ix=0
+!   do ix=0,nxum1
+!     if (isx(ix) .ne. isx(ix+1)) then
+!       ncr=ncr+1
+!       inc=(1-isx(ix))/2
+!       kaa=(iy-1)*nxu+ix+1
+!       kib(ncr)=kaa+(1-inc)*nxu
+!       kob=kaa+inc*nxu
+!       noctab(kob)=noctab(kob)+1
+!       icrtab(kob,noctab(kob))=ncr
+!       ycr(ncr)=ygt
+!       xx=xgu(ix)-glxu*qdx(ix)/(qdx(ix+1)-qdx(ix))
+!       xcr(ncr)=oms*(xx-ellx*dble(int(xx*hlxi)))
+!     endif
+!   enddo
 
-    do iy=0,nyu-1 !loop over pairs of adjacent grid points in y (iy and iy+1) to find crossings 
-      if (isy(iy) .ne. isy(iy+1)) then ! if the field changes sign between these two points, there is a crossing
-        ncr_ix=ncr_ix+1
-        ncr_index=ncr_offset(ix)+ncr_ix
+! enddo
 
-        inc=(1-isy(iy))/2 ! 0 if isy(iy)=1, 1 if isy(iy)=-1
-        
-        kaa=iy*nxu !this is used to access the row of the grid box containing the crossing
-        
-        kib(ncr_index)=kaa+ibx(ix+inc) !the box the contour enters at this crossing is in the row begin kaa and is column ix or ix+1
-        kob=kaa+ibx(ix+1-inc) !the box the contour exits at this crossing is in the row beginning kaa and is in column ix+1 or ix
-        kobcr(ncr_index)=kob
+!  !----------------------------------------------------------------
+!  !Now re-build contours:
+! do icr=1,ncr
+!   free(icr)=.true.
+! enddo
 
-        xcr(ncr_index)=xgt !the x coordinate of the crossing is the x coordinate of the grid line being crossed
-        ycr(ncr_index)=ygu(iy)-glyu*qdy(iy)/(qdy(iy+1)-qdy(iy)) !the y coordinate of the crossing is found by linear interpolation between the two grid points
+!  !First deal with any open contours attached to boundaries:
+! if (npe .gt. 0) then
+!   do ie=1,npe
+!      !A new contour (indexed na) starts here:
+!     na=na+1
+!     inda(na)=indq
+!     ibeg=npta+1
+!     i1a(na)=ibeg
 
-      endif
-    enddo
+!      !The starting node on the contour (coming out of a boundary):
+!     icr=icre(ie)
 
-  enddo
-!$OMP END DO
+!      !First point on the contour:
+!     npd=1
+!     xd(1)=xcr(icr)
+!     yd(1)=ycr(icr)
 
-!$OMP END PARALLEL
+!      !Find remaining points on the contour:
+!     k=kib(icr)
+!      !k is the box the contour is entering (0 if going into a boundary)
+!     do while (k .ne. 0)
+!       noc=noctab(k)
+!        !Use last crossing in this box (noc) as the next node:
+!       icrn=icrtab(k,noc)
+!        !icrn gives the next point after icr (icrn is leaving box k)
+!       noctab(k)=noc-1
+!        !noctab is usually zero now except for boxes with a
+!        !maximum possible 2 crossings
+!       npd=npd+1
+!        !Coordinates of new node:
+!       xd(npd)=xcr(icrn)
+!       yd(npd)=ycr(icrn)
+!       free(icrn)=.false.
+!       k=kib(icrn)
+!     enddo
 
-!Populate box crossing stacks in deterministic global crossing order:
-do icr=1,ncr
-  kob=kobcr(icr)
-  noctab(kob)=noctab(kob)+1
-  icrtab(kob,noctab(kob))=icr
-enddo
-
-!!!!!!
-! !$OMP PARALLEL DO DEFAULT(none) PRIVATE(qdy, isy, iy, inc) SHARED(xgu, qa, ibx, ygu, qtmp, kib, icrtab, xcr, ycr, ncr, noctab)
-
-  ! do ix=0,nxum1 !loop over x grid lines (x = constant) 
-  !   xgt=xgu(ix) !the x coordinate of the grid line being crossed (xgu is the x coordinate of the u-grid)
-
-  !   do iy=0,nyu !work up the grid line in y (at the constant x=ix)
-  !     qdy(iy)=qa(iy,ix)-qtmp ! the value of the (gridded) field relative to the contour level at this grid point
-  !     isy(iy)=sign(one,qdy(iy)) ! the sign of the field relative to the contour level at this point
-  !   enddo
-
-  !   do iy=0,nyu-1 !loop over pairs of adjacent grid points in y (iy and iy+1) to find crossings 
-  !     if (isy(iy) .ne. isy(iy+1)) then ! if the field changes sign between these two points, there is a crossing
-  !       ncr=ncr+1 !increment total number of crossings for this contour level
-  !       inc=(1-isy(iy))/2 ! 0 if isy(iy)=1, 1 if isy(iy)=-1
-  !       kaa=iy*nxu !this is used to access the row of the grid box containing the crossing
-  !       kib(ncr)=kaa+ibx(ix+inc) !the box the contour enters at this crossing is in the row begin kaa and is column ix or ix+1
-  !       kob=kaa+ibx(ix+1-inc) !the box the contour exits at this crossing is in the row beginning kaa and is in column ix+1 or ix
-  !       noctab(kob)=noctab(kob)+1 !increment the number of crossings in the box the contour is exiting
-  !       icrtab(kob,noctab(kob))=ncr !allows the contour cross number (ncr) to be found from the box number (kob) and the crossing number in that box (noctab(kob)) 
-  !       xcr(ncr)=xgt !the x coordinate of the crossing is the x coordinate of the grid line being crossed
-  !       ycr(ncr)=ygu(iy)-glyu*qdy(iy)/(qdy(iy+1)-qdy(iy)) !the y coordinate of the crossing is found by linear interpolation between the two grid points
-  !     endif
-  !   enddo
-  ! enddo
-! !$OMP END PARALLEL DO
-if (timing_on) call timer_stop(t2Start,t2End,t2Time,l2TotTime)
-
- !----------------------------------------------------------
- !Find y grid line crossings next (edge values are special):
- !Bottom edge:
-iy=0
-ygt=ygu(iy)
-
-if (timing_on) call timer_start(t3Start)
-do ix=0,nxum1
-  qdx(ix)=qa(iy,ix)-qtmp
-  isx(ix)=sign(one,qdx(ix))
-enddo
-qdx(nxu)=qdx(0)
-isx(nxu)=isx(0)
-
-do ix=0,nxum1
-  if (isx(ix) .ne. isx(ix+1)) then
-    ncr=ncr+1
-    if (isx(ix) .gt. 0) then
-       !A contour comes out of the boundary at this point:
-      kib(ncr)=ix+1
-      npe=npe+1
-      icre(npe)=ncr
-    else
-       !A contour goes into the boundary at this point:
-      kib(ncr)=0
-      kob=ix+1
-      noctab(kob)=noctab(kob)+1
-      icrtab(kob,noctab(kob))=ncr
-    endif
-    ycr(ncr)=ymin
-    xx=xgu(ix)-glxu*qdx(ix)/(qdx(ix+1)-qdx(ix))
-    xcr(ncr)=oms*(xx-ellx*dble(int(xx*hlxi)))
-  endif
-enddo
-if (timing_on) call timer_stop(t3Start,t3End,t3Time,l3TotTime)
-
- !Top edge:
-iy=nyu
-ygt=ygu(iy)
-
-if (timing_on) call timer_start(t4Start)
-do ix=0,nxum1
-  qdx(ix)=qa(iy,ix)-qtmp
-  isx(ix)=sign(one,qdx(ix))
-enddo
-qdx(nxu)=qdx(0)
-isx(nxu)=isx(0)
-
-do ix=0,nxum1
-  if (isx(ix) .ne. isx(ix+1)) then
-    ncr=ncr+1
-    if (isx(ix) .lt. 0) then
-       !A contour comes out of the boundary at this point:
-      kib(ncr)=koff+ix+1
-      npe=npe+1
-      icre(npe)=ncr
-    else
-       !A contour goes into the boundary at this point:
-      kib(ncr)=0
-      kob=koff+ix+1
-      noctab(kob)=noctab(kob)+1
-      icrtab(kob,noctab(kob))=ncr
-    endif
-    ycr(ncr)=ymax
-    xx=xgu(ix)-glxu*qdx(ix)/(qdx(ix+1)-qdx(ix))
-    xcr(ncr)=oms*(xx-ellx*dble(int(xx*hlxi)))
-  endif
-enddo
-if (timing_on) call timer_stop(t4Start,t4End,t4Time,l4TotTime)
- !koff = nxu*(nyu-1) above
-
- !Interior y = constant grid lines:
-if (timing_on) call timer_start(t5Start)
-do iy=1,nyu-1
-  ygt=ygu(iy)
-
-  do ix=0,nxum1
-    qdx(ix)=qa(iy,ix)-qtmp
-    isx(ix)=sign(one,qdx(ix))
-  enddo
-  qdx(nxu)=qdx(0)
-  isx(nxu)=isx(0)
-
-  do ix=0,nxum1
-    if (isx(ix) .ne. isx(ix+1)) then
-      ncr=ncr+1
-      inc=(1-isx(ix))/2
-      kaa=(iy-1)*nxu+ix+1
-      kib(ncr)=kaa+(1-inc)*nxu
-      kob=kaa+inc*nxu
-      noctab(kob)=noctab(kob)+1
-      icrtab(kob,noctab(kob))=ncr
-      ycr(ncr)=ygt
-      xx=xgu(ix)-glxu*qdx(ix)/(qdx(ix+1)-qdx(ix))
-      xcr(ncr)=oms*(xx-ellx*dble(int(xx*hlxi)))
-    endif
-  enddo
-
-enddo
-if (timing_on) call timer_stop(t5Start,t5End,t5Time,l5TotTime)
-
- !----------------------------------------------------------------
- !Now re-build contours:
-do icr=1,ncr
-  free(icr)=.true.
-enddo
-
- !First deal with any open contours attached to boundaries:
-if (timing_on) call timer_start(t6Start)
-if (npe .gt. 0) then
-  do ie=1,npe
-     !A new contour (indexed na) starts here:
-    na=na+1
-    inda(na)=indq
-    ibeg=npta+1
-    i1a(na)=ibeg
-
-     !The starting node on the contour (coming out of a boundary):
-    icr=icre(ie)
-
-     !First point on the contour:
-    npd=1
-    xd(1)=xcr(icr)
-    yd(1)=ycr(icr)
-
-     !Find remaining points on the contour:
-    k=kib(icr)
-     !k is the box the contour is entering (0 if going into a boundary)
-    do while (k .ne. 0)
-      noc=noctab(k)
-       !Use last crossing in this box (noc) as the next node:
-      icrn=icrtab(k,noc)
-       !icrn gives the next point after icr (icrn is leaving box k)
-      noctab(k)=noc-1
-       !noctab is usually zero now except for boxes with a
-       !maximum possible 2 crossings
-      npd=npd+1
-       !Coordinates of new node:
-      xd(npd)=xcr(icrn)
-      yd(npd)=ycr(icrn)
-      free(icrn)=.false.
-      k=kib(icrn)
-    enddo
-
-     !Re-distribute nodes on this contour 3 times to reduce complexity:
-    if (timing_on) call timer_start(t7Start)
-    keep=.false.
-    do
-      call renode_open(xd,yd,npd,xa(ibeg),ya(ibeg),npa(na))
-       !Delete contour if deemed too small (see renode_open):
-      if (npa(na) .eq. 0) exit
-      call renode_open(xa(ibeg),ya(ibeg),npa(na),xd,yd,npd)
-       !Delete contour if deemed too small (see renode_open):
-      if (npd .eq. 0) exit
-      call renode_open(xd,yd,npd,xa(ibeg),ya(ibeg),npa(na))
-       !Delete contour if deemed too small (see renode_open):
-      if (npa(na) .eq. 0) exit
-       !Contour is big enough to keep:
-      keep=.true.
-      exit
-    enddo
+!      !Re-distribute nodes on this contour 3 times to reduce complexity:
+!     keep=.false.
+!     do
+!       call renode_open(xd,yd,npd,xa(ibeg),ya(ibeg),npa(na))
+!        !Delete contour if deemed too small (see renode_open):
+!       if (npa(na) .eq. 0) exit
+!       call renode_open(xa(ibeg),ya(ibeg),npa(na),xd,yd,npd)
+!        !Delete contour if deemed too small (see renode_open):
+!       if (npd .eq. 0) exit
+!       call renode_open(xd,yd,npd,xa(ibeg),ya(ibeg),npa(na))
+!        !Delete contour if deemed too small (see renode_open):
+!       if (npa(na) .eq. 0) exit
+!        !Contour is big enough to keep:
+!       keep=.true.
+!       exit
+!     enddo
        
-    if (keep) then
-      npta=npta+npa(na)
-      iend=ibeg+npa(na)-1
-      i2a(na)=iend
-      do i=ibeg,iend-1
-        nextq(i)=i+1
-      enddo
-      nextq(iend)=0
-    else
-      na=na-1
-    endif
+!     if (keep) then
+!       npta=npta+npa(na)
+!       iend=ibeg+npa(na)-1
+!       i2a(na)=iend
+!       do i=ibeg,iend-1
+!         nextq(i)=i+1
+!       enddo
+!       nextq(iend)=0
+!     else
+!       na=na-1
+!     endif
 
-    if (timing_on) call timer_stop(t7Start,t7End,t7Time,l7TotTime)
+!     free(icr)=.false.
+!   enddo
+! endif
 
-    free(icr)=.false.
+!  !Next deal with remaining closed contours:
+! do icr=1,ncr
+!   if (free(icr)) then
+!      !A new contour (indexed na) starts here:
+!     na=na+1
+!     inda(na)=indq
+!     ibeg=npta+1
+!     i1a(na)=ibeg
+
+!      !First point on the contour:
+!     npd=1
+!     xd(1)=xcr(icr)
+!     yd(1)=ycr(icr)
+
+!      !Find remaining points on the contour:
+!     k=kib(icr)
+!      !k is the box the contour is entering
+!     noc=noctab(k)
+!      !Use last crossing (noc) in this box (k) as the next node:
+!     icrn=icrtab(k,noc)
+!      !icrn gives the next point after icr (icrn is leaving box k)
+!     do while (icrn .ne. icr)
+!       noctab(k)=noc-1
+!        !noctab is usually zero now except for boxes with a
+!        !maximum possible 2 crossings
+!       npd=npd+1
+!       xd(npd)=xcr(icrn)
+!       yd(npd)=ycr(icrn)
+!       free(icrn)=.false.
+!       k=kib(icrn)
+!       noc=noctab(k)
+!       icrn=icrtab(k,noc)
+!     enddo
+
+!      !Re-distribute nodes on this contour 3 times to reduce complexity:
+!     keep=.false.
+!     do
+!       call renode_closed(xd,yd,npd,xa(ibeg),ya(ibeg),npa(na))
+!        !Delete contour if deemed too small (see renode_closed):
+!       if (npa(na) .eq. 0) exit
+!       call renode_closed(xa(ibeg),ya(ibeg),npa(na),xd,yd,npd)
+!        !Delete contour if deemed too small (see renode_closed):
+!       if (npd .eq. 0) exit
+!       call renode_closed(xd,yd,npd,xa(ibeg),ya(ibeg),npa(na))
+!        !Delete contour if deemed too small (see renode_closed):
+!       if (npa(na) .eq. 0) exit
+!        !Contour is big enough to keep:
+!       keep=.true.
+!       exit
+!     enddo
+
+!     if (keep) then 
+!       npta=npta+npa(na)
+!       iend=ibeg+npa(na)-1
+!       i2a(na)=iend
+!       do i=ibeg,iend-1
+!         nextq(i)=i+1
+!       enddo
+!       nextq(iend)=ibeg
+!     else
+!       na=na-1
+!     endif
+
+!     free(icr)=.false.
+!   endif
+! enddo
+
+! enddo
+!  !End of loop over contour levels
+!  !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+! endif
+
+! return
+! end subroutine
+
+!=======================================================================
+
+subroutine init_marching_squares_lookup(nseg, edge1_lookup, edge2_lookup)
+  integer, intent(out):: nseg(0:15)
+  integer, intent(out):: edge1_lookup(0:15, 0:1, 2)
+  integer, intent(out):: edge2_lookup(0:15, 0:1, 2)
+
+  nseg(0)=0
+  edge1_lookup(0,0,1)=0
+  edge2_lookup(0,0,1)=0
+
+  nseg(1)=1
+  edge1_lookup(1,0,1)=BOTTOM
+  edge2_lookup(1,0,1)=LEFT
+
+  nseg(2)=1
+  edge1_lookup(2,0,1)=RIGHT
+  edge2_lookup(2,0,1)=BOTTOM
+
+  nseg(3)=1
+  edge1_lookup(3,0,1)=RIGHT
+  edge2_lookup(3,0,1)=LEFT
+
+  nseg(4)=1
+  edge1_lookup(4,0,1)=TOP
+  edge2_lookup(4,0,1)=RIGHT
+  
+  nseg(5)=2
+  !not separated
+  edge1_lookup(5,0,1)=TOP
+  edge2_lookup(5,0,1)=LEFT
+  edge1_lookup(5,0,2)=BOTTOM
+  edge2_lookup(5,0,2)=RIGHT
+
+  !separated
+  edge1_lookup(5,1,1)=BOTTOM
+  edge2_lookup(5,1,1)=LEFT
+  edge1_lookup(5,1,2)=TOP
+  edge2_lookup(5,1,2)=RIGHT
+
+  nseg(6)=1
+  edge1_lookup(6,0,1)=TOP
+  edge2_lookup(6,0,1)=BOTTOM
+
+  nseg(7)=1
+  edge1_lookup(7,0,1)=TOP
+  edge2_lookup(7,0,1)=LEFT
+
+  nseg(8)=1
+  edge1_lookup(8,0,1)=LEFT
+  edge2_lookup(8,0,1)=TOP
+
+  nseg(9)=1
+  edge1_lookup(9,0,1)=BOTTOM
+  edge2_lookup(9,0,1)=TOP
+
+  nseg(10)=2
+  !not separated
+  edge1_lookup(10,0,1)=LEFT
+  edge2_lookup(10,0,1)=BOTTOM
+  edge1_lookup(10,0,2)=RIGHT
+  edge2_lookup(10,0,2)=TOP
+
+  !separated
+  nseg(10)=2
+  edge1_lookup(10,1,1)=LEFT
+  edge2_lookup(10,1,1)=TOP
+  edge1_lookup(10,1,2)=RIGHT
+  edge2_lookup(10,1,2)=BOTTOM
+
+  nseg(11)=1
+  edge1_lookup(11,0,1)=RIGHT
+  edge2_lookup(11,0,1)=TOP
+
+  nseg(12)=1
+  edge1_lookup(12,0,1)=LEFT
+  edge2_lookup(12,0,1)=RIGHT
+
+  nseg(13)=1
+  edge1_lookup(13,0,1)=BOTTOM
+  edge2_lookup(13,0,1)=RIGHT
+
+  nseg(14)=1
+  edge1_lookup(14,0,1)=LEFT
+  edge2_lookup(14,0,1)=BOTTOM
+
+  nseg(15)=0
+  edge1_lookup(15,0,1)=0
+  edge2_lookup(15,0,1)=0
+
+end subroutine
+
+subroutine ugrid2con(dq,nextq)
+!subroutine marching_squares_ug2c(dq,nextq)
+  !original ug2c definitions
+  implicit double precision(a-h,o-z)
+  implicit integer(i-n)
+
+  !Passed array:
+  integer:: nextq(npm)
+
+  !Local parameters and arrays:
+  integer,parameter:: ncrm=3*nplm/4
+  !ncrm:  max number of contour crossings of a single contour level
+  !nplm:  max number of nodes in any contour level
+  
+  integer,parameter:: nxny=nxu*nyu, koff=nxu*(nyu-1)
+  
+  double precision:: ycr(ncrm),xcr(ncrm)
+  double precision:: qdx(0:nxu),qdy(0:nyu)
+  double precision:: xd(nprm),yd(nprm)
+  integer:: isx(0:nxu),isy(0:nyu)
+  integer:: kib(ncrm),icre(nm)
+  integer:: icrtab(nxny,2)
+  integer*1:: noctab(nxny)
+  logical:: free(ncrm),keep
+
+  !end original ug2c definitions
+
+  !lookup tables
+  integer :: nseg(0:15) !the number of segments in each case
+  integer :: edge1_lookup(0:15, 0:1, 2) !(case, variant, segment)
+  integer :: edge2_lookup(0:15, 0:1, 2) !(case, variant, segment)
+  !variant is for the disambiguation of case 5/10's saddle point: separated or not
+
+  integer:: ll, ul, ur, lr  !corner values
+  integer:: lev, levbeg, levend, box_ID, seg, ms_case, separated, edge1, edge2, kob !loop and lookup variables
+  
+  !the coordinates of the crossing point
+  double precision:: x_b_interp, y_b_interp !at bottom edge
+  double precision:: x_t_interp, y_t_interp !at top edge
+  double precision:: x_l_interp, y_l_interp !at left edge
+  double precision:: x_r_interp, y_r_interp !at right edge
+
+  !interpolation definitions
+  double precision :: dz, dz_safe, t_interp
+  double precision, parameter :: eps = 1.0e-12
+
+  !Saddle point ambiguity terminology:
+  !marked = point is above the contour level
+  !separated = two edges common to a single marked point are connected 
+
+  !--------------------------------------------------------
+  !initialise constants and arrays:
+  dqi=one/dq
+  qoff=dq*dble(nlevm)
+  !qoff: should be a large integer multiple of the contour interval, dq.  
+  !The multiple should exceed the maximum expected number of contour levels.
+
+  !First get the beginning and ending contour levels:
+  qamax=qa(0,0)
+  qamin=qa(0,0)
+  do ix=0,nxum1
+    do iy=0,nyu
+      qamax=max(qamax,qa(iy,ix))
+      qamin=min(qamin,qa(iy,ix))
+    enddo
   enddo
-endif
-if (timing_on) call timer_stop(t6Start,t6End,t6Time,l6TotTime)
 
- !Next deal with remaining closed contours:
-if (timing_on) call timer_start(t8Start)
-do icr=1,ncr
-  if (free(icr)) then
-     !A new contour (indexed na) starts here:
-    na=na+1
-    inda(na)=indq
-    ibeg=npta+1
-    i1a(na)=ibeg
+  levbeg=int((qoff+qamin)*dqi+f12)+1
+  levend=int((qoff+qamax)*dqi+f12)
 
-     !First point on the contour:
-    npd=1
-    xd(1)=xcr(icr)
-    yd(1)=ycr(icr)
+  !first call the subroutine to initialise the marching squares lookup tables:
+  call init_marching_squares_lookup(nseg, edge1_lookup, edge2_lookup)
 
-     !Find remaining points on the contour:
-    k=kib(icr)
-     !k is the box the contour is entering
-    noc=noctab(k)
-     !Use last crossing (noc) in this box (k) as the next node:
-    icrn=icrtab(k,noc)
-     !icrn gives the next point after icr (icrn is leaving box k)
-    do while (icrn .ne. icr)
-      noctab(k)=noc-1
-       !noctab is usually zero now except for boxes with a
-       !maximum possible 2 crossings
-      npd=npd+1
-      xd(npd)=xcr(icrn)
-      yd(npd)=ycr(icrn)
-      free(icrn)=.false.
-      k=kib(icrn)
-      noc=noctab(k)
-      icrn=icrtab(k,noc)
+  !--------------------------------------------------------
+
+  !TODO:
+  !loop over tiles
+  !loop over cells in tile
+  !loop over levels
+  !rebuild in parallel (c.f. segment joining and fragment joining)
+  !rebuild inside the level loop avoids having to store all crossings for all levels 
+
+  !regardless of loop order,
+  !the shared write to storage (ncr, icrtab, noctab) probably causes lots idle threads
+
+  !looping over levels then cells since reconstruction is parallelised over field levels for now
+  !this loses the cache benefit of loading a chunk of corner values 
+  !and calculating the cell max/mins only once per level
+  if (levbeg .le. levend) then
+  do lev=levbeg, levend
+    ncr=0 !Counter for total number of grid line crossings
+    npe=0 !Counter for total number of open contours originating in an edge
+
+    !Initialise number of crossings per box:
+    do k=1,nxny
+      noctab(k)=0
     enddo
+    qtmp=(dble(lev)-f12)*dq-qoff !Contour level being sought
+    indq=lev-nlevm+(lev-1)/nlevm-1  !Integer index giving contour level
 
-     !Re-distribute nodes on this contour 3 times to reduce complexity:
-    if (timing_on) call timer_start(t9Start)
-    keep=.false.
-    do
-      call renode_closed(xd,yd,npd,xa(ibeg),ya(ibeg),npa(na))
-       !Delete contour if deemed too small (see renode_closed):
-      if (npa(na) .eq. 0) exit
-      call renode_closed(xa(ibeg),ya(ibeg),npa(na),xd,yd,npd)
-       !Delete contour if deemed too small (see renode_closed):
-      if (npd .eq. 0) exit
-      call renode_closed(xd,yd,npd,xa(ibeg),ya(ibeg),npa(na))
-       !Delete contour if deemed too small (see renode_closed):
-      if (npa(na) .eq. 0) exit
-       !Contour is big enough to keep:
-      keep=.true.
-      exit
-    enddo
+    do box_ID=1,nxny !grid boxes are numbered 1 (lower left) to nxu*nyu (upper right)
+      
+      !lower left corner is at coordinate (iy,ix)
+      iy=(box_ID-1)/nxu 
+      ix=mod(box_ID-1,nxu) 
 
-    if (keep) then 
-      npta=npta+npa(na)
-      iend=ibeg+npa(na)-1
-      i2a(na)=iend
-      do i=ibeg,iend-1
-        nextq(i)=i+1
-      enddo
-      nextq(iend)=ibeg
-    else
-      na=na-1
-    endif
+      !get corner values and note min and max
+      ll=qa(iy,ix)
+      ul=qa(iy+1,ix)
+      ur=qa(iy+1,ix+1)
+      lr=qa(iy,ix+1)
 
-    if (timing_on) call timer_stop(t9Start,t9End,t9Time,l9TotTime)
+      !get min and max of the corners
+      minVal=min(ll,ul,ur,lr)
+      maxVal=max(ll,ul,ur,lr)
 
-    free(icr)=.false.
-  endif
-enddo
-if (timing_on) call timer_stop(t8Start,t8End,t8Time,l8TotTime)
+      !loop over levels here when parallel rebuilding (per tile) is implemented
+        
+      !skip this level if it does not cross the cell
+      if ((qtmp .le. min(ll,ul,ur,lr)) .or. (qtmp .ge. max(ll,ul,ur,lr))) cycle
 
-enddo
-if (timing_on) call timer_stop(t0Start,t0End,t0Time,l0TotTime)
- !End of loop over contour levels
- !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+      !get marching squares case
+      ms_case = 0
+      if (ll >= qtmp) ms_case = ms_case + 1
+      if (ul >= qtmp) ms_case = ms_case + 2
+      if (ur >= qtmp) ms_case = ms_case + 4
+      if (lr >= qtmp) ms_case = ms_case + 8
+      !Using > condition: What happens at equality?
+
+      !disambiguate saddle cases (ms_case = 5 or 10) by using asymptotic decider
+      separated=0 !reset this for the cell
+      if (ms_case == 5 .or. ms_case == 10) then
+        discriminant = (ul-qtmp)*(lr-qtmp) - (ll-qtmp)*(ur-qtmp)
+        if (discriminant > 0) then !separated
+            separated=1
+        endif
+      endif
+
+      !calculate all interpolation points for this cell and level (some may not be needed but this minimises branching):
+      ! bottom: ll -> lr
+      dz = lr - ll
+      dz_safe = sign(max(abs(dz), eps), dz)
+      t_interp = (qtmp - ll) / dz_safe
+      x_b_interp = ix + t_interp
+      y_b_interp = iy
+
+      ! top: ul -> ur
+      dz = ur - ul
+      dz_safe = sign(max(abs(dz), eps), dz)
+      t_interp = (qtmp - ul) / dz_safe
+      x_t_interp = ix + t_interp
+      y_t_interp = iy + 1
+
+      ! left: ll -> ul
+      dz = ul - ll
+      dz_safe = sign(max(abs(dz), eps), dz)
+      t_interp = (qtmp - ll) / dz_safe
+      x_l_interp = ix
+      y_l_interp = iy + t_interp
+
+      ! right: lr -> ur
+      dz = ur - lr
+      dz_safe = sign(max(abs(dz), eps), dz)
+      t_interp = (qtmp - lr) / dz_safe
+      x_r_interp = ix + 1
+      y_r_interp = iy + t_interp
+
+      !lookup case to get edges that are crossed
+      do seg=1,nseg(ms_case)
+        edge1 = edge1_lookup(ms_case,separated,seg)
+        edge2 = edge2_lookup(ms_case,separated,seg)
+        
+        !get the coordinates of the crossing points for edge1 and edge2
+        select case(edge1)
+          case(BOTTOM)
+            x1 = x_b_interp
+            y1 = y_b_interp
+
+          case(TOP)
+            x1 = x_t_interp
+            y1 = y_t_interp
+
+          case(LEFT)
+            x1 = x_l_interp
+            y1 = y_l_interp
+
+          case(RIGHT)
+            x1 = x_r_interp
+            y1 = y_r_interp
+        end select
+
+        select case(edge2)
+          case(BOTTOM)
+            x2 = x_b_interp
+            y2 = y_b_interp
+
+          case(TOP)
+            x2 = x_t_interp
+            y2 = y_t_interp
+
+          case(LEFT)
+            x2 = x_l_interp
+            y2 = y_l_interp
+
+          case(RIGHT)
+            x2 = x_r_interp
+            y2 = y_r_interp
+        end select
+
+        !-------work on first crossing (edge1)
+        ncr = ncr + 1
+
+        !find the box the contour is coming out of (kob) given that it enters at edge1
+        select case(edge1)
+          case(BOTTOM)
+            kob = box_ID - nxu
+            if (kob < 1) then 
+              kob = 0 !contour is coming out of the boundary
+            endif
+
+          case(TOP)
+            kob = box_ID + nxu
+            if (kob > nxny) then 
+              kob = 0 !contour is coming out of the boundary
+            endif
+
+          case(LEFT)
+            kob = box_ID - 1 !if mod(box_ID, nxu) == 1 then box_ID is on the left edge
+            if (mod(box_ID, nxu) == 1) then
+              kob = box_ID + nxu - 1 !contour is wrapping around from right to left
+            endif
+
+          case(RIGHT)
+            kob = box_ID + 1
+            if (mod(box_ID, nxu) == 0) then
+              kob = box_ID - nxu + 1 !contour is wrapping around from left to right
+            endif
+
+        end select
+
+        !store crossing points and connectivity information
+        xcr(ncr) = x1
+        ycr(ncr) = y1
+        kib(ncr) = box_ID         
+        if (kob == 0) then
+          npe = npe + 1
+          icre(npe)=ncr
+        else
+          !if kob is zero then out of bounds for notcab and icrtab 
+          !& kob wasn't used in original ug2c closed crossing detection
+          noctab(kob)=noctab(kob)+1
+          icrtab(kob,noctab(kob))=ncr
+        endif
+
+
+        !-------work on second crossing (edge2)
+        ncr = ncr + 1
+
+        !find the box the contour is going into (kib) given that it leaves at edge2
+        select case(edge2)
+          case(BOTTOM)
+            kib(ncr) = box_ID - nxu
+            if (kib(ncr) < 1) then 
+              kib(ncr) = 0 !contour is going into the boundary
+            endif
+
+          case(TOP)
+            kib(ncr) = box_ID + nxu
+            if (kib(ncr) > nxny) then 
+              kib(ncr) = 0 !contour is going into the boundary
+            endif
+
+          case(LEFT)
+            kib(ncr) = box_ID - 1
+            if (mod(box_ID, nxu) == 1) then
+              kib(ncr) = box_ID + nxu - 1 !contour is wrapping around from left to right
+            endif
+
+          case(RIGHT)
+            kib(ncr) = box_ID + 1
+            if (mod(box_ID, nxu) == 0) then
+              kib(ncr) = box_ID - nxu + 1 !contour is wrapping around from right to left
+            endif
+            
+        end select
+
+        !store crossing points and connectivity information
+        xcr(ncr) = x2
+        ycr(ncr) = y2
+        kob = box_ID
+        noctab(kob)=noctab(kob)+1
+        icrtab(kob,noctab(kob))=ncr
+
+        !Now re-build contours:
+        do icr=1,ncr
+          free(icr)=.true.
+        enddo
+
+        !First deal with any open contours attached to boundaries:
+        if (npe .gt. 0) then
+          do ie=1,npe
+            !A new contour (indexed na) starts here:
+            na=na+1
+            inda(na)=indq
+            ibeg=npta+1
+            i1a(na)=ibeg
+
+            !The starting node on the contour (coming out of a boundary):
+            icr=icre(ie)
+
+            !First point on the contour:
+            npd=1
+            xd(1)=xcr(icr)
+            yd(1)=ycr(icr)
+
+            !Find remaining points on the contour:
+            k=kib(icr)
+            !k is the box the contour is entering (0 if going into a boundary)
+            do while (k .ne. 0)
+              noc=noctab(k)
+              !Use last crossing in this box (noc) as the next node:
+              icrn=icrtab(k,noc)
+              !icrn gives the next point after icr (icrn is leaving box k)
+              noctab(k)=noc-1
+              !noctab is usually zero now except for boxes with a
+              !maximum possible 2 crossings
+              npd=npd+1
+              !Coordinates of new node:
+              xd(npd)=xcr(icrn)
+              yd(npd)=ycr(icrn)
+              free(icrn)=.false.
+              k=kib(icrn)
+            enddo
+
+            !Re-distribute nodes on this contour 3 times to reduce complexity:
+            keep=.false.
+            do
+              call renode_open(xd,yd,npd,xa(ibeg),ya(ibeg),npa(na))
+              !Delete contour if deemed too small (see renode_open):
+              if (npa(na) .eq. 0) exit
+              call renode_open(xa(ibeg),ya(ibeg),npa(na),xd,yd,npd)
+              !Delete contour if deemed too small (see renode_open):
+              if (npd .eq. 0) exit
+              call renode_open(xd,yd,npd,xa(ibeg),ya(ibeg),npa(na))
+              !Delete contour if deemed too small (see renode_open):
+              if (npa(na) .eq. 0) exit
+              !Contour is big enough to keep:
+              keep=.true.
+              exit
+            enddo
+              
+            if (keep) then
+              npta=npta+npa(na)
+              iend=ibeg+npa(na)-1
+              i2a(na)=iend
+              do i=ibeg,iend-1
+                nextq(i)=i+1
+              enddo
+              nextq(iend)=0
+            else
+              na=na-1
+            endif
+
+            free(icr)=.false.
+          enddo
+        endif
+
+        !Next deal with remaining closed contours:
+        do icr=1,ncr
+          if (free(icr)) then
+            !A new contour (indexed na) starts here:
+            na=na+1
+            inda(na)=indq
+            ibeg=npta+1
+            i1a(na)=ibeg
+
+            !First point on the contour:
+            npd=1
+            xd(1)=xcr(icr)
+            yd(1)=ycr(icr)
+
+            !Find remaining points on the contour:
+            k=kib(icr)
+            !k is the box the contour is entering
+            noc=noctab(k)
+            !Use last crossing (noc) in this box (k) as the next node:
+            icrn=icrtab(k,noc)
+            !icrn gives the next point after icr (icrn is leaving box k)
+            do while (icrn .ne. icr)
+              noctab(k)=noc-1
+              !noctab is usually zero now except for boxes with a
+              !maximum possible 2 crossings
+              npd=npd+1
+              xd(npd)=xcr(icrn)
+              yd(npd)=ycr(icrn)
+              free(icrn)=.false.
+              k=kib(icrn)
+              noc=noctab(k)
+              icrn=icrtab(k,noc)
+            enddo
+
+            !Re-distribute nodes on this contour 3 times to reduce complexity:
+            keep=.false.
+            do
+              call renode_closed(xd,yd,npd,xa(ibeg),ya(ibeg),npa(na))
+              !Delete contour if deemed too small (see renode_closed):
+              if (npa(na) .eq. 0) exit
+              call renode_closed(xa(ibeg),ya(ibeg),npa(na),xd,yd,npd)
+              !Delete contour if deemed too small (see renode_closed):
+              if (npd .eq. 0) exit
+              call renode_closed(xd,yd,npd,xa(ibeg),ya(ibeg),npa(na))
+              !Delete contour if deemed too small (see renode_closed):
+              if (npa(na) .eq. 0) exit
+              !Contour is big enough to keep:
+              keep=.true.
+              exit
+            enddo
+
+            if (keep) then 
+              npta=npta+npa(na)
+              iend=ibeg+npa(na)-1
+              i2a(na)=iend
+              do i=ibeg,iend-1
+                nextq(i)=i+1
+              enddo
+              nextq(iend)=ibeg
+            else
+              na=na-1
+            endif
+
+            free(icr)=.false.
+          endif
+        enddo !closed contour ncr loop
+        
+      enddo !loop over segments in cell
+    enddo !loop over cells
+  enddo !loop over levels
 endif
-
-if (log_ugrid2con .and. saveTime) call write_ugrid2con_output(xa,ya,nextq,npta)
-
 return
 end subroutine
 
