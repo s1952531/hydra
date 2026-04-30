@@ -619,7 +619,7 @@ subroutine ugrid2con(dq,nextq)
   !variant is for the disambiguation of case 5/10's saddle point: separated or not
 
   integer:: ll, ul, ur, lr  !corner values
-  integer:: case, separated !these show which of the 15 cases (unambiguous saddle)
+  integer:: lev, levbeg, levend, box_ID, seg, ms_case, separated, edge1, edge2, kob !loop and lookup variables
   
   !the coordinates of the crossing point
   double precision:: x_b_interp, y_b_interp !at bottom edge
@@ -707,16 +707,16 @@ subroutine ugrid2con(dq,nextq)
       if ((qtmp .le. min(ll,ul,ur,lr)) .or. (qtmp .ge. max(ll,ul,ur,lr))) cycle
 
       !get marching squares case
-      case = 0
-      if (ll >= qtmp) case = case + 1
-      if (ul >= qtmp) case = case + 2
-      if (ur >= qtmp) case = case + 4
-      if (lr >= qtmp) case = case + 8
+      ms_case = 0
+      if (ll >= qtmp) ms_case = ms_case + 1
+      if (ul >= qtmp) ms_case = ms_case + 2
+      if (ur >= qtmp) ms_case = ms_case + 4
+      if (lr >= qtmp) ms_case = ms_case + 8
       !Using > condition: What happens at equality?
 
-      !disambiguate saddle cases (case = 5 or 10) by using asymptotic decider
+      !disambiguate saddle cases (ms_case = 5 or 10) by using asymptotic decider
       separated=0 !reset this for the cell
-      if (case == 5 .or. case == 10) then
+      if (ms_case == 5 .or. ms_case == 10) then
         discriminant = (ul-qtmp)*(lr-qtmp) - (ll-qtmp)*(ur-qtmp)
         if (discriminant > 0) then !separated
             separated=1
@@ -727,35 +727,35 @@ subroutine ugrid2con(dq,nextq)
       ! bottom: ll -> lr
       dz = lr - ll
       dz_safe = sign(max(abs(dz), eps), dz)
-      t_interp = (lev - ll) / dz_safe
+      t_interp = (qtmp - ll) / dz_safe
       x_b_interp = ix + t_interp
       y_b_interp = iy
 
       ! top: ul -> ur
       dz = ur - ul
       dz_safe = sign(max(abs(dz), eps), dz)
-      t_interp = (lev - ul) / dz_safe
+      t_interp = (qtmp - ul) / dz_safe
       x_t_interp = ix + t_interp
       y_t_interp = iy + 1
 
       ! left: ll -> ul
       dz = ul - ll
       dz_safe = sign(max(abs(dz), eps), dz)
-      t_interp = (lev - ll) / dz_safe
+      t_interp = (qtmp - ll) / dz_safe
       x_l_interp = ix
       y_l_interp = iy + t_interp
 
       ! right: lr -> ur
       dz = ur - lr
       dz_safe = sign(max(abs(dz), eps), dz)
-      t_interp = (lev - lr) / dz_safe
+      t_interp = (qtmp - lr) / dz_safe
       x_r_interp = ix + 1
       y_r_interp = iy + t_interp
 
       !lookup case to get edges that are crossed
-      do seg=1,nseg(case)
-        edge1 = edge1_lookup(case,separated,seg)
-        edge2 = edge2_lookup(case,separated,seg)
+      do seg=1,nseg(ms_case)
+        edge1 = edge1_lookup(ms_case,separated,seg)
+        edge2 = edge2_lookup(ms_case,separated,seg)
         
         !get the coordinates of the crossing points for edge1 and edge2
         select case(edge1)
@@ -809,11 +809,15 @@ subroutine ugrid2con(dq,nextq)
 
           case(LEFT)
             kob = box_ID - 1 !if mod(box_ID, nxu) == 1 then box_ID is on the left edge
-            if mod(box_ID, nxu) == 1 then kob = box_ID + nxu - 1 !contour is wrapping around from right to left
+            if (mod(box_ID, nxu) == 1) then
+              kob = box_ID + nxu - 1 !contour is wrapping around from right to left
+            endif
 
           case(RIGHT)
             kob = box_ID + 1
-            if mod(box_ID, nxu) == 0 then kob = box_ID - nxu + 1 !contour is wrapping around from left to right
+            if (mod(box_ID, nxu) == 0) then
+              kob = box_ID - nxu + 1 !contour is wrapping around from left to right
+            endif
 
         end select
 
@@ -847,19 +851,22 @@ subroutine ugrid2con(dq,nextq)
 
           case(LEFT)
             kib(ncr) = box_ID - 1
-            if (mod(box_ID, nxu) == 1) then kib(ncr) = box_ID + nxu - 1 !contour is wrapping around from left to right
+            if (mod(box_ID, nxu) == 1) then
+              kib(ncr) = box_ID + nxu - 1 !contour is wrapping around from left to right
+            endif
 
           case(RIGHT)
             kib(ncr) = box_ID + 1
-            if (mod(box_ID, nxu) == 0) then kib(ncr) = box_ID - nxu + 1 !contour is wrapping around from right to left
+            if (mod(box_ID, nxu) == 0) then
+              kib(ncr) = box_ID - nxu + 1 !contour is wrapping around from right to left
+            endif
             
         end select
 
         !store crossing points and connectivity information
         xcr(ncr) = x2
         ycr(ncr) = y2
-        kob = box_ID    
-        kib(ncr) = kib(ncr)     
+        kob = box_ID
         noctab(kob)=noctab(kob)+1
         icrtab(kob,noctab(kob))=ncr
 
