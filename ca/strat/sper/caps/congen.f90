@@ -801,11 +801,15 @@ subroutine ugrid2con(dq,nextq)
         select case(edge1)
           case(BOTTOM)
             kob = box_ID - nxu
-            if (kob < 1) then kob = 0 !contour is coming out of the boundary
+            if (kob < 1) then 
+              kob = 0 !contour is coming out of the boundary
+            endif
 
           case(TOP)
             kob = box_ID + nxu
-            if (kob > nxny) then kob = 0 !contour is coming out of the boundary
+            if (kob > nxny) then 
+              kob = 0 !contour is coming out of the boundary
+            endif
 
           case(LEFT)
             kob = box_ID - 1 !if mod(box_ID, nxu) == 1 then box_ID is on the left edge
@@ -843,11 +847,15 @@ subroutine ugrid2con(dq,nextq)
         select case(edge2)
           case(BOTTOM)
             kib(ncr) = box_ID - nxu
-            if (kib(ncr) < 1) then kib(ncr) = 0 !contour is going into the boundary
+            if (kib(ncr) < 1) then 
+              kib(ncr) = 0 !contour is going into the boundary
+            endif
 
           case(TOP)
             kib(ncr) = box_ID + nxu
-            if (kib(ncr) > nxny) then kib(ncr) = 0 !contour is going into the boundary
+            if (kib(ncr) > nxny) then 
+              kib(ncr) = 0 !contour is going into the boundary
+            endif
 
           case(LEFT)
             kib(ncr) = box_ID - 1
