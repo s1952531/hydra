@@ -618,7 +618,7 @@ subroutine ugrid2con(dq,nextq)
   integer :: edge2_lookup(0:15, 0:1, 2) !(case, variant, segment)
   !variant is for the disambiguation of case 5/10's saddle point: separated or not
 
-  integer:: ll, ul, ur, lr  !corner values
+  double precision:: ll, ul, ur, lr  !corner values
   integer:: lev, levbeg, levend, box_ID, seg, ms_case, separated, edge1, edge2, kob !loop and lookup variables
   
   !the coordinates of the crossing point
@@ -878,149 +878,151 @@ subroutine ugrid2con(dq,nextq)
         noctab(kob)=noctab(kob)+1
         icrtab(kob,noctab(kob))=ncr
 
-        !Now re-build contours:
-        do icr=1,ncr
-          free(icr)=.true.
+      enddo !end loop over segments in the cell
+
+    enddo !loop over cells
+    
+    !Now re-build contours:
+    do icr=1,ncr
+      free(icr)=.true.
+    enddo
+
+    !First deal with any open contours attached to boundaries:
+    if (npe .gt. 0) then
+      do ie=1,npe
+        !A new contour (indexed na) starts here:
+        na=na+1
+        inda(na)=indq
+        ibeg=npta+1
+        i1a(na)=ibeg
+
+        !The starting node on the contour (coming out of a boundary):
+        icr=icre(ie)
+
+        !First point on the contour:
+        npd=1
+        xd(1)=xcr(icr)
+        yd(1)=ycr(icr)
+
+        !Find remaining points on the contour:
+        k=kib(icr)
+        !k is the box the contour is entering (0 if going into a boundary)
+        do while (k .ne. 0)
+          noc=noctab(k)
+          !Use last crossing in this box (noc) as the next node:
+          icrn=icrtab(k,noc)
+          !icrn gives the next point after icr (icrn is leaving box k)
+          noctab(k)=noc-1
+          !noctab is usually zero now except for boxes with a
+          !maximum possible 2 crossings
+          npd=npd+1
+          !Coordinates of new node:
+          xd(npd)=xcr(icrn)
+          yd(npd)=ycr(icrn)
+          free(icrn)=.false.
+          k=kib(icrn)
         enddo
 
-        !First deal with any open contours attached to boundaries:
-        if (npe .gt. 0) then
-          do ie=1,npe
-            !A new contour (indexed na) starts here:
-            na=na+1
-            inda(na)=indq
-            ibeg=npta+1
-            i1a(na)=ibeg
-
-            !The starting node on the contour (coming out of a boundary):
-            icr=icre(ie)
-
-            !First point on the contour:
-            npd=1
-            xd(1)=xcr(icr)
-            yd(1)=ycr(icr)
-
-            !Find remaining points on the contour:
-            k=kib(icr)
-            !k is the box the contour is entering (0 if going into a boundary)
-            do while (k .ne. 0)
-              noc=noctab(k)
-              !Use last crossing in this box (noc) as the next node:
-              icrn=icrtab(k,noc)
-              !icrn gives the next point after icr (icrn is leaving box k)
-              noctab(k)=noc-1
-              !noctab is usually zero now except for boxes with a
-              !maximum possible 2 crossings
-              npd=npd+1
-              !Coordinates of new node:
-              xd(npd)=xcr(icrn)
-              yd(npd)=ycr(icrn)
-              free(icrn)=.false.
-              k=kib(icrn)
-            enddo
-
-            !Re-distribute nodes on this contour 3 times to reduce complexity:
-            keep=.false.
-            do
-              call renode_open(xd,yd,npd,xa(ibeg),ya(ibeg),npa(na))
-              !Delete contour if deemed too small (see renode_open):
-              if (npa(na) .eq. 0) exit
-              call renode_open(xa(ibeg),ya(ibeg),npa(na),xd,yd,npd)
-              !Delete contour if deemed too small (see renode_open):
-              if (npd .eq. 0) exit
-              call renode_open(xd,yd,npd,xa(ibeg),ya(ibeg),npa(na))
-              !Delete contour if deemed too small (see renode_open):
-              if (npa(na) .eq. 0) exit
-              !Contour is big enough to keep:
-              keep=.true.
-              exit
-            enddo
-              
-            if (keep) then
-              npta=npta+npa(na)
-              iend=ibeg+npa(na)-1
-              i2a(na)=iend
-              do i=ibeg,iend-1
-                nextq(i)=i+1
-              enddo
-              nextq(iend)=0
-            else
-              na=na-1
-            endif
-
-            free(icr)=.false.
+        !Re-distribute nodes on this contour 3 times to reduce complexity:
+        keep=.false.
+        do
+          call renode_open(xd,yd,npd,xa(ibeg),ya(ibeg),npa(na))
+          !Delete contour if deemed too small (see renode_open):
+          if (npa(na) .eq. 0) exit
+          call renode_open(xa(ibeg),ya(ibeg),npa(na),xd,yd,npd)
+          !Delete contour if deemed too small (see renode_open):
+          if (npd .eq. 0) exit
+          call renode_open(xd,yd,npd,xa(ibeg),ya(ibeg),npa(na))
+          !Delete contour if deemed too small (see renode_open):
+          if (npa(na) .eq. 0) exit
+          !Contour is big enough to keep:
+          keep=.true.
+          exit
+        enddo
+          
+        if (keep) then
+          npta=npta+npa(na)
+          iend=ibeg+npa(na)-1
+          i2a(na)=iend
+          do i=ibeg,iend-1
+            nextq(i)=i+1
           enddo
+          nextq(iend)=0
+        else
+          na=na-1
         endif
 
-        !Next deal with remaining closed contours:
-        do icr=1,ncr
-          if (free(icr)) then
-            !A new contour (indexed na) starts here:
-            na=na+1
-            inda(na)=indq
-            ibeg=npta+1
-            i1a(na)=ibeg
+        free(icr)=.false.
+      enddo
+    endif
 
-            !First point on the contour:
-            npd=1
-            xd(1)=xcr(icr)
-            yd(1)=ycr(icr)
+    !Next deal with remaining closed contours:
+    do icr=1,ncr
+      if (free(icr)) then
+        !A new contour (indexed na) starts here:
+        na=na+1
+        inda(na)=indq
+        ibeg=npta+1
+        i1a(na)=ibeg
 
-            !Find remaining points on the contour:
-            k=kib(icr)
-            !k is the box the contour is entering
-            noc=noctab(k)
-            !Use last crossing (noc) in this box (k) as the next node:
-            icrn=icrtab(k,noc)
-            !icrn gives the next point after icr (icrn is leaving box k)
-            do while (icrn .ne. icr)
-              noctab(k)=noc-1
-              !noctab is usually zero now except for boxes with a
-              !maximum possible 2 crossings
-              npd=npd+1
-              xd(npd)=xcr(icrn)
-              yd(npd)=ycr(icrn)
-              free(icrn)=.false.
-              k=kib(icrn)
-              noc=noctab(k)
-              icrn=icrtab(k,noc)
-            enddo
+        !First point on the contour:
+        npd=1
+        xd(1)=xcr(icr)
+        yd(1)=ycr(icr)
 
-            !Re-distribute nodes on this contour 3 times to reduce complexity:
-            keep=.false.
-            do
-              call renode_closed(xd,yd,npd,xa(ibeg),ya(ibeg),npa(na))
-              !Delete contour if deemed too small (see renode_closed):
-              if (npa(na) .eq. 0) exit
-              call renode_closed(xa(ibeg),ya(ibeg),npa(na),xd,yd,npd)
-              !Delete contour if deemed too small (see renode_closed):
-              if (npd .eq. 0) exit
-              call renode_closed(xd,yd,npd,xa(ibeg),ya(ibeg),npa(na))
-              !Delete contour if deemed too small (see renode_closed):
-              if (npa(na) .eq. 0) exit
-              !Contour is big enough to keep:
-              keep=.true.
-              exit
-            enddo
+        !Find remaining points on the contour:
+        k=kib(icr)
+        !k is the box the contour is entering
+        noc=noctab(k)
+        !Use last crossing (noc) in this box (k) as the next node:
+        icrn=icrtab(k,noc)
+        !icrn gives the next point after icr (icrn is leaving box k)
+        do while (icrn .ne. icr)
+          noctab(k)=noc-1
+          !noctab is usually zero now except for boxes with a
+          !maximum possible 2 crossings
+          npd=npd+1
+          xd(npd)=xcr(icrn)
+          yd(npd)=ycr(icrn)
+          free(icrn)=.false.
+          k=kib(icrn)
+          noc=noctab(k)
+          icrn=icrtab(k,noc)
+        enddo
 
-            if (keep) then 
-              npta=npta+npa(na)
-              iend=ibeg+npa(na)-1
-              i2a(na)=iend
-              do i=ibeg,iend-1
-                nextq(i)=i+1
-              enddo
-              nextq(iend)=ibeg
-            else
-              na=na-1
-            endif
+        !Re-distribute nodes on this contour 3 times to reduce complexity:
+        keep=.false.
+        do
+          call renode_closed(xd,yd,npd,xa(ibeg),ya(ibeg),npa(na))
+          !Delete contour if deemed too small (see renode_closed):
+          if (npa(na) .eq. 0) exit
+          call renode_closed(xa(ibeg),ya(ibeg),npa(na),xd,yd,npd)
+          !Delete contour if deemed too small (see renode_closed):
+          if (npd .eq. 0) exit
+          call renode_closed(xd,yd,npd,xa(ibeg),ya(ibeg),npa(na))
+          !Delete contour if deemed too small (see renode_closed):
+          if (npa(na) .eq. 0) exit
+          !Contour is big enough to keep:
+          keep=.true.
+          exit
+        enddo
 
-            free(icr)=.false.
-          endif
-        enddo !closed contour ncr loop
-        
-      enddo !loop over segments in cell
-    enddo !loop over cells
+        if (keep) then 
+          npta=npta+npa(na)
+          iend=ibeg+npa(na)-1
+          i2a(na)=iend
+          do i=ibeg,iend-1
+            nextq(i)=i+1
+          enddo
+          nextq(iend)=ibeg
+        else
+          na=na-1
+        endif
+
+        free(icr)=.false.
+      endif
+    enddo !closed contour ncr loop
+      
   enddo !loop over levels
 endif
 return
