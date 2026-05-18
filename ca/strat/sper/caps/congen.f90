@@ -9,6 +9,8 @@ module congen
 
 use common
 use generic
+use timing
+use omp_lib
 
 implicit none
 
@@ -695,17 +697,27 @@ subroutine ugrid2con(dq,nextq)
 
   integer,parameter:: nxny=nxu*nyu, koff=nxu*(nyu-1)
 
-  double precision:: ycr(ncrm),xcr(ncrm)
+  double precision:: ycr_global(ncrm),xcr_global(ncrm)
   double precision:: qdx(0:nxu),qdy(0:nyu)
   double precision:: xd(nprm),yd(nprm)
   integer:: isx(0:nxu),isy(0:nyu)
-  integer:: kib(ncrm),icre(nm)
+  ! integer:: kib(ncrm),icre(nm)
   integer:: icrtab(nxny,2)
   integer*1:: noctab(nxny)
   logical:: free(ncrm),keep
-  logical:: is_open
 
   !end original ug2c definitions
+  integer:: icrtab_global(nxny,2)
+  integer:: icrtab_threadID(nxny,2)
+  integer:: icrtab_local_ncr(nxny,2)
+  integer, allocatable:: ncr_offset(:)
+  !do i need an npe offset too?
+
+  integer:: kib_global(ncrm),icre_global(nm)
+  !integer:: icrtab_global(nxny,2)
+  !integer*1:: noctab_global(nxny)
+
+  integer:: ixp1
 
   !lookup tables
   integer :: nseg(0:15) !the number of segments in each case
@@ -736,6 +748,46 @@ subroutine ugrid2con(dq,nextq)
   !interpolation definitions
   double precision :: dz, dz_safe, t_interp
   double precision, parameter :: eps = 1.0e-12
+
+  !omp variables
+  integer :: thread_id, num_threads, thread_max_ncr, thread_max_npe
+  integer, allocatable:: ncr_thread_list(:)  !thread_id
+  integer, allocatable:: npe_thread_list(:)  !thread_id
+  integer, allocatable:: icre_thread_list(:, :)  !npe, thread_id
+  double precision, allocatable:: xcr_thread_list(:, :)   !ncr, thread_id
+  double precision, allocatable:: ycr_thread_list(:, :)   !ncr, thread_id
+  integer, allocatable:: kib_thread_list(:, :)   !ncr, thread_id
+
+  !thread local versions of global arrays limit large memory copies
+  integer:: ncr, npe
+  !integer, allocatable:: noctab(:), icrtab(:,:)
+  integer, allocatable:: kib(:),icre(:)
+  double precision:: ycr(ncrm),xcr(ncrm)
+  double precision:: u2cParStart,u2cParEnd,u2cParTime
+  double precision:: u2cMasterStart,u2cMasterEnd,u2cMasterTime
+  double precision:: u2cRebuildStart,u2cRebuildEnd,u2cRebuildTime
+  !kib, icre
+
+  !get omp_get_max_threads() and allocate
+  num_threads = omp_get_max_threads()
+  if (num_threads .lt. 1) then
+    num_threads = 1
+  endif
+
+  ! write(*,*) 'DEBUG omp_get_max_threads()=', omp_get_max_threads()
+
+  allocate(ncr_offset(num_threads))
+
+  !worst case there are 2 crossings per box
+  thread_max_ncr = ncrm!/num_threads
+  thread_max_npe = nm!/num_threads
+
+  allocate(ncr_thread_list(num_threads))
+  allocate(npe_thread_list(num_threads))
+  allocate(icre_thread_list(thread_max_npe, num_threads))
+  allocate(xcr_thread_list(thread_max_ncr, num_threads))
+  allocate(ycr_thread_list(thread_max_ncr, num_threads))
+  allocate(kib_thread_list(thread_max_ncr, num_threads))
 
   !Saddle point ambiguity terminology:
   !marked = point is above the contour level
@@ -794,8 +846,8 @@ subroutine ugrid2con(dq,nextq)
   if (levbeg .le. levend) then
   do lev=levbeg, levend
 
-    ncr=0 !Counter for total number of grid line crossings
-    npe=0 !Counter for total number of open contours originating in an edge
+    ! ncr=0 !Counter for total number of grid line crossings
+    ! npe=0 !Counter for total number of open contours originating in an edge
 
     !Initialise number of crossings per box:
     do k=1,nxny
@@ -823,17 +875,89 @@ subroutine ugrid2con(dq,nextq)
 
     ! write(*,*) 'DEBUG level start:', 'lev=', lev, 'qtmp=', qtmp, 'indq=', indq
 
+    !zero icrtab from previous level
+    icrtab_global=0
+    icrtab_threadID=0
+    icrtab_local_ncr=0
+
+    !zero per-thread counters and thread-local storage from previous level
+    if (allocated(ncr_thread_list)) then
+      ncr_thread_list = 0
+    endif
+    if (allocated(npe_thread_list)) then
+      npe_thread_list = 0
+    endif
+    if (allocated(ncr_offset)) then
+      ncr_offset = 0
+    endif
+    if (allocated(icre_thread_list)) then
+      icre_thread_list = 0
+    endif
+    if (allocated(kib_thread_list)) then
+      kib_thread_list = 0
+    endif
+    if (allocated(xcr_thread_list)) then
+      xcr_thread_list = 0.0d0
+    endif
+    if (allocated(ycr_thread_list)) then
+      ycr_thread_list = 0.0d0
+    endif
+
+    if (timing_on) call timer_start(u2cParStart)
+
+    !$OMP PARALLEL DEFAULT(NONE) &
+    !$OMP PRIVATE(box_ID, iy, ix, ixp1, &
+    !$OMP         ll, ul, ur, lr, minVal, maxVal, ms_case, separated, &
+    !$OMP         dz, dz_safe, t_interp, &
+    !$OMP         x_b_interp, y_b_interp, &
+    !$OMP         x_t_interp, y_t_interp, &
+    !$OMP         x_l_interp, y_l_interp, &
+    !$OMP         x_r_interp, y_r_interp, &
+    !$OMP         ncr, npe, &
+    !$OMP         kob, kib, icre, ycr, xcr, &
+    !$OMP         seg, edge1, edge2, x1, y1, x2, y2, &
+    !$OMP         thread_id) &
+    !$OMP SHARED(qtmp, qa, xgu, ygu, &
+    !$OMP        nseg, edge1_lookup, edge2_lookup, &
+    !$OMP        kib_thread_list,  kib_global, &
+    !$OMP        icre_thread_list, icre_global, &
+    !$OMP        ycr_thread_list,  ycr_global, &
+    !$OMP        xcr_thread_list,  xcr_global, &
+    !$OMP        ncr_thread_list,  ncr_global, &
+    !$OMP        npe_thread_list,  npe_global, &
+    !$OMP        noctab, &
+    !$OMP        icrtab_global, icrtab_threadID, icrtab_local_ncr, &
+    !$OMP        num_threads, thread_max_ncr, thread_max_npe, ncr_offset, &
+    !$OMP        u2cMasterStart,u2cMasterEnd,u2cMasterTime,u2cMasterTotTime, timing_on)
+
+    !allocate(noctab(nxny))!/num_threads)) !if indexed using box_ID then would be out of range for nxny/num_threads
+    !allocate(icrtab(nxny), 2)!/num_threads,2))
+
+    !deallocate from previous level
+    if (allocated(kib)) deallocate(kib)
+    if (allocated(icre)) deallocate(icre)
+
+    allocate(kib(ncrm))!thread_max_ncr))
+    allocate(icre(nm))!thread_max_npe))
+
+    ncr = 0
+    npe = 0
+
+    thread_id = omp_get_thread_num() + 1 !for 1-based indexing of thread_id
+
+    !$OMP DO SCHEDULE(auto)
     do box_ID=1,nxny !grid boxes are numbered 1 (lower left) to nxu*nyu (upper right)
 
       !lower left corner has indices (iy,ix) and is at coords xgu(ix), ygu(iy)
       iy=(box_ID-1)/nxu
       ix=mod(box_ID-1,nxu)
+      ixp1=mod(ix+1, nxu)
 
       !get corner values and note min and max
       ll=qa(iy,ix)
       ul=qa(iy+1,ix)
-      ur=qa(iy+1,ix+1)
-      lr=qa(iy,ix+1)
+      ur=qa(iy+1,ixp1)
+      lr=qa(iy,ixp1)
 
       !get min and max of the corners
       minVal=min(ll,ul,ur,lr)
@@ -855,6 +979,8 @@ subroutine ugrid2con(dq,nextq)
 
       !if ms_case is 0 or 15 then there are no crossings i.e. nseg=0 so the loop is skipped and we move to the next cell.
       if (ms_case == 0 .or. ms_case == 15) cycle
+
+      ! !$OMP CRITICAL
 
       !disambiguate saddle cases (ms_case = 5 or 10) by using asymptotic decider
       !note, edge-based re-build cannot actually utilise this at the moment hence commented out
@@ -895,7 +1021,7 @@ subroutine ugrid2con(dq,nextq)
       dz = ur - lr
       dz_safe = sign(max(abs(dz), eps), dz)
       t_interp = (qtmp - lr) / dz_safe
-      x_r_interp = xgu(ix+1)
+      x_r_interp = xgu(ixp1)
       y_r_interp = ygu(iy) + t_interp*glyu
 
       !lookup case to get edges that are crossed
@@ -998,10 +1124,6 @@ subroutine ugrid2con(dq,nextq)
         !   icrtab(kob,noctab(kob))=ncr
         ! endif
 
-        ! if ((box_ID .eq. 3837947) .or. (box_ID .eq. 3837948) .or. (box_ID .eq. 3837949) .or. (box_ID .eq. 3829757)) then
-        !   write (*,*) 'DEBUG ', 'kib= ', kib(ncr), 'kob= ', kob, 'at crossing coords: ', '(', x1, ',', y1, ')', ' on edge1= ', edge1
-        ! endif
-
         ! ------- boundary box entry storage since generally storing exits only
 
         !if box on top row (box_ID > koff) need to store entry at top
@@ -1033,8 +1155,13 @@ subroutine ugrid2con(dq,nextq)
           xcr(ncr) = x1
           ycr(ncr) = y1
           kib(ncr) = box_ID
+
+          ! !$OMP ATOMIC
+          !$OMP CRITICAL
           noctab(kob)=noctab(kob)+1
-          icrtab(kob,noctab(kob))=ncr
+          icrtab_local_ncr(kob,noctab(kob))=ncr
+          icrtab_threadID(kob,noctab(kob))=thread_id
+          !$OMP END CRITICAL
         endif
 
         !if box on right column (mod(box_ID, nxu) == 0) need to store entry at right
@@ -1044,8 +1171,13 @@ subroutine ugrid2con(dq,nextq)
           xcr(ncr) = x1
           ycr(ncr) = y1
           kib(ncr) = box_ID
+
+          ! !$OMP ATOMIC
+          !$OMP CRITICAL
           noctab(kob)=noctab(kob)+1
-          icrtab(kob,noctab(kob))=ncr
+          icrtab_local_ncr(kob,noctab(kob))=ncr
+          icrtab_threadID(kob,noctab(kob))=thread_id
+          !$OMP END CRITICAL
         endif
 
         ! -------work on second (exit) crossing (edge2)
@@ -1083,10 +1215,26 @@ subroutine ugrid2con(dq,nextq)
         xcr(ncr) = x2
         ycr(ncr) = y2
         kob = box_ID
-        noctab(kob)=noctab(kob)+1
 
-        !original store/build order:
-        icrtab(kob,noctab(kob))=ncr
+        !contention is on left and right boundary boxes so if box being processed is there do critical else parallel update of noctab and icrtab
+        if (mod(box_ID, nxu) == 1 .or. mod(box_ID, nxu) == 0) then
+          !$OMP CRITICAL
+          noctab(kob)=noctab(kob)+1
+
+          !original store/build order:
+          !icrtab(kob,noctab(kob))=ncr
+          icrtab_local_ncr(kob,noctab(kob))=ncr
+          icrtab_threadID(kob,noctab(kob))=thread_id
+          !$OMP END CRITICAL
+        else
+          noctab(kob)=noctab(kob)+1
+
+          !original store/build order:
+          !icrtab(kob,noctab(kob))=ncr
+          icrtab_local_ncr(kob,noctab(kob))=ncr
+          icrtab_threadID(kob,noctab(kob))=thread_id
+        endif
+
 
         !opposite (of original) store/build order if box is ambiguous (case 5 or 10)
         ! if (ms_case == 5 .or. ms_case == 10) then
@@ -1103,12 +1251,126 @@ subroutine ugrid2con(dq,nextq)
         !for a given separation: the first entry edge encountered during build traversal determines which exit should be first used
 
       enddo !end loop over segments in the cell
-
+      ! !$OMP END CRITICAL
     enddo !loop over cells
+    !$OMP END DO
+
+    !store thread-local crossing data into shared arrays
+    ncr_thread_list(thread_id) = ncr
+    npe_thread_list(thread_id) = npe
+    icre_thread_list(:, thread_id) = icre(:)
+    xcr_thread_list(:, thread_id) = xcr(:)
+    ycr_thread_list(:, thread_id) = ycr(:)
+    kib_thread_list(:, thread_id) = kib(:)
+
+    !ensure all threads have stored their data before MASTER thread gathers
+    !$OMP BARRIER
+
+    !$OMP MASTER
+    !gather thread data into global storage
+    
+     !FYI:
+      ! ncr 	  (global crossing ID)
+      ! icrtab  ({box ID, box local crossing ID} -> global crossing ID. Maximum 2 crossings per box)
+      ! noctab  (box ID -> total crossings in box)
+      ! kib	    (global crossing ID -> box ID of that being entered after the given global crossing ID)
+      ! xcr	    (x coord of crossing)
+      ! ycr	    (y coord of crossing)
+      ! npe	    (Counter for total number of open contours originating in an edge)
+      ! icre	  (open contour ID -> global crossing ID of its first crossing)
+
+    !check if num_threads = omp_get_num_threads()
+    if (num_threads /= omp_get_num_threads()) then
+      write(*,*) 'ERROR: num_threads=', num_threads, ' does not match omp_get_num_threads()=', omp_get_num_threads()
+    endif
+
+    if (timing_on) call timer_start(u2cMasterStart)
+    !combine thread-local crossing data into shared arrays (serial section)
+    ncr_global = 0
+    npe_global = 0
+
+    !calc ncr_offset for each thread to know where its local ncr fits into global
+    ncr_offset(1)=0
+    do i=2,num_threads
+      ncr_offset(i) = ncr_offset(i-1) + ncr_thread_list(i-1)
+    enddo
+
+    !for each thread, i
+    do i=1,num_threads
+      !for each crossing, j, recorded by this thread, copy from thread-local arrays to global arrays
+      do j=1,ncr_thread_list(i)
+        ncr_global = ncr_global + 1
+        xcr_global(ncr_global) = xcr_thread_list(j, i)
+        ycr_global(ncr_global) = ycr_thread_list(j, i)
+        kib_global(ncr_global) = kib_thread_list(j, i)
+      enddo
+
+      do j=1,npe_thread_list(i)
+        npe_global = npe_global + 1
+        icre_global(npe_global) = icre_thread_list(j, i) + ncr_offset(i)
+      enddo
+    enddo
+
+    do i=1,nxny
+      do j=1,2
+        thread_id = icrtab_threadID(i,j)
+        if (thread_id .ge. 1) then !if there was a crossing, combine into icrtab
+          ! write(*,*) 'DEBUG icrtab entry for box', i, 'slot', j, 'thread_id=', thread_id, &
+          !             'local_ncr=', icrtab_local_ncr(i,j), 'ncr_offset=', ncr_offset(thread_id)
+          icrtab_global(i,j) = icrtab_local_ncr(i,j) + ncr_offset(thread_id)
+        endif
+      enddo
+    enddo
+    !----- Basic bounds checks after MASTER gather to catch corruption early -----
+
+    !print the ncr_offsets
+    ! do i=1,num_threads
+    !   write(*,*) 'DEBUG ncr_offset for thread', i, '=', ncr_offset(i)
+    ! enddo
+    
+    ! do ie=1,npe_global
+    !   if (icre_global(ie) < 1 .or. icre_global(ie) > ncr_global) then
+    !     write(*,*) 'ERROR: icre_global out of range after gather:', &
+    !                 'ie=', ie, 'icre=', icre_global(ie), 'ncr_global=', ncr_global
+    !     stop 1
+    !   endif
+    ! enddo
+
+    ! do icr=1,ncr_global
+    !   if (kib_global(icr) < 0 .or. kib_global(icr) > nxny) then
+    !     write(*,*) 'ERROR: kib_global out of range after gather:', &
+    !                 'icr=', icr, 'kib=', kib_global(icr), 'nxny=', nxny
+    !     stop 1
+    !   endif
+    ! enddo
+
+    ! do i=1,nxny
+    !   do j=1,2
+    !     if (icrtab_global(i,j) .ne. 0) then
+    !       if (icrtab_global(i,j) < 1 .or. icrtab_global(i,j) > ncr_global) then
+    !         write(*,*) 'ERROR: icrtab_global out of range after gather:', &
+    !                     'box=', i, 'slot=', j, 'icrtab=', icrtab_global(i,j), 'ncr=', ncr_global
+    !         stop 1
+    !       endif
+    !     endif
+    !   enddo
+    ! enddo
+
+    if (timing_on) call timer_stop(u2cMasterStart,u2cMasterEnd,u2cMasterTime,u2cMasterTotTime)
+    !$OMP END MASTER
+
+    !$OMP END PARALLEL
+
+    if (timing_on) call timer_stop(u2cParStart,u2cParEnd,u2cParTime,u2cParTotTime)
+
+    !this saves renaming *_global below
+    npe = npe_global
+    ncr = ncr_global
 
     ! write(*,*) 'DEBUG level sweep done:', 'lev=', lev, 'ncr=', ncr, 'npe=', npe
 
     !Now re-build contours:
+    if (timing_on) call timer_start(u2cRebuildStart)
     do icr=1,ncr
       free(icr)=.true.
     enddo
@@ -1123,34 +1385,34 @@ subroutine ugrid2con(dq,nextq)
         i1a(na)=ibeg
 
         !The starting node on the contour (coming out of a boundary):
-        icr=icre(ie)
+        icr=icre_global(ie)
 
         ! write(*,*) 'DEBUG open contour start:', 'lev=', lev, 'ie=', ie, 'icr=', icr, &
-        !      'x=', xcr(icr), 'y=', ycr(icr), 'kib=', kib(icr)
+        !      'x=', xcr_global(icr), 'y=', ycr_global(icr), 'kib=', kib_global(icr)
 
         !First point on the contour:
         npd=1
-        xd(1)=xcr(icr)
-        yd(1)=ycr(icr)
+        xd(1)=xcr_global(icr)
+        yd(1)=ycr_global(icr)
 
         !Find remaining points on the contour:
-        k=kib(icr)
+        k=kib_global(icr)
         !k is the box the contour is entering (0 if going into a boundary)
         do while (k .ne. 0)
           noc=noctab(k)
           !Use last crossing in this box (noc) as the next node:
-          icrn=icrtab(k,noc)
+          icrn=icrtab_global(k,noc)
           !icrn gives the next point after icr (icrn is leaving box k)
           noctab(k)=noc-1
           !noctab is usually zero now except for boxes with a
           !maximum possible 2 crossings
           npd=npd+1
           !Coordinates of new node:
-          xd(npd)=xcr(icrn)
-          yd(npd)=ycr(icrn)
-          ! write(*,*) 'DEBUG open contour coord', 'x=', xcr(icrn), 'y=', ycr(icrn)
+          xd(npd)=xcr_global(icrn)
+          yd(npd)=ycr_global(icrn)
+          ! write(*,*) 'DEBUG open contour coord', 'x=', xcr_global(icrn), 'y=', ycr_global(icrn)
           free(icrn)=.false.
-          k=kib(icrn)
+          k=kib_global(icrn)
         enddo
 
         ! write(*,*) 'DEBUG open contour before re-node:', 'lev=', lev, 'ie=', ie, 'icr=', icr, &
@@ -1200,60 +1462,56 @@ subroutine ugrid2con(dq,nextq)
 
         !First point on the contour:
         npd=1
-        xd(1)=xcr(icr)
-        yd(1)=ycr(icr)
+        xd(1)=xcr_global(icr)
+        yd(1)=ycr_global(icr)
 
         ! write(*,*) 'DEBUG closed contour start:', 'lev=', lev, 'icr=', icr, &
-        !      'x=', xcr(icr), 'y=', ycr(icr), 'kib=', kib(icr)
+        !      'x=', xcr_global(icr), 'y=', ycr_global(icr), 'kib=', kib_global(icr)
 
         !Find remaining points on the contour:
-        k=kib(icr)
+        k=kib_global(icr)
         !k is the box the contour is entering
-        if (k < 1 .or. k > nxny) then
-          write(*,*) 'DEBUG closed start k out of range:', 'lev=', lev, 'icr=', icr, &
-                     'k=', k, 'kib=', kib(icr), 'ncr=', ncr
-          stop 1
-        endif
+        ! if (k < 1 .or. k > nxny) then
+        !   write(*,*) 'DEBUG closed start k out of range:', 'lev=', lev, 'icr=', icr, &
+        !              'k=', k, 'kib=', kib_global(icr), 'ncr=', ncr
+        !   stop 1
+        ! endif
         noc=noctab(k)
-        if (noc < 1 .or. noc > 2) then
-          write(*,*) 'DEBUG closed noc out of range:', 'lev=', lev, 'icr=', icr, &
-                     'k=', k, 'noc=', int(noc), 'noctab=', int(noctab(k)), &
-                     'icrtab1=', icrtab(k,1), 'icrtab2=', icrtab(k,2), 'ncr=', ncr
-          stop 1
-        endif
+        ! if (noc < 1 .or. noc > 2) then
+        !   write(*,*) 'DEBUG closed noc out of range:', 'lev=', lev, 'icr=', icr, &
+        !              'k=', k, 'noc=', int(noc), 'noctab=', int(noctab(k)), &
+        !              'icrtab1=', icrtab_global(k,1), 'icrtab2=', icrtab_global(k,2), 'ncr=', ncr
+        !   stop 1
+        ! endif
         !Use last crossing (noc) in this box (k) as the next node:
-        icrn=icrtab(k,noc)
-
+        icrn=icrtab_global(k,noc)
         !icrn gives the next point after icr (icrn is leaving box k)
         do while (icrn .ne. icr)
-          ! write(*,*) 'DEBUG :', 'lev=', lev, 'icr=', icr, 'k=', k, &
-          !            'noc=', int(noc), 'icrn=', icrn, 'next_k=', kib(icrn), &
-          !            'noctab_next=', int(noctab(kib(icrn))), 'ncr=', ncr
           noctab(k)=noc-1
           !noctab is usually zero now except for boxes with a
           !maximum possible 2 crossings
           npd=npd+1
-          xd(npd)=xcr(icrn)
-          yd(npd)=ycr(icrn)
-          ! write(*,*) 'DEBUG closed contour coord', 'x=', xcr(icrn), 'y=', ycr(icrn)
+          xd(npd)=xcr_global(icrn)
+          yd(npd)=ycr_global(icrn)
+          ! write(*,*) 'DEBUG closed contour coord', 'x=', xcr_global(icrn), 'y=', ycr_global(icrn)
 
           free(icrn)=.false.
-          ! if (kib(icrn) == 0) then
-          !   write(*,*) 'DEBUG closed boundary transition:', 'lev=', lev, 'icr=', icr, &
-          !              'k=', k, 'noc=', int(noc), 'icrn=', icrn, 'x=', xcr(icrn), &
-          !              'y=', ycr(icrn), 'box1=', icrtab(k,1), 'box2=', icrtab(k,2)
-          !   write(*,*) 'DEBUG ', 'k=', k, 'mod(k, nxu)= ', mod(k, nxu), 'k/nxu=', k/nxu, 'nxu=', nxu, 'nyu=', nyu
+          k=kib_global(icrn)
+          ! if (k < 1 .or. k > nxny) then
+          !   write(*,*) 'DEBUG closed hop k out of range:', 'lev=', lev, 'icr=', icr, &
+          !              'icrn=', icrn, 'k=', k, 'ncr=', ncr
+          !   write(*,*) 'DEBUG ', 'noc=', int(noc), 'icrn=', icrn
+          !   stop 1
           ! endif
-          k=kib(icrn)
-          if (k < 1 .or. k > nxny) then
-            write(*,*) 'DEBUG closed hop k out of range:', 'lev=', lev, 'icr=', icr, &
-                       'icrn=', icrn, 'k=', k, 'ncr=', ncr
-            write(*,*) 'DEBUG ', 'noc=', int(noc), 'icrn=', icrn
-            stop 1
-          endif
 
           noc=noctab(k)
-          icrn=icrtab(k,noc)
+          ! if (noc < 1 .or. noc > 2) then
+          !   write(*,*) 'DEBUG closed noc out of range:', 'lev=', lev, 'icr=', icr, &
+          !             'k=', k, 'noc=', int(noc), 'noctab=', int(noctab(k)), &
+          !             'icrtab1=', icrtab_global(k,1), 'icrtab2=', icrtab_global(k,2), 'ncr=', ncr
+          !   stop 1
+          ! endif
+          icrn=icrtab_global(k,noc)
         enddo
 
         ! write(*,*) 'DEBUG closed contour before re-node:', 'lev=', lev, 'icr=', icr, &
@@ -1291,6 +1549,7 @@ subroutine ugrid2con(dq,nextq)
         free(icr)=.false.
       endif
     enddo !closed contour ncr loop
+    if (timing_on) call timer_stop(u2cRebuildStart,u2cRebuildEnd,u2cRebuildTime,u2cRebuildTotTime)
   enddo !loop over levels
 endif
 return

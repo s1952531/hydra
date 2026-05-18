@@ -16,6 +16,9 @@ real(8), save :: l6TotTime = 0.d0  ! open contour assembly
 real(8), save :: l7TotTime = 0.d0  ! open contour renoding
 real(8), save :: l8TotTime = 0.d0  ! closed contour assembly
 real(8), save :: l9TotTime = 0.d0  ! closed contour renoding
+real(8), save :: u2cParTotTime = 0.d0      ! ugrid2con parallel region
+real(8), save :: u2cMasterTotTime = 0.d0   ! ugrid2con master combine
+real(8), save :: u2cRebuildTotTime = 0.d0  ! ugrid2con rebuild section
 real(8), save :: g0TotTime = 0.d0  ! getzzsrc overall
 real(8), save :: g1TotTime = 0.d0  ! getzzsrc init dzdtf
 real(8), save :: g2TotTime = 0.d0  ! getzzsrc contour processing
@@ -55,6 +58,9 @@ l6TotTime = 0.d0
 l7TotTime = 0.d0
 l8TotTime = 0.d0
 l9TotTime = 0.d0
+u2cParTotTime = 0.d0
+u2cMasterTotTime = 0.d0
+u2cRebuildTotTime = 0.d0
 g0TotTime = 0.d0
 g1TotTime = 0.d0
 g2TotTime = 0.d0
@@ -72,21 +78,14 @@ real(8) :: getzzsrcTotalTime
 
 if (.not. timing_on) return
 
-totalTime = l1TotTime + l2TotTime + l3TotTime + l4TotTime + l5TotTime + l6TotTime + l8TotTime
+totalTime = u2cParTotTime + u2cRebuildTotTime
 
-if (l0TotTime .gt. 0.d0) then
+if (u2cParTotTime .gt. 0.d0 .or. u2cMasterTotTime .gt. 0.d0 .or. u2cRebuildTotTime .gt. 0.d0) then
   write(*,'(a)') '=========================================='
   write(*,'(a)') 'UGrid2Con timing totals'
-  write(*,'(a,f12.6)') '  OUTER loop total:           ', l0TotTime
-  write(*,'(a,f12.6)') '  q-range scan total:         ', l1TotTime
-  write(*,'(a,f12.6)') '  x-crossings total:          ', l2TotTime
-  write(*,'(a,f12.6)') '  bottom edge crossings total:', l3TotTime
-  write(*,'(a,f12.6)') '  top edge crossings total:   ', l4TotTime
-  write(*,'(a,f12.6)') '  interior y crossings total: ', l5TotTime
-  write(*,'(a,f12.6)') '  open assembly total:        ', l6TotTime
-  write(*,'(a,f12.6)') '    of which renoding:        ', l7TotTime
-  write(*,'(a,f12.6)') '  closed assembly total:      ', l8TotTime
-  write(*,'(a,f12.6)') '    of which renoding:        ', l9TotTime
+  write(*,'(a,f12.6)') '  parallel region total:      ', u2cParTotTime
+  write(*,'(a,f12.6)') '    master combine total:     ', u2cMasterTotTime
+  write(*,'(a,f12.6)') '  rebuild section total:      ', u2cRebuildTotTime
   write(*,'(a,f12.6)') '  total (excl. nested):       ', totalTime
   write(*,'(a)') '=========================================='
 endif
