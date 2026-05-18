@@ -1359,6 +1359,10 @@ subroutine ugrid2con(dq,nextq)
     if (timing_on) call timer_stop(u2cMasterStart,u2cMasterEnd,u2cMasterTime,u2cMasterTotTime)
     !$OMP END MASTER
 
+    ! Deallocate thread-local arrays before exiting parallel region
+    if (allocated(kib)) deallocate(kib)
+    if (allocated(icre)) deallocate(icre)
+
     !$OMP END PARALLEL
 
     if (timing_on) call timer_stop(u2cParStart,u2cParEnd,u2cParTime,u2cParTotTime)
@@ -1552,6 +1556,16 @@ subroutine ugrid2con(dq,nextq)
     if (timing_on) call timer_stop(u2cRebuildStart,u2cRebuildEnd,u2cRebuildTime,u2cRebuildTotTime)
   enddo !loop over levels
 endif
+
+  ! Deallocate per-thread arrays
+  if (allocated(ncr_offset)) deallocate(ncr_offset)
+  if (allocated(ncr_thread_list)) deallocate(ncr_thread_list)
+  if (allocated(npe_thread_list)) deallocate(npe_thread_list)
+  if (allocated(icre_thread_list)) deallocate(icre_thread_list)
+  if (allocated(xcr_thread_list)) deallocate(xcr_thread_list)
+  if (allocated(ycr_thread_list)) deallocate(ycr_thread_list)
+  if (allocated(kib_thread_list)) deallocate(kib_thread_list)
+
 return
 end subroutine
 
