@@ -633,7 +633,7 @@ if (na .gt. 1) then
   if (timing_on) call timer_stop(t10Start,t10End,t10Time,l10TotTime)
 endif
 
-if (log_ugrid2con .and. saveTime) call write_ugrid2con_output(xa,ya,nextq,npta,inda,npa,i1a,i2a,na)
+if (log_ugrid2con .and. saveTime) call write_ugrid2con_output(xa,ya,nextq,npta)
 
 return
 end subroutine

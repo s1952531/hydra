@@ -209,17 +209,16 @@ end subroutine
 
 !=======================================================================
 
-subroutine write_ugrid2con_output(xa,ya,nextq,npta,inda,npa,i1a,i2a,na)
+subroutine write_ugrid2con_output(xa,ya,nextq,npta)
 
 implicit none
 
  !Passed arrays:
 double precision, intent(in):: xa(:),ya(:)
 integer, intent(in):: nextq(:)
-integer, intent(in):: inda(:),npa(:),i1a(:),i2a(:)
 
  !Passed scalars:
-integer, intent(in):: npta,na
+integer, intent(in):: npta
 
  !Local:
 integer:: iu
@@ -234,14 +233,9 @@ endif
 open(newunit=iu,file='ug2c_outputs.dat',status=fstatus,position='append', &
  & action='write',access='stream',form='unformatted')
 write(iu) npta
-write(iu) na
 write(iu) xa(1:npta)
 write(iu) ya(1:npta)
 write(iu) nextq(1:npta)
-write(iu) inda(1:na)
-write(iu) npa(1:na)
-write(iu) i1a(1:na)
-write(iu) i2a(1:na)
 close(iu)
 
 end subroutine
