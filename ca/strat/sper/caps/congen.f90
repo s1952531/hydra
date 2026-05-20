@@ -681,6 +681,351 @@ subroutine init_marching_squares_lookup(nseg, edge1_lookup, edge2_lookup)
 
 end subroutine
 
+!=====================================================================
+! Helper subroutines for ugrid2con - extracted for profiling
+!=====================================================================
+
+subroutine ug2c_init_allocate(kib, icre, ncrm, nm)
+  implicit double precision(a-h,o-z)
+  implicit integer(i-n)
+  
+  integer, intent(in) :: ncrm, nm
+  integer, allocatable, intent(inout) :: kib(:), icre(:)
+  
+  !deallocate from previous level
+  if (allocated(kib)) deallocate(kib)
+  if (allocated(icre)) deallocate(icre)
+
+  allocate(kib(ncrm))!thread_max_ncr))
+  allocate(icre(nm))!thread_max_npe))
+end subroutine
+
+!=====================================================================
+
+subroutine ug2c_get_box_coords(box_ID, nxu, iy, ix, ixp1)
+  implicit double precision(a-h,o-z)
+  implicit integer(i-n)
+  
+  integer, intent(in) :: box_ID, nxu
+  integer, intent(out) :: iy, ix, ixp1
+  
+  !lower left corner has indices (iy,ix) and is at coords xgu(ix), ygu(iy)
+  iy = (box_ID - 1) / nxu
+  ix = mod(box_ID - 1, nxu)
+  ixp1 = mod(ix + 1, nxu)
+end subroutine
+
+!=====================================================================
+
+subroutine ug2c_get_corner_vals(iy, ix, ixp1, ll, ul, ur, lr)
+  use common
+  implicit double precision(a-h,o-z)
+  implicit integer(i-n)
+  
+  integer, intent(in) :: iy, ix, ixp1
+  double precision, intent(out) :: ll, ul, ur, lr
+  
+  !get corner values and note min and max
+  ll = qa(iy, ix)
+  ul = qa(iy + 1, ix)
+  ur = qa(iy + 1, ixp1)
+  lr = qa(iy, ixp1)
+end subroutine
+
+!=====================================================================
+
+subroutine ug2c_corner_min_max(ll, ul, ur, lr, minVal, maxVal)
+  implicit double precision(a-h,o-z)
+  implicit integer(i-n)
+  
+  double precision, intent(in) :: ll, ul, ur, lr
+  double precision, intent(out) :: minVal, maxVal
+  
+  !get min and max of the corners
+  minVal = min(ll, ul, ur, lr)
+  maxVal = max(ll, ul, ur, lr)
+end subroutine
+
+!=====================================================================
+
+subroutine ug2c_get_ms_case(ll, ul, ur, lr, qtmp, ms_case)
+  implicit double precision(a-h,o-z)
+  implicit integer(i-n)
+  
+  double precision, intent(in) :: ll, ul, ur, lr, qtmp
+  integer, intent(out) :: ms_case
+  
+  !get marching squares case
+  ms_case = 0
+  if (ll >= qtmp) ms_case = ms_case + 1
+  if (lr >= qtmp) ms_case = ms_case + 2
+  if (ur >= qtmp) ms_case = ms_case + 4
+  if (ul >= qtmp) ms_case = ms_case + 8
+  !Using >= condition: What happens if >?
+end subroutine
+
+!=====================================================================
+
+subroutine ug2c_interp(ll, ul, ur, lr, qtmp, iy, ix, ixp1, &
+                       x_b_interp, y_b_interp, x_t_interp, y_t_interp, &
+                       x_l_interp, y_l_interp, x_r_interp, y_r_interp)
+  use common
+  implicit double precision(a-h,o-z)
+  implicit integer(i-n)
+  
+  double precision, intent(in) :: ll, ul, ur, lr, qtmp
+  integer, intent(in) :: iy, ix, ixp1
+  double precision, intent(out) :: x_b_interp, y_b_interp, x_t_interp, y_t_interp
+  double precision, intent(out) :: x_l_interp, y_l_interp, x_r_interp, y_r_interp
+  
+  double precision :: dz, dz_safe, t_interp
+  double precision, parameter :: eps = 1.0e-12
+  
+  !calculate all interpolation points for this cell and level (some may not be needed but this minimises branching):
+  ! bottom: ll -> lr
+  dz = lr - ll
+  dz_safe = sign(max(abs(dz), eps), dz)
+  t_interp = (qtmp - ll) / dz_safe
+  x_b_interp = xgu(ix) + t_interp * glxu
+  y_b_interp = ygu(iy)
+  x_b_interp = oms * (x_b_interp - ellx * dble(int(x_b_interp * hlxi)))
+  
+  ! top: ul -> ur
+  dz = ur - ul
+  dz_safe = sign(max(abs(dz), eps), dz)
+  t_interp = (qtmp - ul) / dz_safe
+  x_t_interp = xgu(ix) + t_interp * glxu
+  y_t_interp = ygu(iy + 1)
+  x_t_interp = oms * (x_t_interp - ellx * dble(int(x_t_interp * hlxi)))
+  
+  ! left: ll -> ul
+  dz = ul - ll
+  dz_safe = sign(max(abs(dz), eps), dz)
+  t_interp = (qtmp - ll) / dz_safe
+  x_l_interp = xgu(ix)
+  y_l_interp = ygu(iy) + t_interp * glyu
+  
+  ! right: lr -> ur
+  dz = ur - lr
+  dz_safe = sign(max(abs(dz), eps), dz)
+  t_interp = (qtmp - lr) / dz_safe
+  x_r_interp = xgu(ixp1)
+  y_r_interp = ygu(iy) + t_interp * glyu
+end subroutine
+
+!=====================================================================
+
+subroutine ug2c_ms_edge_lookup(edge1_lookup, edge2_lookup, ms_case, separated, seg, &
+                               edge1, edge2)
+  implicit double precision(a-h,o-z)
+  implicit integer(i-n)
+  
+  integer, intent(in) :: edge1_lookup(0:15, 0:1, 2), edge2_lookup(0:15, 0:1, 2)
+  integer, intent(in) :: ms_case, separated, seg
+  integer, intent(out) :: edge1, edge2
+  
+  edge1 = edge1_lookup(ms_case, separated, seg)
+  edge2 = edge2_lookup(ms_case, separated, seg)
+end subroutine
+
+!=====================================================================
+
+subroutine ug2c_store_crossing_coords(edge1, edge2, &
+                                      x_b_interp, y_b_interp, &
+                                      x_t_interp, y_t_interp, &
+                                      x_l_interp, y_l_interp, &
+                                      x_r_interp, y_r_interp, &
+                                      x1, y1, x2, y2)
+  implicit double precision(a-h,o-z)
+  implicit integer(i-n)
+  
+  integer, parameter :: BOTTOM=3, TOP=4, LEFT=1, RIGHT=2
+  integer, intent(in) :: edge1, edge2
+  double precision, intent(in) :: x_b_interp, y_b_interp, x_t_interp, y_t_interp
+  double precision, intent(in) :: x_l_interp, y_l_interp, x_r_interp, y_r_interp
+  double precision, intent(out) :: x1, y1, x2, y2
+  
+  ! Get coordinates for edge1
+  select case(edge1)
+    case(BOTTOM)
+      x1 = x_b_interp
+      y1 = y_b_interp
+    case(TOP)
+      x1 = x_t_interp
+      y1 = y_t_interp
+    case(LEFT)
+      x1 = x_l_interp
+      y1 = y_l_interp
+    case(RIGHT)
+      x1 = x_r_interp
+      y1 = y_r_interp
+  end select
+  
+  ! Get coordinates for edge2
+  select case(edge2)
+    case(BOTTOM)
+      x2 = x_b_interp
+      y2 = y_b_interp
+    case(TOP)
+      x2 = x_t_interp
+      y2 = y_t_interp
+    case(LEFT)
+      x2 = x_l_interp
+      y2 = y_l_interp
+    case(RIGHT)
+      x2 = x_r_interp
+      y2 = y_r_interp
+  end select
+end subroutine
+
+!=====================================================================
+
+subroutine ug2c_boundary_edge_storage(edge1, x1, y1, box_ID, nxu, nxny, koff, &
+                                      ncr, npe, xcr, ycr, kib, icre, &
+                                      noctab, icrtab_local_ncr, icrtab_threadID, thread_id)
+  implicit double precision(a-h,o-z)
+  implicit integer(i-n)
+  
+  integer, parameter :: BOTTOM=3, TOP=4, LEFT=1, RIGHT=2
+  integer, intent(in) :: edge1, box_ID, nxu, nxny, koff, thread_id
+  double precision, intent(in) :: x1, y1
+  integer, intent(inout) :: ncr, npe
+  double precision, intent(inout) :: xcr(:), ycr(:)
+  integer, intent(inout) :: kib(:), icre(:)
+  integer*1, intent(inout) :: noctab(:)
+  integer, intent(inout) :: icrtab_local_ncr(:,:), icrtab_threadID(:,:)
+  
+  integer :: kob
+  
+  !if box on top row (box_ID > koff) need to store entry at top
+  if (edge1 .eq. TOP .and. box_ID > koff) then
+    ncr = ncr + 1
+    kob = 0
+    xcr(ncr) = x1
+    ycr(ncr) = y1
+    kib(ncr) = box_ID
+    npe = npe + 1
+    icre(npe) = ncr
+  endif
+  
+  !if box on bottom row (box_ID <= nxu) need to store entry at bottom
+  if (edge1 .eq. BOTTOM .and. box_ID <= nxu) then
+    ncr = ncr + 1
+    kob = 0
+    xcr(ncr) = x1
+    ycr(ncr) = y1
+    kib(ncr) = box_ID
+    npe = npe + 1
+    icre(npe) = ncr
+  endif
+  
+  !if box on left column (mod(box_ID, nxu) == 1) need to store entry at left
+  if (edge1 .eq. LEFT .and. mod(box_ID, nxu) == 1) then
+    ncr = ncr + 1
+    kob = box_ID + nxu - 1 !contour is wrapping around from right to left
+    xcr(ncr) = x1
+    ycr(ncr) = y1
+    kib(ncr) = box_ID
+    
+    !$OMP CRITICAL
+    noctab(kob) = noctab(kob) + 1
+    icrtab_local_ncr(kob, noctab(kob)) = ncr
+    icrtab_threadID(kob, noctab(kob)) = thread_id
+    !$OMP END CRITICAL
+  endif
+  
+  !if box on right column (mod(box_ID, nxu) == 0) need to store entry at right
+  if (edge1 .eq. RIGHT .and. mod(box_ID, nxu) == 0) then
+    ncr = ncr + 1
+    kob = box_ID - nxu + 1 !contour is wrapping around from left to right
+    xcr(ncr) = x1
+    ycr(ncr) = y1
+    kib(ncr) = box_ID
+    
+    !$OMP CRITICAL
+    noctab(kob) = noctab(kob) + 1
+    icrtab_local_ncr(kob, noctab(kob)) = ncr
+    icrtab_threadID(kob, noctab(kob)) = thread_id
+    !$OMP END CRITICAL
+  endif
+end subroutine
+
+!=====================================================================
+
+subroutine ug2c_calc_edge2_kib(edge2, box_ID, nxu, nxny, kib_val)
+  implicit double precision(a-h,o-z)
+  implicit integer(i-n)
+  
+  integer, parameter :: BOTTOM=3, TOP=4, LEFT=1, RIGHT=2
+  integer, intent(in) :: edge2, box_ID, nxu, nxny
+  integer, intent(out) :: kib_val
+  
+  select case(edge2)
+    case(BOTTOM)
+      kib_val = box_ID - nxu
+      if (kib_val < 1) then
+        kib_val = 0 !contour is going into the boundary
+      endif
+    case(TOP)
+      kib_val = box_ID + nxu
+      if (kib_val > nxny) then
+        kib_val = 0 !contour is going into the boundary
+      endif
+    case(LEFT)
+      kib_val = box_ID - 1
+      if (mod(box_ID, nxu) == 1) then
+        kib_val = box_ID + nxu - 1 !contour is wrapping around from left to right
+      endif
+    case(RIGHT)
+      kib_val = box_ID + 1
+      if (mod(box_ID, nxu) == 0) then
+        kib_val = box_ID - nxu + 1 !contour is wrapping around from right to left
+      endif
+  end select
+end subroutine
+
+!=====================================================================
+
+subroutine ug2c_store_crossing_and_connectivity(x2, y2, ncr, box_ID, nxu, &
+                                                xcr, ycr, kob, noctab, &
+                                                icrtab_local_ncr, icrtab_threadID, &
+                                                thread_id)
+  implicit double precision(a-h,o-z)
+  implicit integer(i-n)
+  
+  double precision, intent(in) :: x2, y2
+  integer, intent(in) :: ncr, box_ID, nxu, thread_id
+  double precision, intent(inout) :: xcr(:), ycr(:)
+  integer, intent(inout) :: kob
+  integer*1, intent(inout) :: noctab(:)
+  integer, intent(inout) :: icrtab_local_ncr(:,:), icrtab_threadID(:,:)
+  
+  xcr(ncr) = x2
+  ycr(ncr) = y2
+  kob = box_ID
+  
+  !contention is on left and right boundary boxes so if box being processed is there do critical else parallel update of noctab and icrtab
+  if (mod(box_ID, nxu) == 1 .or. mod(box_ID, nxu) == 0) then
+    !$OMP CRITICAL
+    noctab(kob) = noctab(kob) + 1
+
+    !original store/build order:
+    !icrtab(kob,noctab(kob))=ncr
+    icrtab_local_ncr(kob, noctab(kob)) = ncr
+    icrtab_threadID(kob, noctab(kob)) = thread_id
+    !$OMP END CRITICAL
+  else
+    noctab(kob) = noctab(kob) + 1
+
+    !original store/build order:
+    !icrtab(kob,noctab(kob))=ncr
+    icrtab_local_ncr(kob, noctab(kob)) = ncr
+    icrtab_threadID(kob, noctab(kob)) = thread_id
+  endif
+end subroutine
+
+!=====================================================================
+
 subroutine ugrid2con(dq,nextq)
 !subroutine marching_squares_ug2c(dq,nextq)
   !original ug2c definitions
@@ -933,35 +1278,29 @@ subroutine ugrid2con(dq,nextq)
     !allocate(noctab(nxny))!/num_threads)) !if indexed using box_ID then would be out of range for nxny/num_threads
     !allocate(icrtab(nxny), 2)!/num_threads,2))
 
-    !deallocate from previous level
-    if (allocated(kib)) deallocate(kib)
-    if (allocated(icre)) deallocate(icre)
-
-    allocate(kib(ncrm))!thread_max_ncr))
-    allocate(icre(nm))!thread_max_npe))
+    !---- begin init_allocate()
+    call ug2c_init_allocate(kib, icre, ncrm, nm)
+    !---- end init_allocate()
 
     ncr = 0
     npe = 0
 
     thread_id = omp_get_thread_num() + 1 !for 1-based indexing of thread_id
 
-    !$OMP DO SCHEDULE(auto)
+    !$OMP DO SCHEDULE(static, 1)
     do box_ID=1,nxny !grid boxes are numbered 1 (lower left) to nxu*nyu (upper right)
 
-      !lower left corner has indices (iy,ix) and is at coords xgu(ix), ygu(iy)
-      iy=(box_ID-1)/nxu
-      ix=mod(box_ID-1,nxu)
-      ixp1=mod(ix+1, nxu)
+      !---- begin get_box_coords()
+      call ug2c_get_box_coords(box_ID, nxu, iy, ix, ixp1)
+      !---- end get_box_coords()
 
-      !get corner values and note min and max
-      ll=qa(iy,ix)
-      ul=qa(iy+1,ix)
-      ur=qa(iy+1,ixp1)
-      lr=qa(iy,ixp1)
+      !---- begin get_corner_vals()
+      call ug2c_get_corner_vals(iy, ix, ixp1, ll, ul, ur, lr)
+      !---- end get_corner_vals()
 
-      !get min and max of the corners
-      minVal=min(ll,ul,ur,lr)
-      maxVal=max(ll,ul,ur,lr)
+      !---- begin corner_min_max()
+      call ug2c_corner_min_max(ll, ul, ur, lr, minVal, maxVal)
+      !---- end corner_min_max()
 
       !loop over levels here when parallel rebuilding (per tile) is implemented
 
@@ -969,13 +1308,9 @@ subroutine ugrid2con(dq,nextq)
       !should this use lt, gt or le, ge?
       ! if ((qtmp .le. minVal) .or. (qtmp .ge. maxVal)) cycle
 
-      !get marching squares case
-      ms_case = 0
-      if (ll >= qtmp) ms_case = ms_case + 1
-      if (lr >= qtmp) ms_case = ms_case + 2
-      if (ur >= qtmp) ms_case = ms_case + 4
-      if (ul >= qtmp) ms_case = ms_case + 8
-      !Using >= condition: What happens if >?
+      !---- begin get_ms_case()
+      call ug2c_get_ms_case(ll, ul, ur, lr, qtmp, ms_case)
+      !---- end get_ms_case()
 
       !if ms_case is 0 or 15 then there are no crossings i.e. nseg=0 so the loop is skipped and we move to the next cell.
       if (ms_case == 0 .or. ms_case == 15) cycle
@@ -993,78 +1328,28 @@ subroutine ugrid2con(dq,nextq)
       !   endif
       ! endif
 
-      !calculate all interpolation points for this cell and level (some may not be needed but this minimises branching):
-      ! bottom: ll -> lr
-      dz = lr - ll
-      dz_safe = sign(max(abs(dz), eps), dz)
-      t_interp = (qtmp - ll) / dz_safe
-      x_b_interp = xgu(ix) + t_interp*glxu
-      y_b_interp = ygu(iy)
-      x_b_interp=oms*(x_b_interp-ellx*dble(int(x_b_interp*hlxi)))
-
-      ! top: ul -> ur
-      dz = ur - ul
-      dz_safe = sign(max(abs(dz), eps), dz)
-      t_interp = (qtmp - ul) / dz_safe
-      x_t_interp = xgu(ix) + t_interp*glxu
-      y_t_interp = ygu(iy+1)
-      x_t_interp=oms*(x_t_interp-ellx*dble(int(x_t_interp*hlxi)))
-
-      ! left: ll -> ul
-      dz = ul - ll
-      dz_safe = sign(max(abs(dz), eps), dz)
-      t_interp = (qtmp - ll) / dz_safe
-      x_l_interp = xgu(ix)
-      y_l_interp = ygu(iy) + t_interp*glyu
-
-      ! right: lr -> ur
-      dz = ur - lr
-      dz_safe = sign(max(abs(dz), eps), dz)
-      t_interp = (qtmp - lr) / dz_safe
-      x_r_interp = xgu(ixp1)
-      y_r_interp = ygu(iy) + t_interp*glyu
+      !---- begin interp()
+      call ug2c_interp(ll, ul, ur, lr, qtmp, iy, ix, ixp1, &
+                       x_b_interp, y_b_interp, x_t_interp, y_t_interp, &
+                       x_l_interp, y_l_interp, x_r_interp, y_r_interp)
+      !---- end interp()
 
       !lookup case to get edges that are crossed
       do seg=1,nseg(ms_case)
-        edge1 = edge1_lookup(ms_case,separated,seg)
-        edge2 = edge2_lookup(ms_case,separated,seg)
+        !---- begin ms_edge_lookup()
+        call ug2c_ms_edge_lookup(edge1_lookup, edge2_lookup, ms_case, separated, seg, &
+                                 edge1, edge2)
+        !---- end ms_edge_lookup()
 
         !get the coordinates of the crossing points for edge1 and edge2
-        select case(edge1)
-          case(BOTTOM)
-            x1 = x_b_interp
-            y1 = y_b_interp
-
-          case(TOP)
-            x1 = x_t_interp
-            y1 = y_t_interp
-
-          case(LEFT)
-            x1 = x_l_interp
-            y1 = y_l_interp
-
-          case(RIGHT)
-            x1 = x_r_interp
-            y1 = y_r_interp
-        end select
-
-        select case(edge2)
-          case(BOTTOM)
-            x2 = x_b_interp
-            y2 = y_b_interp
-
-          case(TOP)
-            x2 = x_t_interp
-            y2 = y_t_interp
-
-          case(LEFT)
-            x2 = x_l_interp
-            y2 = y_l_interp
-
-          case(RIGHT)
-            x2 = x_r_interp
-            y2 = y_r_interp
-        end select
+        !---- begin store_crossing_coords()
+        call ug2c_store_crossing_coords(edge1, edge2, &
+                                        x_b_interp, y_b_interp, &
+                                        x_t_interp, y_t_interp, &
+                                        x_l_interp, y_l_interp, &
+                                        x_r_interp, y_r_interp, &
+                                        x1, y1, x2, y2)
+        !---- end store_crossing_coords()
 
         !MS stores, for each box, the enter and exit crossing points
         !This gives duplicate crossings for shared edges
@@ -1125,115 +1410,28 @@ subroutine ugrid2con(dq,nextq)
         ! endif
 
         ! ------- boundary box entry storage since generally storing exits only
-
-        !if box on top row (box_ID > koff) need to store entry at top
-        if (edge1 .eq. TOP .and. box_ID > koff) then
-          ncr = ncr + 1
-          kob = 0
-          xcr(ncr) = x1
-          ycr(ncr) = y1
-          kib(ncr) = box_ID
-          npe = npe + 1
-          icre(npe)=ncr
-        endif
-
-        !if box on bottom row (box_ID <= nxu) need to store entry at bottom
-        if (edge1 .eq. BOTTOM .and. box_ID <= nxu) then
-          ncr = ncr + 1
-          kob = 0
-          xcr(ncr) = x1
-          ycr(ncr) = y1
-          kib(ncr) = box_ID
-          npe = npe + 1
-          icre(npe)=ncr
-        endif
-
-        !if box on left column (mod(box_ID, nxu) == 1) need to store entry at left
-        if (edge1 .eq. LEFT .and. mod(box_ID, nxu) == 1) then
-          ncr = ncr + 1
-          kob = box_ID + nxu - 1 !contour is wrapping around from right to left
-          xcr(ncr) = x1
-          ycr(ncr) = y1
-          kib(ncr) = box_ID
-
-          ! !$OMP ATOMIC
-          !$OMP CRITICAL
-          noctab(kob)=noctab(kob)+1
-          icrtab_local_ncr(kob,noctab(kob))=ncr
-          icrtab_threadID(kob,noctab(kob))=thread_id
-          !$OMP END CRITICAL
-        endif
-
-        !if box on right column (mod(box_ID, nxu) == 0) need to store entry at right
-        if (edge1 .eq. RIGHT .and. mod(box_ID, nxu) == 0) then
-          ncr = ncr + 1
-          kob = box_ID - nxu + 1 !contour is wrapping around from left to right
-          xcr(ncr) = x1
-          ycr(ncr) = y1
-          kib(ncr) = box_ID
-
-          ! !$OMP ATOMIC
-          !$OMP CRITICAL
-          noctab(kob)=noctab(kob)+1
-          icrtab_local_ncr(kob,noctab(kob))=ncr
-          icrtab_threadID(kob,noctab(kob))=thread_id
-          !$OMP END CRITICAL
-        endif
+        !---- begin boundary_edge_storage()
+        call ug2c_boundary_edge_storage(edge1, x1, y1, box_ID, nxu, nxny, koff, &
+                                        ncr, npe, xcr, ycr, kib, icre, &
+                                        noctab, icrtab_local_ncr, icrtab_threadID, thread_id)
+        !---- end boundary_edge_storage()
 
         ! -------work on second (exit) crossing (edge2)
         ncr = ncr + 1
 
+        
         !find the box the contour is going into (kib) given that it leaves at edge2
-        select case(edge2)
-          case(BOTTOM)
-            kib(ncr) = box_ID - nxu
-            if (kib(ncr) < 1) then
-              kib(ncr) = 0 !contour is going into the boundary
-            endif
-
-          case(TOP)
-            kib(ncr) = box_ID + nxu
-            if (kib(ncr) > nxny) then
-              kib(ncr) = 0 !contour is going into the boundary
-            endif
-
-          case(LEFT)
-            kib(ncr) = box_ID - 1
-            if (mod(box_ID, nxu) == 1) then
-              kib(ncr) = box_ID + nxu - 1 !contour is wrapping around from left to right
-            endif
-
-          case(RIGHT)
-            kib(ncr) = box_ID + 1
-            if (mod(box_ID, nxu) == 0) then
-              kib(ncr) = box_ID - nxu + 1 !contour is wrapping around from right to left
-            endif
-
-        end select
+        !---- begin calc_edge2_kib()
+        call ug2c_calc_edge2_kib(edge2, box_ID, nxu, nxny, kib(ncr))
+        !---- end calc_edge2_kib()
 
         !store crossing points and connectivity information
-        xcr(ncr) = x2
-        ycr(ncr) = y2
-        kob = box_ID
-
-        !contention is on left and right boundary boxes so if box being processed is there do critical else parallel update of noctab and icrtab
-        if (mod(box_ID, nxu) == 1 .or. mod(box_ID, nxu) == 0) then
-          !$OMP CRITICAL
-          noctab(kob)=noctab(kob)+1
-
-          !original store/build order:
-          !icrtab(kob,noctab(kob))=ncr
-          icrtab_local_ncr(kob,noctab(kob))=ncr
-          icrtab_threadID(kob,noctab(kob))=thread_id
-          !$OMP END CRITICAL
-        else
-          noctab(kob)=noctab(kob)+1
-
-          !original store/build order:
-          !icrtab(kob,noctab(kob))=ncr
-          icrtab_local_ncr(kob,noctab(kob))=ncr
-          icrtab_threadID(kob,noctab(kob))=thread_id
-        endif
+        !---- begin store_crossing_and_connectivity()
+        call ug2c_store_crossing_and_connectivity(x2, y2, ncr, box_ID, nxu, &
+                                                  xcr, ycr, kob, noctab, &
+                                                  icrtab_local_ncr, icrtab_threadID, &
+                                                  thread_id)
+        !---- end store_crossing_and_connectivity()
 
 
         !opposite (of original) store/build order if box is ambiguous (case 5 or 10)
