@@ -717,9 +717,9 @@ subroutine ug2c_get_box_coords(box_ID, iy, ix, ixp1)
   integer, intent(out) :: iy, ix, ixp1
   
   !lower left corner has indices (iy,ix) and is at coords xgu(ix), ygu(iy)
-  !boxes are numbered by y-slices, so ix advances fastest
-  ix = mod(box_ID - 1, nxu)
-  iy = (box_ID - 1) / nxu
+  !boxes are numbered by x-slices, so iy advances fastest
+  iy = mod(box_ID - 1, nyu)
+  ix = (box_ID - 1) / nyu
   ixp1 = mod(ix + 1, nxu)
 end subroutine
 
@@ -904,10 +904,8 @@ subroutine ug2c_boundary_edge_storage(edge1, x1, y1, box_ID, iy, ix, &
   
   integer :: kob
   
-  !if box on top row (box_ID > koff) need to store entry at top
-  !if (edge1 .eq. TOP .and. box_ID > koff) then
-  !if box on top row (iy = nyum1) need to store entry at top
-  if (edge1 .eq. TOP .and. iy == nyum1) then
+  !if box on top row (iy = nyu-1) need to store entry at top
+  if (edge1 .eq. TOP .and. iy == nyu - 1) then
     ncr = ncr + 1
     xcr(ncr) = x1
     ycr(ncr) = y1
@@ -916,8 +914,6 @@ subroutine ug2c_boundary_edge_storage(edge1, x1, y1, box_ID, iy, ix, &
     icre(npe) = ncr
   endif
   
-  !if box on bottom row (box_ID <= nxu) need to store entry at bottom
-  !if (edge1 .eq. BOTTOM .and. box_ID <= nxu) then
   !if box on bottom row (iy = 0) need to store entry at bottom
   if (edge1 .eq. BOTTOM .and. iy == 0) then
     ncr = ncr + 1
@@ -928,12 +924,10 @@ subroutine ug2c_boundary_edge_storage(edge1, x1, y1, box_ID, iy, ix, &
     icre(npe) = ncr
   endif
   
-  !if box on left column (mod(box_ID, nxu) == 1) need to store entry at left
-  !if (edge1 .eq. LEFT .and. mod(box_ID, nxu) == 1) then
   !if box on left column (ix = 0) need to store entry at left
   if (edge1 .eq. LEFT .and. ix == 0) then
     ncr = ncr + 1
-    kob = box_ID + nxum1 !contour is wrapping around from right to left
+    kob = box_ID + (nxu - 1) * nyu !contour is wrapping around from right to left
     xcr(ncr) = x1
     ycr(ncr) = y1
     kib(ncr) = box_ID
@@ -945,12 +939,10 @@ subroutine ug2c_boundary_edge_storage(edge1, x1, y1, box_ID, iy, ix, &
     !$OMP END CRITICAL
   endif
   
-  !if box on right column (mod(box_ID, nxu) == 0) need to store entry at right
-  !if (edge1 .eq. RIGHT .and. mod(box_ID, nxu) == 0) then
   !if box on right column (ix = nxu-1) need to store entry at right
-  if (edge1 .eq. RIGHT .and. ix == nxum1) then
+  if (edge1 .eq. RIGHT .and. ix == nxu - 1) then
     ncr = ncr + 1
-    kob = box_ID - nxu + 1 !contour is wrapping around from left to right
+    kob = box_ID - (nxu - 1) * nyu !contour is wrapping around from left to right
     xcr(ncr) = x1
     ycr(ncr) = y1
     kib(ncr) = box_ID
@@ -974,29 +966,24 @@ subroutine ug2c_calc_edge2_kib(edge2, box_ID, iy, ix, kib_val)
   
   select case(edge2)
     case(BOTTOM)
-      kib_val = box_ID - nxu
-      !if (kib_val < 1) then
+      kib_val = box_ID - 1
       if (iy == 0) then
         kib_val = 0 !contour is going into the boundary
       endif
     case(TOP)
-
-      kib_val = box_ID + nxu
-      !if (kib_val > nxny) then
-      if (iy == nyum1) then
+      kib_val = box_ID + 1
+      if (iy == nyu - 1) then
         kib_val = 0 !contour is going into the boundary
       endif
     case(LEFT)
-      kib_val = box_ID - 1
-      !if (mod(box_ID, nxu) == 1) then
+      kib_val = box_ID - nyu
       if (ix == 0) then
-        kib_val = box_ID + nxum1 !contour is wrapping around from left to right
+        kib_val = box_ID + (nxu - 1) * nyu !contour is wrapping around from left to right
       endif
     case(RIGHT)
-      kib_val = box_ID + 1
-      !if (mod(box_ID, nxu) == 0) then
-      if (ix == nxum1) then
-        kib_val = box_ID - nxum1 !contour is wrapping around from right to left
+      kib_val = box_ID + nyu
+      if (ix == nxu - 1) then
+        kib_val = box_ID - (nxu - 1) * nyu !contour is wrapping around from right to left
       endif
   end select
 end subroutine
@@ -1022,8 +1009,7 @@ subroutine ug2c_store_crossing_and_connectivity(x2, y2, ncr, box_ID, ix, &
   kob = box_ID
   
   !contention is on left and right boundary boxes so if box being processed is there do critical else parallel update of noctab and icrtab
-  !if (mod(box_ID, nxu) == 1 .or. mod(box_ID, nxu) == 0) then
-  if (ix == 0 .or. ix == nxum1) then
+  if (ix == 0 .or. ix == nxu - 1) then
     !$OMP CRITICAL
     noctab(kob) = noctab(kob) + 1
 
@@ -1305,7 +1291,7 @@ subroutine ugrid2con(dq,nextq)
 
     thread_id = omp_get_thread_num() + 1 !for 1-based indexing of thread_id
 
-    !$OMP DO SCHEDULE(static, 1)
+    !$OMP DO SCHEDULE(static, nyu)
     do box_ID=1,nxny !grid boxes are numbered 1 (lower left) to nxu*nyu (upper right)
 
       !---- begin get_box_coords()
