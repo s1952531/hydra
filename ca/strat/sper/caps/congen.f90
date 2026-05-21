@@ -14,7 +14,7 @@ use omp_lib
 
 implicit none
 
-double precision:: qa(0:nyup1,0:nxum1)
+double precision:: qa(0:(nyup1 + 1) * (nxum1 + 1) - 1)
 double precision:: xa(npm),ya(npm)
 integer:: inda(nm),npa(nm),i1a(nm),i2a(nm)
 integer:: na,npta
@@ -23,6 +23,13 @@ integer:: na,npta
 integer, parameter:: LEFT=1, RIGHT=2, BOTTOM=3, TOP=4
 
 contains
+
+integer function qa_idx(iy,ix)
+  implicit none
+  integer, intent(in) :: iy, ix
+
+  qa_idx = iy + (nyup1 + 1) * ix
+end function qa_idx
 
 !=====================================================================
 
@@ -86,7 +93,7 @@ if (contours) then
         iy0=iy0w(iy)
         iy1=iy1w(iy)
 
-        qa(iy,ix)=qa(iy,ix)+w00(iyf,ixf)*qq(iy0,ix0) &
+        qa(qa_idx(iy,ix))=qa(qa_idx(iy,ix))+w00(iyf,ixf)*qq(iy0,ix0) &
                          & +w10(iyf,ixf)*qq(iy1,ix0) &
                          & +w01(iyf,ixf)*qq(iy0,ix1) &
                          & +w11(iyf,ixf)*qq(iy1,ix1)
@@ -119,7 +126,7 @@ else
       iy0=iy0w(iy)
       iy1=iy1w(iy)
 
-      qa(iy,ix)=w00(iyf,ixf)*qq(iy0,ix0)+w10(iyf,ixf)*qq(iy1,ix0) &
+      qa(qa_idx(iy,ix))=w00(iyf,ixf)*qq(iy0,ix0)+w10(iyf,ixf)*qq(iy1,ix0) &
              & +w01(iyf,ixf)*qq(iy0,ix1)+w11(iyf,ixf)*qq(iy1,ix1)
 
     enddo
@@ -702,16 +709,17 @@ end subroutine
 
 !=====================================================================
 
-subroutine ug2c_get_box_coords(box_ID, nxu, iy, ix, ixp1)
+subroutine ug2c_get_box_coords(box_ID, iy, ix, ixp1)
   implicit double precision(a-h,o-z)
   implicit integer(i-n)
   
-  integer, intent(in) :: box_ID, nxu
+  integer, intent(in) :: box_ID
   integer, intent(out) :: iy, ix, ixp1
   
   !lower left corner has indices (iy,ix) and is at coords xgu(ix), ygu(iy)
-  iy = (box_ID - 1) / nxu
+  !boxes are numbered by y-slices, so ix advances fastest
   ix = mod(box_ID - 1, nxu)
+  iy = (box_ID - 1) / nxu
   ixp1 = mod(ix + 1, nxu)
 end subroutine
 
@@ -726,10 +734,10 @@ subroutine ug2c_get_corner_vals(iy, ix, ixp1, ll, ul, ur, lr)
   double precision, intent(out) :: ll, ul, ur, lr
   
   !get corner values and note min and max
-  ll = qa(iy, ix)
-  ul = qa(iy + 1, ix)
-  ur = qa(iy + 1, ixp1)
-  lr = qa(iy, ixp1)
+  ll = qa(qa_idx(iy, ix))
+  ul = qa(qa_idx(iy + 1, ix))
+  ur = qa(qa_idx(iy + 1, ixp1))
+  lr = qa(qa_idx(iy, ixp1))
 end subroutine
 
 !=====================================================================
@@ -880,14 +888,13 @@ end subroutine
 
 !=====================================================================
 
-subroutine ug2c_boundary_edge_storage(edge1, x1, y1, box_ID, nxu, nxny, koff, &
+subroutine ug2c_boundary_edge_storage(edge1, x1, y1, box_ID, iy, ix, &
                                       ncr, npe, xcr, ycr, kib, icre, &
                                       noctab, icrtab_local_ncr, icrtab_threadID, thread_id)
   implicit double precision(a-h,o-z)
   implicit integer(i-n)
   
-  integer, parameter :: BOTTOM=3, TOP=4, LEFT=1, RIGHT=2
-  integer, intent(in) :: edge1, box_ID, nxu, nxny, koff, thread_id
+  integer, intent(in) :: edge1, box_ID, iy, ix, thread_id
   double precision, intent(in) :: x1, y1
   integer, intent(inout) :: ncr, npe
   double precision, intent(inout) :: xcr(:), ycr(:)
@@ -898,9 +905,10 @@ subroutine ug2c_boundary_edge_storage(edge1, x1, y1, box_ID, nxu, nxny, koff, &
   integer :: kob
   
   !if box on top row (box_ID > koff) need to store entry at top
-  if (edge1 .eq. TOP .and. box_ID > koff) then
+  !if (edge1 .eq. TOP .and. box_ID > koff) then
+  !if box on top row (iy = nyum1) need to store entry at top
+  if (edge1 .eq. TOP .and. iy == nyum1) then
     ncr = ncr + 1
-    kob = 0
     xcr(ncr) = x1
     ycr(ncr) = y1
     kib(ncr) = box_ID
@@ -909,9 +917,10 @@ subroutine ug2c_boundary_edge_storage(edge1, x1, y1, box_ID, nxu, nxny, koff, &
   endif
   
   !if box on bottom row (box_ID <= nxu) need to store entry at bottom
-  if (edge1 .eq. BOTTOM .and. box_ID <= nxu) then
+  !if (edge1 .eq. BOTTOM .and. box_ID <= nxu) then
+  !if box on bottom row (iy = 0) need to store entry at bottom
+  if (edge1 .eq. BOTTOM .and. iy == 0) then
     ncr = ncr + 1
-    kob = 0
     xcr(ncr) = x1
     ycr(ncr) = y1
     kib(ncr) = box_ID
@@ -920,9 +929,11 @@ subroutine ug2c_boundary_edge_storage(edge1, x1, y1, box_ID, nxu, nxny, koff, &
   endif
   
   !if box on left column (mod(box_ID, nxu) == 1) need to store entry at left
-  if (edge1 .eq. LEFT .and. mod(box_ID, nxu) == 1) then
+  !if (edge1 .eq. LEFT .and. mod(box_ID, nxu) == 1) then
+  !if box on left column (ix = 0) need to store entry at left
+  if (edge1 .eq. LEFT .and. ix == 0) then
     ncr = ncr + 1
-    kob = box_ID + nxu - 1 !contour is wrapping around from right to left
+    kob = box_ID + nxum1 !contour is wrapping around from right to left
     xcr(ncr) = x1
     ycr(ncr) = y1
     kib(ncr) = box_ID
@@ -935,7 +946,9 @@ subroutine ug2c_boundary_edge_storage(edge1, x1, y1, box_ID, nxu, nxny, koff, &
   endif
   
   !if box on right column (mod(box_ID, nxu) == 0) need to store entry at right
-  if (edge1 .eq. RIGHT .and. mod(box_ID, nxu) == 0) then
+  !if (edge1 .eq. RIGHT .and. mod(box_ID, nxu) == 0) then
+  !if box on right column (ix = nxu-1) need to store entry at right
+  if (edge1 .eq. RIGHT .and. ix == nxum1) then
     ncr = ncr + 1
     kob = box_ID - nxu + 1 !contour is wrapping around from left to right
     xcr(ncr) = x1
@@ -952,41 +965,45 @@ end subroutine
 
 !=====================================================================
 
-subroutine ug2c_calc_edge2_kib(edge2, box_ID, nxu, nxny, kib_val)
+subroutine ug2c_calc_edge2_kib(edge2, box_ID, iy, ix, kib_val)
   implicit double precision(a-h,o-z)
   implicit integer(i-n)
   
-  integer, parameter :: BOTTOM=3, TOP=4, LEFT=1, RIGHT=2
-  integer, intent(in) :: edge2, box_ID, nxu, nxny
+  integer, intent(in) :: edge2, box_ID, iy, ix
   integer, intent(out) :: kib_val
   
   select case(edge2)
     case(BOTTOM)
       kib_val = box_ID - nxu
-      if (kib_val < 1) then
+      !if (kib_val < 1) then
+      if (iy == 0) then
         kib_val = 0 !contour is going into the boundary
       endif
     case(TOP)
+
       kib_val = box_ID + nxu
-      if (kib_val > nxny) then
+      !if (kib_val > nxny) then
+      if (iy == nyum1) then
         kib_val = 0 !contour is going into the boundary
       endif
     case(LEFT)
       kib_val = box_ID - 1
-      if (mod(box_ID, nxu) == 1) then
-        kib_val = box_ID + nxu - 1 !contour is wrapping around from left to right
+      !if (mod(box_ID, nxu) == 1) then
+      if (ix == 0) then
+        kib_val = box_ID + nxum1 !contour is wrapping around from left to right
       endif
     case(RIGHT)
       kib_val = box_ID + 1
-      if (mod(box_ID, nxu) == 0) then
-        kib_val = box_ID - nxu + 1 !contour is wrapping around from right to left
+      !if (mod(box_ID, nxu) == 0) then
+      if (ix == nxum1) then
+        kib_val = box_ID - nxum1 !contour is wrapping around from right to left
       endif
   end select
 end subroutine
 
 !=====================================================================
 
-subroutine ug2c_store_crossing_and_connectivity(x2, y2, ncr, box_ID, nxu, &
+subroutine ug2c_store_crossing_and_connectivity(x2, y2, ncr, box_ID, ix, &
                                                 xcr, ycr, kob, noctab, &
                                                 icrtab_local_ncr, icrtab_threadID, &
                                                 thread_id)
@@ -994,7 +1011,7 @@ subroutine ug2c_store_crossing_and_connectivity(x2, y2, ncr, box_ID, nxu, &
   implicit integer(i-n)
   
   double precision, intent(in) :: x2, y2
-  integer, intent(in) :: ncr, box_ID, nxu, thread_id
+  integer, intent(in) :: ncr, box_ID, ix, thread_id
   double precision, intent(inout) :: xcr(:), ycr(:)
   integer, intent(inout) :: kob
   integer*1, intent(inout) :: noctab(:)
@@ -1005,7 +1022,8 @@ subroutine ug2c_store_crossing_and_connectivity(x2, y2, ncr, box_ID, nxu, &
   kob = box_ID
   
   !contention is on left and right boundary boxes so if box being processed is there do critical else parallel update of noctab and icrtab
-  if (mod(box_ID, nxu) == 1 .or. mod(box_ID, nxu) == 0) then
+  !if (mod(box_ID, nxu) == 1 .or. mod(box_ID, nxu) == 0) then
+  if (ix == 0 .or. ix == nxum1) then
     !$OMP CRITICAL
     noctab(kob) = noctab(kob) + 1
 
@@ -1146,12 +1164,12 @@ subroutine ugrid2con(dq,nextq)
   !The multiple should exceed the maximum expected number of contour levels.
 
   !First get the beginning and ending contour levels:
-  qamax=qa(0,0)
-  qamin=qa(0,0)
+  qamax=qa(qa_idx(0,0))
+  qamin=qa(qa_idx(0,0))
   do ix=0,nxum1
     do iy=0,nyu
-      qamax=max(qamax,qa(iy,ix))
-      qamin=min(qamin,qa(iy,ix))
+      qamax=max(qamax,qa(qa_idx(iy,ix)))
+      qamin=min(qamin,qa(qa_idx(iy,ix)))
     enddo
   enddo
 
@@ -1291,7 +1309,7 @@ subroutine ugrid2con(dq,nextq)
     do box_ID=1,nxny !grid boxes are numbered 1 (lower left) to nxu*nyu (upper right)
 
       !---- begin get_box_coords()
-      call ug2c_get_box_coords(box_ID, nxu, iy, ix, ixp1)
+      call ug2c_get_box_coords(box_ID, iy, ix, ixp1)
       !---- end get_box_coords()
 
       !---- begin get_corner_vals()
@@ -1411,7 +1429,7 @@ subroutine ugrid2con(dq,nextq)
 
         ! ------- boundary box entry storage since generally storing exits only
         !---- begin boundary_edge_storage()
-        call ug2c_boundary_edge_storage(edge1, x1, y1, box_ID, nxu, nxny, koff, &
+        call ug2c_boundary_edge_storage(edge1, x1, y1, box_ID, iy, ix, &
                                         ncr, npe, xcr, ycr, kib, icre, &
                                         noctab, icrtab_local_ncr, icrtab_threadID, thread_id)
         !---- end boundary_edge_storage()
@@ -1422,12 +1440,12 @@ subroutine ugrid2con(dq,nextq)
         
         !find the box the contour is going into (kib) given that it leaves at edge2
         !---- begin calc_edge2_kib()
-        call ug2c_calc_edge2_kib(edge2, box_ID, nxu, nxny, kib(ncr))
+        call ug2c_calc_edge2_kib(edge2, box_ID, iy, ix, kib(ncr))
         !---- end calc_edge2_kib()
 
         !store crossing points and connectivity information
         !---- begin store_crossing_and_connectivity()
-        call ug2c_store_crossing_and_connectivity(x2, y2, ncr, box_ID, nxu, &
+        call ug2c_store_crossing_and_connectivity(x2, y2, ncr, box_ID, ix, &
                                                   xcr, ycr, kob, noctab, &
                                                   icrtab_local_ncr, icrtab_threadID, &
                                                   thread_id)
@@ -1836,7 +1854,7 @@ enddo
  !Initialise interior q jump array:
 do ix=0,nxum1
   do iy=0,nyup1
-    qa(iy,ix)=zero
+    qa(qa_idx(iy,ix))=zero
   enddo
 enddo
 
@@ -1855,7 +1873,7 @@ do i=1,nptq
        !   x = xq(i) + px0*dx(i) and y = yq(i) + px0*dy(i):
       iy=int(one+dyyui*(yq(i)+px0*dy(i)-ybeg))
        !Increment q jump between the grid lines iy-1 & iy:
-      qa(iy,ix)=qa(iy,ix)+sdq
+      qa(qa_idx(iy,ix))=qa(qa_idx(iy,ix))+sdq
        !Go on to consider next x grid line (if there is one):
       ncr=ncr+jump
     enddo
@@ -1864,17 +1882,17 @@ enddo
 
  !Get q values by sweeping through y:
 do ix=0,nxum1
-  qa(0,ix)=qbot(ix)
+  qa(qa_idx(0,ix))=qbot(ix)
   do iy=1,nyu
-    qa(iy,ix)=qa(iy,ix)+qa(iy-1,ix)
+    qa(qa_idx(iy,ix))=qa(qa_idx(iy,ix))+qa(qa_idx(iy-1,ix))
   enddo
 enddo
 
  !Restore average (use qjx as temp array):
 do ix=0,nxum1
-  qjx(ix)=f12*(qa(0,ix)+qa(nyu,ix))
+  qjx(ix)=f12*(qa(qa_idx(0,ix))+qa(qa_idx(nyu,ix)))
   do iy=1,nyu-1
-    qjx(ix)=qjx(ix)+qa(iy,ix)
+    qjx(ix)=qjx(ix)+qa(qa_idx(iy,ix))
   enddo
 enddo
 
@@ -1887,7 +1905,7 @@ qavg0=qavg0/dble(nxu*nyu)
 qadd=qavg-qavg0
 do ix=0,nxum1
   do iy=0,nyu
-    qa(iy,ix)=qa(iy,ix)+qadd
+    qa(qa_idx(iy,ix))=qa(qa_idx(iy,ix))+qadd
   enddo
 enddo
 

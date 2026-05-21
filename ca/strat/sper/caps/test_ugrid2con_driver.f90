@@ -11,7 +11,7 @@ use timing
 implicit none
 
 integer:: iu_in, iu_out, ios, case_num
-integer:: i, npta_base, npta_work
+integer:: i, j, npta_base, npta_work
 double precision:: dq, rmsdiff, maxdiff
 double precision:: qa_input(0:nyup1,0:nxum1)
 double precision:: xa_base(npm), ya_base(npm)
@@ -98,7 +98,12 @@ do
       if (ios /= 0) exit
    endif
 
-   qa = qa_input
+   do i = 0, nxum1
+      do j = 0, nyup1
+         qa(qa_idx(j, i)) = qa_input(j, i)
+      enddo
+   enddo
+
    npta = 0
    na = 0
    nextq_work = 0
