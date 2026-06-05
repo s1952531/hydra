@@ -221,7 +221,7 @@ if (timing_on) call timer_start(g2Start)
 !$OMP& bsum,bdif,iy0,iy1, &
 !$OMP& g2OpenStart,g2OpenEnd,g2OpenTime,g2ClosedStart,g2ClosedEnd,g2ClosedTime,g2AccumStart,g2AccumEnd,g2AccumTime, &
 !$OMP& g2opentottime, g2closedtottime, g2accumtottime) &
-!$OMP SHARED(xb,yb,nextb,i1b,i2b,nb,div,wdzdt,dzdtf,ixfp,iyfp,timing_on) &
+!$OMP SHARED(xb,yb,nextb,i1b,i2b,nb,div,wdzdt,ixfp,iyfp,timing_on) &
 !$OMP REDUCTION(+:dzdtf)
 do j=1,nb
   is=i1b(j)
