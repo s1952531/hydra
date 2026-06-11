@@ -465,8 +465,8 @@ double precision:: c4cStart,c4cEnd,c4cTime
 double precision:: c3Start,c3End,c3Time
 double precision:: c4Start,c4End,c4Time
 
-saveTime=.false.
-if (log_con2grid .and. present(tnow)) saveTime=con2grid_save_time(tnow, tsim)
+! saveTime=.false.
+! if (log_con2grid .and. present(tnow)) saveTime=con2grid_save_time(tnow, tsim)
 
 if (timing_on) call timer_start(c0Start)
 
@@ -477,15 +477,15 @@ if (nptq .eq. 0) then
       qq(iy,ix)=zero
     enddo
   enddo
-  if (log_con2grid .and. saveTime) then
-    call write_con2grid_input(xq,yq,dq,qavg,nextq,nptq,iopt)
-    call write_con2grid_output(qq)
-  endif
+  ! if (log_con2grid .and. saveTime) then
+  !   call write_con2grid_input(xq,yq,dq,qavg,nextq,nptq,iopt)
+  !   call write_con2grid_output(qq)
+  ! endif
   if (timing_on) call timer_stop(c0Start,c0End,c0Time,c0TotTime)
   return
 endif  
 
-if (log_con2grid .and. saveTime) call write_con2grid_input(xq,yq,dq,qavg,nextq,nptq,iopt)
+! if (log_con2grid .and. saveTime) call write_con2grid_input(xq,yq,dq,qavg,nextq,nptq,iopt)
 
 !------------------------------------------------------------------
  !Initialise interior x grid line crossing information and fill the
@@ -619,7 +619,7 @@ enddo
 if (timing_on) call timer_stop(c4cStart,c4cEnd,c4cTime,c4cTotTime)
   if (timing_on) call timer_stop(c4Start,c4End,c4Time,c4TotTime)
 
-if (log_con2grid .and. saveTime) call write_con2grid_output(qq)
+! if (log_con2grid .and. saveTime) call write_con2grid_output(qq)
 
   if (timing_on) call timer_stop(c0Start,c0End,c0Time,c0TotTime)
 
