@@ -596,7 +596,10 @@ if (na .gt. 1) then
     jp=perm(j)
     levtmp=inda(jp)
     k=j-1
-    do while (k .ge. 1 .and. inda(perm(k)) .gt. levtmp)
+    do !while (k .ge. 1 .and. inda(perm(k)) .gt. levtmp)
+       !perm(k) was sometimes 0 which was .lt. lower bound of inda
+      if (k .lt. 1) exit
+      if (inda(perm(k)) .le. levtmp) exit
       perm(k+1)=perm(k)
       k=k-1
     enddo
