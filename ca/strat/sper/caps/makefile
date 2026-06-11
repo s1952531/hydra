@@ -15,12 +15,13 @@ fft_lib = ~/hydra/lib/stafft/stafft.f90 ~/hydra/lib/stafft/sta2dfft.f90
  # Set flag options: 
 norm_flags = -O3 -mcmodel=medium #Compiler flags
 test_flags = -O3 -mcmodel=medium -fbounds-check -fbacktrace  #Compiler flags
-omp_flags = -O3 -mcmodel=medium -fopenmp
+omp_gfortran_flags = -O3 -mcmodel=medium -fopenmp #-g -traceback -check bounds
+omp_ifort_flags = -O3 -mcmodel=medium -qopenmp #-g -traceback -check bounds
 gprof_flags = -O3 -mcmodel=medium -pg -fopenmp
 perf_flags = -O3 -mcmodel=medium -fopenmp -g -fno-omit-frame-pointer
 
  # Set compiler and flag used:
-f90=gfortran
+f90=ifort#gfortran
 flags=$(omp_flags)
 
 #----------------------------------------------------------------------
