@@ -221,8 +221,10 @@ if (timing_on) call timer_start(g2Start)
 !$OMP& bsum,bdif,iy0,iy1, &
 !$OMP& g2OpenStart,g2OpenEnd,g2OpenTime,g2ClosedStart,g2ClosedEnd,g2ClosedTime,g2AccumStart,g2AccumEnd,g2AccumTime, &
 !$OMP& g2opentottime, g2closedtottime, g2accumtottime) &
-!$OMP SHARED(xb,yb,nextb,i1b,i2b,nb,div,wdzdt,ixfp,iyfp,timing_on) &
-!$OMP REDUCTION(+:dzdtf)
+!$OMP SHARED(xb,yb,nextb,i1b,i2b,nb,div,wdzdt,ixfp,iyfp,timing_on, tnow) &
+!$OMP REDUCTION(+:dzdtf) &
+!$OMP SCHEDULE(auto)
+
 do j=1,nb
   is=i1b(j)
   ie=i2b(j)
@@ -317,8 +319,20 @@ do j=1,nb
       px=xx-dble(ix0)
       pxc=one-px
 
-      yy=glyfi*(f12*(y1+y2)-ymin)
-      iy0=int(yy)
+      yy=glyfi*(f12*(y1+y2)-ymin) !  yy =   -1.16721015926879  at 626s
+      if (yy .le. -1) then 
+        write(*,*) 'yy = ', yy
+        write(*,*) 'contour j = ', j
+        write(*,*) 'point i = ', i
+        write(*,*) 'segment division k = ', k
+        write(*,*) 'xx = ', xx
+      endif
+      ! if (present(tnow)) then
+      !   if (tnow .gt. 625.9.d0 .and. tnow .lt. 627.1d0) then
+      !     write(*,*) 'yy = ', yy
+      !   endif
+      ! endif
+      iy0=int(yy) !with ifort -g -traceback -check bounds (1/10/900) this is equal to -1 at 626s which is out of bounds for iyfp
       iy1=iyfp(iy0)
       py=yy-dble(iy0)
       pyc=one-py
@@ -435,9 +449,26 @@ double precision:: ybar(0:nlevm),area(nlevm)
 integer:: ixc(nptq),nxc(nptq)
 logical:: crossx(nptq)
 logical:: saveTime
+double precision:: c0Start,c0End,c0Time
+double precision:: c1Start,c1End,c1Time
+double precision:: c2Start,c2End,c2Time
+double precision:: c1aStart,c1aEnd,c1aTime
+double precision:: c1bStart,c1bEnd,c1bTime
+double precision:: c1cStart,c1cEnd,c1cTime
+double precision:: c1dStart,c1dEnd,c1dTime
+double precision:: c2aStart,c2aEnd,c2aTime
+double precision:: c2bStart,c2bEnd,c2bTime
+double precision:: c2cStart,c2cEnd,c2cTime
+double precision:: c4aStart,c4aEnd,c4aTime
+double precision:: c4bStart,c4bEnd,c4bTime
+double precision:: c4cStart,c4cEnd,c4cTime
+double precision:: c3Start,c3End,c3Time
+double precision:: c4Start,c4End,c4Time
 
 saveTime=.false.
 if (log_con2grid .and. present(tnow)) saveTime=con2grid_save_time(tnow, tsim)
+
+if (timing_on) call timer_start(c0Start)
 
 if (nptq .eq. 0) then 
    !No contours to convert: return qq = 0:
@@ -450,6 +481,7 @@ if (nptq .eq. 0) then
     call write_con2grid_input(xq,yq,dq,qavg,nextq,nptq,iopt)
     call write_con2grid_output(qq)
   endif
+  if (timing_on) call timer_stop(c0Start,c0End,c0Time,c0TotTime)
   return
 endif  
 
@@ -458,14 +490,20 @@ if (log_con2grid .and. saveTime) call write_con2grid_input(xq,yq,dq,qavg,nextq,n
 !------------------------------------------------------------------
  !Initialise interior x grid line crossing information and fill the
  !q jump array along lower boundary:
+if (timing_on) call timer_start(c1Start)
+if (timing_on) call timer_start(c1aStart)
 do i=1,nptq
   ixc(i)=1+int(glxfi*(xq(i)-xmin)) !ixc(i) gives the index of the x grid line (vertical, constant x) to the right of node i 
 enddo
+if (timing_on) call timer_stop(c1aStart,c1aEnd,c1aTime,c1aTotTime)
 
+if (timing_on) call timer_start(c1bStart)
 do ix=0,nxfm1
   qjx(ix)=zero
 enddo
+if (timing_on) call timer_stop(c1bStart,c1bEnd,c1bTime,c1bTotTime)
 
+if (timing_on) call timer_start(c1cStart)
 do i=1,nptq
   ia=nextq(i)
   if (ia .gt. 0) then
@@ -490,24 +528,32 @@ do i=1,nptq
     crossx(i)=.false.
   endif
 enddo
+if (timing_on) call timer_stop(c1cStart,c1cEnd,c1cTime,c1cTotTime)
  !Above, ybeg is very slightly greater than ymin to detect boundary crossings
 
  !Sum q jumps to obtain the gridded q along lower boundary:
+if (timing_on) call timer_start(c1dStart)
 qbot(0)=zero
  !Corner value cannot be determined a priori; qavg is used for this below
 do ix=0,nxf-2
   qbot(ix+1)=qbot(ix)+qjx(ix)
 enddo
+if (timing_on) call timer_stop(c1dStart,c1dEnd,c1dTime,c1dTotTime)
+if (timing_on) call timer_stop(c1Start,c1End,c1Time,c1TotTime)
 
 !----------------------------------------------------------------
  !Initialise interior q jump array:
+if (timing_on) call timer_start(c2Start)
+if (timing_on) call timer_start(c2aStart)
 do ix=0,nxfm1
   do iy=0,nyfp1
     qa(iy,ix)=zero
   enddo
 enddo
+if (timing_on) call timer_stop(c2aStart,c2aEnd,c2aTime,c2aTotTime)
 
  !Determine x grid line crossings and accumulate q jumps:
+if (timing_on) call timer_start(c2bStart)
 do i=1,nptq
   if (crossx(i)) then
     jump=sign(1,nxc(i))
@@ -528,35 +574,54 @@ do i=1,nptq
     enddo
   endif
 enddo
+if (timing_on) call timer_stop(c2bStart,c2bEnd,c2bTime,c2bTotTime)
 
  !Get q values by sweeping through y:
+if (timing_on) call timer_start(c2cStart)
 do ix=0,nxfm1
   qa(0,ix)=qbot(ix)
   do iy=1,nyf
     qa(iy,ix)=qa(iy,ix)+qa(iy-1,ix)
   enddo
 enddo
+if (timing_on) call timer_stop(c2cStart,c2cEnd,c2cTime,c2cTotTime)
+if (timing_on) call timer_stop(c2Start,c2End,c2Time,c2TotTime)
 
 !------------------------------------------------------------------------
  !Possibly compute APE if iopt >= 0:
-if (iopt .ge. 0) call getpe(qa,dq,qavg,iopt)
+if (iopt .ge. 0) then
+  if (timing_on) call timer_start(c3Start)
+  call getpe(qa,dq,qavg,iopt)
+  if (timing_on) call timer_stop(c3Start,c3End,c3Time,c3TotTime)
+endif
 
 !------------------------------------------------------------------------
 
  !Average to inversion grid by repeated 1-2-1 averages in each direction:
+if (timing_on) call timer_start(c4Start)
+if (timing_on) call timer_start(c4aStart)
 call coarsen(qa,qq)
+if (timing_on) call timer_stop(c4aStart,c4aEnd,c4aTime,c4aTotTime)
+
  !Restore average (qavg):
+if (timing_on) call timer_start(c4bStart)
 call average(qq,qavg0)
+if (timing_on) call timer_stop(c4bStart,c4bEnd,c4bTime,c4bTotTime)
 
 qadd=qavg-qavg0
+if (timing_on) call timer_start(c4cStart)
 do ix=0,nxm1
   do iy=0,ny
     qq(iy,ix)=qq(iy,ix)+qadd
   enddo
 enddo
  !Now qq has the correct average
+if (timing_on) call timer_stop(c4cStart,c4cEnd,c4cTime,c4cTotTime)
+  if (timing_on) call timer_stop(c4Start,c4End,c4Time,c4TotTime)
 
 if (log_con2grid .and. saveTime) call write_con2grid_output(qq)
+
+  if (timing_on) call timer_stop(c0Start,c0End,c0Time,c0TotTime)
 
 return
 end subroutine

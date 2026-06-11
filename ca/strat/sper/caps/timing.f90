@@ -25,6 +25,21 @@ real(8), save :: g2ClosedTotTime = 0.d0  ! getzzsrc closed contour coeffs
 real(8), save :: g2AccumTotTime = 0.d0  ! getzzsrc source accumulation
 real(8), save :: g3TotTime = 0.d0  ! getzzsrc edge doubling
 real(8), save :: g4TotTime = 0.d0  ! getzzsrc coarsen
+real(8), save :: c0TotTime = 0.d0  ! con2grid overall
+real(8), save :: c1TotTime = 0.d0  ! con2grid setup / lower boundary
+real(8), save :: c2TotTime = 0.d0  ! con2grid accumulation / sweep
+real(8), save :: c3TotTime = 0.d0  ! con2grid APE
+real(8), save :: c4TotTime = 0.d0  ! con2grid coarsen / restore average
+real(8), save :: c1aTotTime = 0.d0  ! con2grid ixc setup
+real(8), save :: c1bTotTime = 0.d0  ! con2grid qjx reset
+real(8), save :: c1cTotTime = 0.d0  ! con2grid boundary segment scan
+real(8), save :: c1dTotTime = 0.d0  ! con2grid qbot accumulation
+real(8), save :: c2aTotTime = 0.d0  ! con2grid qa reset
+real(8), save :: c2bTotTime = 0.d0  ! con2grid source accumulation
+real(8), save :: c2cTotTime = 0.d0  ! con2grid y sweep
+real(8), save :: c4aTotTime = 0.d0  ! con2grid coarsen
+real(8), save :: c4bTotTime = 0.d0  ! con2grid average
+real(8), save :: c4cTotTime = 0.d0  ! con2grid restore average loop
 
 contains
 
@@ -65,12 +80,28 @@ g2ClosedTotTime = 0.d0
 g2AccumTotTime = 0.d0
 g3TotTime = 0.d0
 g4TotTime = 0.d0
+c0TotTime = 0.d0
+c1TotTime = 0.d0
+c2TotTime = 0.d0
+c3TotTime = 0.d0
+c4TotTime = 0.d0
+c1aTotTime = 0.d0
+c1bTotTime = 0.d0
+c1cTotTime = 0.d0
+c1dTotTime = 0.d0
+c2aTotTime = 0.d0
+c2bTotTime = 0.d0
+c2cTotTime = 0.d0
+c4aTotTime = 0.d0
+c4bTotTime = 0.d0
+c4cTotTime = 0.d0
 end subroutine timing_reset
 
 subroutine timing_report()
 implicit none
 real(8) :: totalTime
 real(8) :: getzzsrcTotalTime
+real(8) :: con2gridTotalTime
 
 if (.not. timing_on) return
 
@@ -95,6 +126,7 @@ if (l0TotTime .gt. 0.d0) then
 endif
 
 getzzsrcTotalTime = g1TotTime + g2TotTime + g3TotTime + g4TotTime
+con2gridTotalTime = c1TotTime + c2TotTime + c3TotTime + c4TotTime
 
 if (g0TotTime .gt. 0.d0) then
   write(*,'(a)') '=========================================='
@@ -109,6 +141,28 @@ if (g0TotTime .gt. 0.d0) then
   write(*,'(a,f12.6)') '  coarsen total:             ', g4TotTime
   write(*,'(a,f12.6)') '  total (excl. nested):      ', getzzsrcTotalTime
   write(*,'(a)') '=========================================='
+endif
+
+if (c0TotTime .gt. 0.d0) then
+  write(*,'(a)') '==========================================='
+  write(*,'(a)') 'Con2Grid timing totals'
+  write(*,'(a,f12.6)') '  OUTER total:               ', c0TotTime
+  write(*,'(a,f12.6)') '  setup / lower boundary (c1): ', c1TotTime
+  write(*,'(a,f12.6)') '    ixc setup (c1a):         ', c1aTotTime
+  write(*,'(a,f12.6)') '    qjx reset (c1b):         ', c1bTotTime
+  write(*,'(a,f12.6)') '    boundary scan (c1c):     ', c1cTotTime
+  write(*,'(a,f12.6)') '    qbot accumulation (c1d): ', c1dTotTime
+  write(*,'(a,f12.6)') '  accumulation / sweep (c2): ', c2TotTime
+  write(*,'(a,f12.6)') '    qa reset (c2a):          ', c2aTotTime
+  write(*,'(a,f12.6)') '    source accumulation (c2b): ', c2bTotTime
+  write(*,'(a,f12.6)') '    y sweep (c2c):           ', c2cTotTime
+  write(*,'(a,f12.6)') '  APE total (c3):            ', c3TotTime
+  write(*,'(a,f12.6)') '  coarsen / restore avg (c4):', c4TotTime
+  write(*,'(a,f12.6)') '    coarsen (c4a):           ', c4aTotTime
+  write(*,'(a,f12.6)') '    average (c4b):           ', c4bTotTime
+  write(*,'(a,f12.6)') '    restore loop (c4c):      ', c4cTotTime
+  write(*,'(a,f12.6)') '  total (excl. nested):      ', con2gridTotalTime
+  write(*,'(a)') '==========================================='
 endif
 end subroutine timing_report
 
