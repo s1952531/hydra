@@ -468,7 +468,7 @@ double precision:: c4Start,c4End,c4Time
 ! saveTime=.false.
 ! if (log_con2grid .and. present(tnow)) saveTime=con2grid_save_time(tnow, tsim)
 
-if (timing_on) call timer_start(c0Start)
+! if (timing_on) call timer_start(c0Start)
 
 if (nptq .eq. 0) then 
    !No contours to convert: return qq = 0:
@@ -481,7 +481,7 @@ if (nptq .eq. 0) then
   !   call write_con2grid_input(xq,yq,dq,qavg,nextq,nptq,iopt)
   !   call write_con2grid_output(qq)
   ! endif
-  if (timing_on) call timer_stop(c0Start,c0End,c0Time,c0TotTime)
+  ! if (timing_on) call timer_stop(c0Start,c0End,c0Time,c0TotTime)
   return
 endif  
 
