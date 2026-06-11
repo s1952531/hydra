@@ -23,7 +23,7 @@ perf_flags = -O3 -mcmodel=medium -fopenmp -g -fno-omit-frame-pointer
 
  # Set compiler and flag used:
 f90=ifort#gfortran
-flags=$(omp_flags)
+flags=$(omp_ifort_flags)
 
 #----------------------------------------------------------------------
  # Rules:
