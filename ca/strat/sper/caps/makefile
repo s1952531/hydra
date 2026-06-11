@@ -17,6 +17,7 @@ norm_flags = -O3 -mcmodel=medium #Compiler flags
 test_flags = -O3 -mcmodel=medium -fbounds-check -fbacktrace  #Compiler flags
 omp_gfortran_flags = -O3 -mcmodel=medium -fopenmp #-g -traceback -check bounds
 omp_ifort_flags = -O3 -mcmodel=medium -qopenmp #-g -traceback -check bounds
+omp_ifort_gperftools_flags = -O3 -mcmodel=medium -qopenmp -g -L/home/software/gperftools/2.7/GNU/lib -lprofiler
 gprof_flags = -O3 -mcmodel=medium -pg -fopenmp
 perf_flags = -O3 -mcmodel=medium -fopenmp -g -fno-omit-frame-pointer
 
