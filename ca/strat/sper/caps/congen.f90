@@ -186,9 +186,9 @@ logical:: keep,saveTime
 
  !Check if this is a ugrid2con save time:
 saveTime=.false.
-if (log_ugrid2con) saveTime=ugrid2con_save_time(t, tsim)
+! if (log_ugrid2con) saveTime=ugrid2con_save_time(t, tsim)
 
-if (log_ugrid2con .and. saveTime) call write_ugrid2con_input(qa,dq)
+! if (log_ugrid2con .and. saveTime) call write_ugrid2con_input(qa,dq)
 
  !initialise constants and arrays:
 dqi=one/dq
@@ -200,14 +200,14 @@ qoff=dq*dble(nlevm)
  !First get the beginning and ending contour levels:
 qamax=qa(0,0)
 qamin=qa(0,0)
-if (timing_on) call timer_start(t1Start)
+! if (timing_on) call timer_start(t1Start)
 do ix=0,nxum1
   do iy=0,nyu
     qamax=max(qamax,qa(iy,ix))
     qamin=min(qamin,qa(iy,ix))
   enddo
 enddo
-if (timing_on) call timer_stop(t1Start,t1End,t1Time,l1TotTime)
+! if (timing_on) call timer_stop(t1Start,t1End,t1Time,l1TotTime)
 
 levbeg=int((qoff+qamin)*dqi+f12)+1
 levend=int((qoff+qamax)*dqi+f12)
@@ -218,7 +218,7 @@ levend=int((qoff+qamax)*dqi+f12)
 if (levbeg .le. levend) then
  !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
  !Loop over contour levels and process:
- if (timing_on) call timer_start(t0Start)
+ !if (timing_on) call timer_start(t0Start)
 
 !$OMP PARALLEL PRIVATE(lev,indq,qtmp,ncr,npe,ix,iy,k,kaa,kob,inc,icr,icrn,noc,ie,i,ibeg,iend,npd,keep,xx,xgt,ygt, &
 !$OMP& qdx,qdy,isx,isy,xcr,ycr,kib,icre,icrtab,noctab,free,xd,yd,t2Start,t2End,t2Time,t3Start,t3End,t3Time, &
@@ -258,7 +258,7 @@ enddo
 
  !-----------------------------------------------------------
  !Find x grid line crossings first:
-if (timing_on) call timer_start(t2Start)
+! if (timing_on) call timer_start(t2Start)
 do ix=0,nxum1 !loop over x grid lines (x = constant) 
   xgt=xgu(ix) !the x coordinate of the grid line being crossed (xgu is the x coordinate of the u-grid)
 
@@ -304,7 +304,7 @@ do ix=0,nxum1 !loop over x grid lines (x = constant)
   ! enddo
 
 enddo
-if (timing_on) call timer_stop(t2Start,t2End,t2Time,l2TotTime)
+! if (timing_on) call timer_stop(t2Start,t2End,t2Time,l2TotTime)
 
  !----------------------------------------------------------
  !Find y grid line crossings next (edge values are special):
@@ -312,7 +312,7 @@ if (timing_on) call timer_stop(t2Start,t2End,t2Time,l2TotTime)
 iy=0
 ygt=ygu(iy)
 
-if (timing_on) call timer_start(t3Start)
+! if (timing_on) call timer_start(t3Start)
 do ix=0,nxum1
   qdx(ix)=qa(iy,ix)-qtmp
   isx(ix)=sign(one,qdx(ix))
@@ -340,13 +340,13 @@ do ix=0,nxum1
     xcr(ncr)=oms*(xx-ellx*dble(int(xx*hlxi)))
   endif
 enddo
-if (timing_on) call timer_stop(t3Start,t3End,t3Time,l3TotTime)
+! if (timing_on) call timer_stop(t3Start,t3End,t3Time,l3TotTime)
 
  !Top edge:
 iy=nyu
 ygt=ygu(iy)
 
-if (timing_on) call timer_start(t4Start)
+! if (timing_on) call timer_start(t4Start)
 do ix=0,nxum1
   qdx(ix)=qa(iy,ix)-qtmp
   isx(ix)=sign(one,qdx(ix))
@@ -374,11 +374,11 @@ do ix=0,nxum1
     xcr(ncr)=oms*(xx-ellx*dble(int(xx*hlxi)))
   endif
 enddo
-if (timing_on) call timer_stop(t4Start,t4End,t4Time,l4TotTime)
+! if (timing_on) call timer_stop(t4Start,t4End,t4Time,l4TotTime)
  !koff = nxu*(nyu-1) above
 
  !Interior y = constant grid lines:
-if (timing_on) call timer_start(t5Start)
+! if (timing_on) call timer_start(t5Start)
 do iy=1,nyu-1
   ygt=ygu(iy)
 
@@ -405,7 +405,7 @@ do iy=1,nyu-1
   enddo
 
 enddo
-if (timing_on) call timer_stop(t5Start,t5End,t5Time,l5TotTime)
+! if (timing_on) call timer_stop(t5Start,t5End,t5Time,l5TotTime)
 
  !----------------------------------------------------------------
  !Now re-build contours:
@@ -416,7 +416,7 @@ enddo
  !First deal with any open contours attached to boundaries:
 
 !$OMP CRITICAL
-if (timing_on) call timer_start(t6Start)
+! if (timing_on) call timer_start(t6Start)
 if (npe .gt. 0) then
   do ie=1,npe
      !A new contour (indexed na) starts here:
@@ -453,7 +453,7 @@ if (npe .gt. 0) then
     enddo
 
      !Re-distribute nodes on this contour 3 times to reduce complexity:
-    if (timing_on) call timer_start(t7Start)
+    ! if (timing_on) call timer_start(t7Start)
     keep=.false.
     do
       call renode_open(xd,yd,npd,xa(ibeg),ya(ibeg),npa(na))
@@ -482,15 +482,15 @@ if (npe .gt. 0) then
       na=na-1
     endif
 
-    if (timing_on) call timer_stop(t7Start,t7End,t7Time,l7TotTime)
+    ! if (timing_on) call timer_stop(t7Start,t7End,t7Time,l7TotTime)
 
     free(icr)=.false.
   enddo
 endif
-if (timing_on) call timer_stop(t6Start,t6End,t6Time,l6TotTime)
+! if (timing_on) call timer_stop(t6Start,t6End,t6Time,l6TotTime)
 
  !Next deal with remaining closed contours:
-if (timing_on) call timer_start(t8Start)
+! if (timing_on) call timer_start(t8Start)
 do icr=1,ncr
   if (free(icr)) then
      !A new contour (indexed na) starts here:
@@ -525,7 +525,7 @@ do icr=1,ncr
     enddo
 
      !Re-distribute nodes on this contour 3 times to reduce complexity:
-    if (timing_on) call timer_start(t9Start)
+    ! if (timing_on) call timer_start(t9Start)
     keep=.false.
     do
       call renode_closed(xd,yd,npd,xa(ibeg),ya(ibeg),npa(na))
@@ -554,12 +554,12 @@ do icr=1,ncr
       na=na-1
     endif
 
-    if (timing_on) call timer_stop(t9Start,t9End,t9Time,l9TotTime)
+    ! if (timing_on) call timer_stop(t9Start,t9End,t9Time,l9TotTime)
 
     free(icr)=.false.
   endif
 enddo
-if (timing_on) call timer_stop(t8Start,t8End,t8Time,l8TotTime)
+! if (timing_on) call timer_stop(t8Start,t8End,t8Time,l8TotTime)
 !$OMP END CRITICAL
 
 enddo
@@ -577,7 +577,7 @@ deallocate(free)
 deallocate(noctab)
 
 !$OMP END PARALLEL
-if (timing_on) call timer_stop(t0Start,t0End,t0Time,l0TotTime)
+! if (timing_on) call timer_stop(t0Start,t0End,t0Time,l0TotTime)
  !End of loop over contour levels
  !<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 endif
@@ -585,7 +585,7 @@ endif
  !Repack contours and nodes in increasing contour-level order so that
  !all contours at a level remain contiguous in both contour and node index.
 if (na .gt. 1) then
-  if (timing_on) call timer_start(t10Start)
+  ! if (timing_on) call timer_start(t10Start)
 
   do j=1,na
     perm(j)=j
@@ -654,10 +654,10 @@ if (na .gt. 1) then
   enddo
 
   npta=nptnew
-  if (timing_on) call timer_stop(t10Start,t10End,t10Time,l10TotTime)
+  ! if (timing_on) call timer_stop(t10Start,t10End,t10Time,l10TotTime)
 endif
 
-if (log_ugrid2con .and. saveTime) call write_ugrid2con_output(xa,ya,nextq,npta)
+! if (log_ugrid2con .and. saveTime) call write_ugrid2con_output(xa,ya,nextq,npta)
 
 return
 end subroutine
