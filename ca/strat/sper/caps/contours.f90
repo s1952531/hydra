@@ -5,8 +5,8 @@ module contours
 
 use constants
 use generic
-use sampling
-use timing
+! use sampling
+! use timing
 
 implicit none
 
@@ -188,40 +188,40 @@ double precision:: u(nptb),v(nptb),dx(nptb),dy(nptb)
 double precision:: dzdt(0:ny,0:nxm1)
 double precision:: dzdtf(0:nyfp1,0:nxfm1)
 double precision, optional, intent(in):: tnow
-logical:: saveTime
-double precision:: g0Start,g0End,g0Time
-double precision:: g1Start,g1End,g1Time
-double precision:: g2Start,g2End,g2Time
-double precision:: g2OpenStart,g2OpenEnd,g2OpenTime
-double precision:: g2ClosedStart,g2ClosedEnd,g2ClosedTime
-double precision:: g2AccumStart,g2AccumEnd,g2AccumTime
-double precision:: g3Start,g3End,g3Time
-double precision:: g4Start,g4End,g4Time
+! logical:: saveTime
+! double precision:: g0Start,g0End,g0Time
+! double precision:: g1Start,g1End,g1Time
+! double precision:: g2Start,g2End,g2Time
+! double precision:: g2OpenStart,g2OpenEnd,g2OpenTime
+! double precision:: g2ClosedStart,g2ClosedEnd,g2ClosedTime
+! double precision:: g2AccumStart,g2AccumEnd,g2AccumTime
+! double precision:: g3Start,g3End,g3Time
+! double precision:: g4Start,g4End,g4Time
 
-saveTime=.false.
-if (log_getzzsrc .and. present(tnow)) saveTime=getzzsrc_save_time(tnow, tsim)
+! saveTime=.false.
+! if (log_getzzsrc .and. present(tnow)) saveTime=getzzsrc_save_time(tnow, tsim)
 
-if (timing_on) call timer_start(g0Start)
+! if (timing_on) call timer_start(g0Start)
 
-if (log_getzzsrc .and. saveTime) &
-  call write_getzzsrc_input(xb, yb, nextb, i1b, i2b, nptb, nb, bjump)
+! if (log_getzzsrc .and. saveTime) &
+!   call write_getzzsrc_input(xb, yb, nextb, i1b, i2b, nptb, nb, bjump)
 !--------------------------------------------------------------------
  !Initialise dzdtf to zero everywhere:
-if (timing_on) call timer_start(g1Start)
+! if (timing_on) call timer_start(g1Start)
 do ix=0,nxfm1
   do iy=0,nyf
     dzdtf(iy,ix)=zero
   enddo
 enddo
-if (timing_on) call timer_stop(g1Start,g1End,g1Time,g1TotTime)
+! if (timing_on) call timer_stop(g1Start,g1End,g1Time,g1TotTime)
 
  !Process each contour in turn:
-if (timing_on) call timer_start(g2Start)
+! if (timing_on) call timer_start(g2Start)
 !$OMP PARALLEL DO DEFAULT(NONE) PRIVATE(j,i,is,ie,ia,xx,dx,dy,v,u,e,a,b,c,eta,x1,y1,x2,y2,avgsrc,ix0,ix1,px,py,pxc,pyc, yy, &
 !$OMP& bsum,bdif,iy0,iy1, &
 !$OMP& g2OpenStart,g2OpenEnd,g2OpenTime,g2ClosedStart,g2ClosedEnd,g2ClosedTime,g2AccumStart,g2AccumEnd,g2AccumTime, &
 !$OMP& g2opentottime, g2closedtottime, g2accumtottime) &
-!$OMP SHARED(xb,yb,nextb,i1b,i2b,nb,div,wdzdt,ixfp,iyfp,timing_on, tnow) &
+!$OMP SHARED(xb,yb,nextb,i1b,i2b,nb,div,wdzdt,ixfp,iyfp) &
 !$OMP REDUCTION(+:dzdtf) &
 !$OMP SCHEDULE(auto)
 
@@ -231,7 +231,7 @@ do j=1,nb
 
    !Compute cubic interpolation coefficients:
   if (nextb(ie) .eq. 0) then
-    if (timing_on) call timer_start(g2OpenStart)
+    ! if (timing_on) call timer_start(g2OpenStart)
      !Contour j is open; it starts and ends at an edge
     ie=ie-1
     do i=is,ie
@@ -262,9 +262,9 @@ do j=1,nb
       b(i)=f12*(bsum-bdif)
       c(i)=f13*bdif
     enddo
-    if (timing_on) call timer_stop(g2OpenStart,g2OpenEnd,g2OpenTime,g2OpenTotTime)
+    ! if (timing_on) call timer_stop(g2OpenStart,g2OpenEnd,g2OpenTime,g2OpenTotTime)
   else
-    if (timing_on) call timer_start(g2ClosedStart)
+    ! if (timing_on) call timer_start(g2ClosedStart)
      !Contour j is closed
     do i=is,ie
       ia=nextb(i)
@@ -297,11 +297,11 @@ do j=1,nb
       b(i)=f12*(bsum-bdif)
       c(i)=f13*bdif
     enddo
-    if (timing_on) call timer_stop(g2ClosedStart,g2ClosedEnd,g2ClosedTime,g2ClosedTotTime)
+    ! if (timing_on) call timer_stop(g2ClosedStart,g2ClosedEnd,g2ClosedTime,g2ClosedTotTime)
   endif
 
    !Accumulate vorticity source (db/dx):
-  if (timing_on) call timer_start(g2AccumStart)
+  ! if (timing_on) call timer_start(g2AccumStart)
   do i=is,ie
     x1=xb(i)
     y1=yb(i)
@@ -353,28 +353,28 @@ do j=1,nb
       y1=y2
     enddo
   enddo
-  if (timing_on) call timer_stop(g2AccumStart,g2AccumEnd,g2AccumTime,g2AccumTotTime)
+  ! if (timing_on) call timer_stop(g2AccumStart,g2AccumEnd,g2AccumTime,g2AccumTotTime)
 enddo
 !$OMP END PARALLEL DO
-if (timing_on) call timer_stop(g2Start,g2End,g2Time,g2TotTime)
+! if (timing_on) call timer_stop(g2Start,g2End,g2Time,g2TotTime)
 
  !Double the edge values at y = ymin and ymax (by symmetry of b):
-if (timing_on) call timer_start(g3Start)
+! if (timing_on) call timer_start(g3Start)
 do ix=0,nxfm1
   dzdtf(0,  ix)=two*dzdtf(0,  ix)
   dzdtf(nyf,ix)=two*dzdtf(nyf,ix)  
 enddo
-if (timing_on) call timer_stop(g3Start,g3End,g3Time,g3TotTime)
+! if (timing_on) call timer_stop(g3Start,g3End,g3Time,g3TotTime)
 
  !Average to inversion grid by repeated 1-2-1 averages in each direction:
-if (timing_on) call timer_start(g4Start)
+! if (timing_on) call timer_start(g4Start)
 call coarsen(dzdtf,dzdt)
-if (timing_on) call timer_stop(g4Start,g4End,g4Time,g4TotTime)
+! if (timing_on) call timer_stop(g4Start,g4End,g4Time,g4TotTime)
 
-if (log_getzzsrc .and. saveTime) &
-  call write_getzzsrc_output(dzdt)
+! if (log_getzzsrc .and. saveTime) &
+!   call write_getzzsrc_output(dzdt)
 
-if (timing_on) call timer_stop(g0Start,g0End,g0Time,g0TotTime)
+! if (timing_on) call timer_stop(g0Start,g0End,g0Time,g0TotTime)
 
 return
 end subroutine
@@ -448,22 +448,22 @@ double precision:: dx(nptq),dy(nptq)
 double precision:: ybar(0:nlevm),area(nlevm)
 integer:: ixc(nptq),nxc(nptq)
 logical:: crossx(nptq)
-logical:: saveTime
-double precision:: c0Start,c0End,c0Time
-double precision:: c1Start,c1End,c1Time
-double precision:: c2Start,c2End,c2Time
-double precision:: c1aStart,c1aEnd,c1aTime
-double precision:: c1bStart,c1bEnd,c1bTime
-double precision:: c1cStart,c1cEnd,c1cTime
-double precision:: c1dStart,c1dEnd,c1dTime
-double precision:: c2aStart,c2aEnd,c2aTime
-double precision:: c2bStart,c2bEnd,c2bTime
-double precision:: c2cStart,c2cEnd,c2cTime
-double precision:: c4aStart,c4aEnd,c4aTime
-double precision:: c4bStart,c4bEnd,c4bTime
-double precision:: c4cStart,c4cEnd,c4cTime
-double precision:: c3Start,c3End,c3Time
-double precision:: c4Start,c4End,c4Time
+! logical:: saveTime
+! double precision:: c0Start,c0End,c0Time
+! double precision:: c1Start,c1End,c1Time
+! double precision:: c2Start,c2End,c2Time
+! double precision:: c1aStart,c1aEnd,c1aTime
+! double precision:: c1bStart,c1bEnd,c1bTime
+! double precision:: c1cStart,c1cEnd,c1cTime
+! double precision:: c1dStart,c1dEnd,c1dTime
+! double precision:: c2aStart,c2aEnd,c2aTime
+! double precision:: c2bStart,c2bEnd,c2bTime
+! double precision:: c2cStart,c2cEnd,c2cTime
+! double precision:: c4aStart,c4aEnd,c4aTime
+! double precision:: c4bStart,c4bEnd,c4bTime
+! double precision:: c4cStart,c4cEnd,c4cTime
+! double precision:: c3Start,c3End,c3Time
+! double precision:: c4Start,c4End,c4Time
 
 ! saveTime=.false.
 ! if (log_con2grid .and. present(tnow)) saveTime=con2grid_save_time(tnow, tsim)

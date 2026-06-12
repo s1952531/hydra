@@ -9,8 +9,8 @@ module congen
 
 use common
 use generic
-use sampling
-use timing
+! use sampling
+! use timing
 
 implicit none
 
@@ -18,10 +18,10 @@ double precision:: qa(0:nyup1,0:nxum1)
 double precision:: xa(npm),ya(npm)
 integer:: inda(nm),npa(nm),i1a(nm),i2a(nm)
 integer:: na,npta
-double precision:: t0Start,t0End,t0Time,t1Start,t1End,t1Time,t2Start,t2End,t2Time
-double precision:: t3Start,t3End,t3Time,t4Start,t4End,t4Time,t5Start,t5End,t5Time
-double precision:: t6Start,t6End,t6Time,t7Start,t7End,t7Time,t8Start,t8End,t8Time
-double precision:: t9Start,t9End,t9Time,t10Start,t10End,t10Time
+! double precision:: t0Start,t0End,t0Time,t1Start,t1End,t1Time,t2Start,t2End,t2Time
+! double precision:: t3Start,t3End,t3Time,t4Start,t4End,t4Time,t5Start,t5End,t5Time
+! double precision:: t6Start,t6End,t6Time,t7Start,t7End,t7Time,t8Start,t8End,t8Time
+! double precision:: t9Start,t9End,t9Time,t10Start,t10End,t10Time
 
 contains
 
@@ -182,10 +182,10 @@ integer:: nextnew(npm)
 integer, allocatable:: icrtab(:,:)!(nxny,2)
 integer*1, allocatable:: noctab(:) !(nxny)
 logical, allocatable:: free(:) !(ncrm)
-logical:: keep,saveTime
+logical:: keep!,saveTime
 
  !Check if this is a ugrid2con save time:
-saveTime=.false.
+!saveTime=.false.
 ! if (log_ugrid2con) saveTime=ugrid2con_save_time(t, tsim)
 
 ! if (log_ugrid2con .and. saveTime) call write_ugrid2con_input(qa,dq)

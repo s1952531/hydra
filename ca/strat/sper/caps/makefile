@@ -5,9 +5,11 @@ installdir = ..
 
  # Set main source and object files:
 sources = $(sourcedir)/parameters.f90 $(sourcedir)/constants.f90 $(sourcedir)/spectral.f90 \
-		  $(sourcedir)/generic.f90 $(sourcedir)/sampling.f90 $(sourcedir)/timing.f90 $(sourcedir)/contours.f90 $(sourcedir)/common.f90 $(sourcedir)/congen.f90 $(sourcedir)/evolution.f90 #Main f90 sources
+		  $(sourcedir)/generic.f90 $(sourcedir)/contours.f90 $(sourcedir)/common.f90 $(sourcedir)/congen.f90 $(sourcedir)/evolution.f90 #Main f90 sources
+# put before contours $(sourcedir)/sampling.f90 $(sourcedir)/timing.f90
 objects = parameters.o constants.o spectral.o \
-		  generic.o sampling.o timing.o contours.o common.o congen.o evolution.o #Main .o files 
+		  generic.o contours.o common.o congen.o evolution.o #Main .o files 
+# put before contours sampling.o timing.o
 
  # Set location of fft library:
 fft_lib = ~/hydra/lib/stafft/stafft.f90 ~/hydra/lib/stafft/sta2dfft.f90 
