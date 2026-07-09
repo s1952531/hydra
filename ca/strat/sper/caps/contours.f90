@@ -320,13 +320,13 @@ do j=1,nb
       pxc=one-px
 
       yy=glyfi*(f12*(y1+y2)-ymin) !  yy =   -1.16721015926879  at 626s
-      if (yy .le. -1) then 
-        write(*,*) 'yy = ', yy
-        write(*,*) 'contour j = ', j
-        write(*,*) 'point i = ', i
-        write(*,*) 'segment division k = ', k
-        write(*,*) 'xx = ', xx
-      endif
+      !if (yy .le. -1) then 
+      !  write(*,*) 'yy = ', yy
+      !  write(*,*) 'contour j = ', j
+      !  write(*,*) 'point i = ', i
+      !  write(*,*) 'segment division k = ', k
+      !  write(*,*) 'xx = ', xx
+      !endif
       ! if (present(tnow)) then
       !   if (tnow .gt. 625.9.d0 .and. tnow .lt. 627.1d0) then
       !     write(*,*) 'yy = ', yy
