@@ -218,11 +218,8 @@ enddo
  !Process each contour in turn:
 ! if (timing_on) call timer_start(g2Start)
 !$OMP PARALLEL DO DEFAULT(NONE) PRIVATE(j,i,is,ie,ia,xx,dx,dy,v,u,e,a,b,c,eta,x1,y1,x2,y2,avgsrc,ix0,ix1,px,py,pxc,pyc, yy, &
-!$OMP& bsum,bdif,iy0,iy1, &
-!$OMP& g2OpenStart,g2OpenEnd,g2OpenTime,g2ClosedStart,g2ClosedEnd,g2ClosedTime,g2AccumStart,g2AccumEnd,g2AccumTime, &
-!$OMP& g2opentottime, g2closedtottime, g2accumtottime) &
-!$OMP SHARED(xb,yb,nextb,i1b,i2b,nb,div,wdzdt,ixfp,iyfp) &
-!$OMP REDUCTION(+:dzdtf) &
+!$OMP& bsum,bdif,iy0,iy1) &
+!$OMP SHARED(xb,yb,nextb,i1b,i2b,nb,div,wdzdt,ixfp,iyfp,dzdtf) &
 !$OMP SCHEDULE(auto)
 
 do j=1,nb
@@ -337,16 +334,16 @@ do j=1,nb
       py=yy-dble(iy0)
       pyc=one-py
 
-      ! !$OMP ATOMIC
+      !$OMP ATOMIC
       dzdtf(iy0,ix0)=dzdtf(iy0,ix0)+pyc*pxc*avgsrc
       
-      ! !$OMP ATOMIC
+      !$OMP ATOMIC
       dzdtf(iy0,ix1)=dzdtf(iy0,ix1)+pyc*px*avgsrc
       
-      ! !$OMP ATOMIC
+      !$OMP ATOMIC
       dzdtf(iy1,ix0)=dzdtf(iy1,ix0)+py*pxc*avgsrc
       
-      ! !$OMP ATOMIC
+      !$OMP ATOMIC
       dzdtf(iy1,ix1)=dzdtf(iy1,ix1)+py*px*avgsrc
 
       x1=x2
