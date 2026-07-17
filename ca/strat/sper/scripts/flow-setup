@@ -375,6 +375,10 @@ cd $datagen
 
 # Set the job directory name (will be appended by 001, 002 etc...):
 set basejobdir=nx{$nx}ny{$ny}
+
+if (!(-d Prod_atomicGetzzsrc_EPIC2D_comparisons)) mkdir Prod_atomicGetzzsrc_EPIC2D_comparisons
+cd Prod_atomicGetzzsrc_EPIC2D_comparisons
+
 echo
 echo -n ' Job directory name (default '{$basejobdir}')? '
 set var=$<
