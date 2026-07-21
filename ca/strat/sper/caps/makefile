@@ -18,8 +18,8 @@ test_flags = -O3 -mcmodel=medium -fbounds-check -fbacktrace  #Compiler flags
 gprof_flags = -O3 -mcmodel=medium -pg
 
  # Set compiler and flag used:
-f90=gfortran
-flags=$(gprof_flags)
+f90=ifort
+flags=$(norm_flags)
 
 #----------------------------------------------------------------------
  # Rules:
