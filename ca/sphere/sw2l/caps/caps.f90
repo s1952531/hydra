@@ -15,7 +15,7 @@
 
 !      Contour advection and generation are done internally now.  For
 !      details of the method, see Dritschel & Fontane, J. Comput. Phys.
-!      229, pp. 5408--5417 (2010).
+!      229, pp. 5408--5417 (2010) i.e. CLAM paper.
 
 !      The full algorithm consists of the following modules:
 
