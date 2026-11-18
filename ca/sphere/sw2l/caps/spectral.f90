@@ -708,8 +708,8 @@ double precision:: z1(ng,nt),z2(ng,nt)
 double precision,parameter:: tole=1.d-12
  !tole: relative energy norm error in successive iterates when finding
  !      hj, uj & vj from qj, dj & gj (for j = 1 & 2).  The energy norm is
- !      <du1^2+dv1^2+c^2*dh1^2> + (rho_2/rho_1)*(H_2/H_1)*
- !      <du2^2+dv2^2+c^2*dh2^2>
+ !      <du1^2+dv1^2+c_1^2*dh1^2> + (rho_2/rho_1)*(H_2/H_1)*
+ !      <du2^2+dv2^2+c_2^2*dh2^2>
  !      where <:> means a horizontal domain average and (duj,dvj,dhj)
  !      is either the current guess for (uj,vj,hj) or the difference
  !      from the previous guess.

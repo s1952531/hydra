@@ -20,14 +20,21 @@ double precision:: z1(ng,nt),z2(ng,nt)
 double precision:: u1(ng,nt),u2(ng,nt)
 double precision:: v1(ng,nt),v2(ng,nt)
 
+ !Copies of h, u & v to compute differences from input fields:
+double precision:: h1i(ng,nt),h2i(ng,nt)
+double precision:: u1i(ng,nt),u2i(ng,nt)
+double precision:: v1i(ng,nt),v2i(ng,nt)
+double precision:: z1i(ng,nt),z2i(ng,nt)
+
  !Spectral fields:
 double precision:: qs1(ng,nt),qs2(ng,nt)
 double precision:: ds1(ng,nt),ds2(ng,nt)
 double precision:: gs1(ng,nt),gs2(ng,nt)
 
  !Other:
+double precision:: wka(ng,nt)
 double precision:: t
-integer:: i
+integer:: i,iopt
 
  !---------------------------------------------------------------------
  !Initialise inversion constants and arrays:
@@ -38,15 +45,15 @@ call init_spectral
  !vorticity and h is the dimensionless height anomaly in each layer:
 open(11, file = 'qq_init.r8', form = 'unformatted', &
       access = 'direct', status = 'old', recl = 2*nbytes)
-read(11,rec=1) t, qs1
-read(11,rec=2) t, qs2
+read(11,rec=1) t, q1
+read(11,rec=2) t, q2
 close(11)
 
  !Subtract planetary vorticity (cof), and convert to
  !semi-spectral space as qs1 & qs2:
 do i = 1,nt
-  qs1(:,i) = qs1(:,i)-cof
-  qs2(:,i) = qs2(:,i)-cof
+  qs1(:,i) = q1(:,i)-cof
+  qs2(:,i) = q2(:,i)-cof
 enddo
 call forfft(ng,nt,qs1,trig,factors) 
 call forfft(ng,nt,qs2,trig,factors) 
@@ -84,20 +91,97 @@ call forfft(ng,nt,gs1,trig,factors)
 call forfft(ng,nt,gs2,trig,factors) 
 
 !----------------------------------------------------------------------
+ !Read h:
+open(11, file = 'hh0_init.r8', form = 'unformatted', &
+      access = 'direct', status = 'old', recl = 2*nbytes)
+read(11,rec=1) t, h1
+read(11,rec=2) t, h2
+close(11)
+ !Keep copies for computing differences below:
+h1i = h1
+h2i = h2
+
+!----------------------------------------------------------------------
+ !Read u:
+open(11, file = 'uu0_init.r8', form = 'unformatted', &
+      access = 'direct', status = 'old', recl = 2*nbytes)
+read(11,rec=1) t, u1
+read(11,rec=2) t, u2
+close(11)
+ !Keep copies for computing differences below:
+u1i = u1
+u2i = u2
+
+!----------------------------------------------------------------------
+ !Read v:
+open(11, file = 'vv0_init.r8', form = 'unformatted', &
+      access = 'direct', status = 'old', recl = 2*nbytes)
+read(11,rec=1) t, v1
+read(11,rec=2) t, v2
+close(11)
+ !Keep copies for computing differences below:
+v1i = v1
+v2i = v2
+
+!----------------------------------------------------------------------
+ !Read zeta:
+open(11, file = 'zz0_init.r8', form = 'unformatted', &
+      access = 'direct', status = 'old', recl = 2*nbytes)
+read(11,rec=1) t, z1
+read(11,rec=2) t, z2
+close(11)
+ !Keep copies for computing differences below:
+z1i = z1
+z2i = z2
+
+!----------------------------------------------------------------------
  !Obtain initial dimensionless height anomaly (h), velocity (u,v),
  !relative vorticity (z) and adjusted PV anomaly (q) consistent
  !with zero domain averaged relative vorticity in each layer:
-h1 = zero
-h2 = zero
-u1 = zero
-u2 = zero
-v1 = zero
-v2 = zero
+
+write(*,*) ' Start with (1) h = u = v = 0, or (2) the exact solution?'
+read(*,*) iopt
+
+if (iopt == 1) then
+   h1 = zero
+   h2 = zero
+   u1 = zero
+   u2 = zero
+   v1 = zero
+   v2 = zero
+endif
+   
+ !Otherwise, we start with the exact solution in random_huv.f90.
+
  !These quantities need initialisation before the first call in order
  !to measure convergence in subroutine main_invert:
 call main_invert(qs1,qs2,ds1,ds2,gs1,gs2,h1,h2,u1,u2,v1,v2,q1,q2,z1,z2)
  !Note: qsj, dsj & gsj (j = 1 & 2) are in semi-spectral space while 
  !      hj, uj, vj, qj and zj are in physical space.
+
+wka = abs(h1-h1i)
+write(*,*) ' Max abs error in h1 = ',maxval(wka)
+
+wka = abs(h2-h2i)
+write(*,*) ' Max abs error in h2 = ',maxval(wka)
+
+wka = abs(u1-u1i)
+write(*,*) ' Max abs error in u1 = ',maxval(wka)
+
+wka = abs(u2-u2i)
+write(*,*) ' Max abs error in u2 = ',maxval(wka)
+
+wka = abs(v1-v1i)
+write(*,*) ' Max abs error in v1 = ',maxval(wka)
+
+wka = abs(v2-v2i)
+write(*,*) ' Max abs error in v2 = ',maxval(wka)
+
+wka = abs(z1-z1i)
+write(*,*) ' Max abs error in z1 = ',maxval(wka)
+
+wka = abs(z2-z2i)
+write(*,*) ' Max abs error in z2 = ',maxval(wka)
 
  !Save h:
 open(11,file='hh_init.r8',form='unformatted', &

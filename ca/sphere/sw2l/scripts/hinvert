@@ -51,42 +51,19 @@ g = csq1+csq2
 # This uses the fact that H_1+H_2 = 1.
 
 # Define vertical mode projection coefficients specifically for the
-# inversion of the height field from the definition of gamma;
-# *** NOTE *** these are needed only in the spherical case where
-# the height field is solved for in modes then returned to layers.
+# inversion of the height field from the definition of gamma, or in
+# the semi-implicit time-stepping for delta and gamma (details may
+# be found in Jougla & Dritschel (2017), appendix A.1, pp. 610-611):
+rad = np.sqrt(0.25-(1.0-denrat)*h1*h2)
+gam1 = 0.5-rad
+gam2 = 0.5+rad
+ctsq1 = g*gam2
+ctsq2 = g*gam1
 
-# First "barotropic" mode (ensure v11 + v22 = 1 wlog):
-bet1 = 0.5*(hrat-1.0)+np.sqrt(0.25*(hrat+1.0)**2-(1.0-denrat)*hrat)
-v11 =  1.0/(1.0+bet1)
-v12 = bet1/(1.0+bet1)
-# Second "baroclinic" mode (ensure v22 = 1 wlog):
+v11 = h1/gam2
+v12 = 1.0-v11
+v21 = h1/(gam1-h1)  # or h1/(h2-gam2) as in JD'17
 v22 = 1.0
-v21 = -bet1/mubar
-# For a field F_j in layers j = 1 & 2, its projection on vertical mode 1
-# is F_1*v11 + F_2*v12, while for mode 2, it is F_1*v21 + F_2*v22.
-
-#print()
-#print(' The vertical layer -> mode matrix coefficients are')
-#print(' v_11 =',round(v11,8),'  v_12 =',round(v12,8))
-#print(' v_21 =',round(v21,8),'  v_22 =',round(v22,8))
-
-# Define corresponding vertical layer projection coefficients:
-#D = v11*v22-v12*v21
-#vt11 = v22/D
-#vt12 = -v12/D
-#vt22 = v11/D
-#vt21 = -v21/D
-
-#print()
-#print(' The vertical mode -> layer matrix coefficients are')
-#print(' vt_11 =',round(vt11,8),'  vt_12 =',round(vt12,8))
-#print(' vt_21 =',round(vt21,8),'  vt_22 =',round(vt22,8))
-
-# Coefficients multiplying the Laplacian in the inversion of \tilde{h}_j:
-D = v11*v22-v12*v21
-ctsq1 = (csq1*(v11+v12)*v22-csq2*(denrat*v11+v12)*v21)/D
-ctsq2 = (csq2*(denrat*v21+v22)*v11-csq1*(v21+v22)*v12)/D
-# These are needed only in the spherical case --- see note above.
 
 #print()
 #print(' The 1st mode deformation wavenumber is',f/np.sqrt(ctsq1))
