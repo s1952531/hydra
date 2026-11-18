@@ -2,7 +2,7 @@ module common
 
  !Module containing all global common areas
 
- !Import contants, parameters and common arrays:
+ !Import constants, parameters and common arrays:
 use constants
 use contours
 use spectral
