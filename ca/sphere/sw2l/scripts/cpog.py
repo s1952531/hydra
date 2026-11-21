@@ -9,7 +9,7 @@
 
 #========== Perform the generic imports =========
 import warnings
-import numpy as np
+import numpy as numNodesOnContourList
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -87,30 +87,30 @@ dir_list=[basedir+'n256kd32kb32tb1brms0.02rth0.01r001/', \
 nr=len(dir_list)
 
 #=================================================================
-# Work out grid resolution (ng) by reading it from parameters.f90
+# Work out grid resolution (numLatGridPts) by reading it from parameters.f90
 # in one of the above directories:
 in_file=open(dir_list[0]+'src/parameters.f90','r')
 fread=in_file.readlines()
 for line in fread:
-   if ':: ng=' in line:
+   if ':: numLatGridPts=' in line:
       pline=line
 
 line=pline.split("=")[1]
-ng=int(line.split(",")[0])
+numLatGridPts=int(line.split(",")[0])
 
 # Number of longitudes:
-nt=2*ng
+numLongGridPts=2*numLatGridPts
 
 # Total number of grid points:
-N=ng*nt
+N=numLatGridPts*numLongGridPts
 
 # Define f = 4*pi*cos(lat) and projection constants:
-dl=np.pi/float(ng)
-dli=float(ng)/(np.pi+1.e-12)
-hpidl=(np.pi+dl)/2.0
-h=2.0/float(ng)
-lat=np.linspace(-(np.pi-dl)/2.0,(np.pi-dl)/2.0,ng)
-cof=4.0*np.pi*np.sin(lat)
+dl=numNodesOnContourList.pi/float(numLatGridPts)
+dli=float(numLatGridPts)/(numNodesOnContourList.pi+1.e-12)
+hpidl=(numNodesOnContourList.pi+dl)/2.0
+h=2.0/float(numLatGridPts)
+lat=numNodesOnContourList.linspace(-(numNodesOnContourList.pi-dl)/2.0,(numNodesOnContourList.pi-dl)/2.0,numLatGridPts)
+cof=4.0*numNodesOnContourList.pi*numNodesOnContourList.sin(lat)
 
 #=================================================================
 # Select field:
@@ -150,12 +150,12 @@ nc_in = input(' Number of times to show for each directory (default 4)? ')
 nc = int(nc_in or 4)
 
 ntimes = nr*nc
-t=np.empty(ntimes)
-frame=np.empty(ntimes)
+t=numNodesOnContourList.empty(ntimes)
+frame=numNodesOnContourList.empty(ntimes)
 for row in range(nr):
    # Open ecomp.asc to get time between frames:
    in_file=open(dir_list[row]+'evolution/ecomp.asc','r')
-   time, e1, e2, e3, e4 = np.loadtxt(in_file,dtype=float,unpack=True)
+   time, e1, e2, e3, e4 = numNodesOnContourList.loadtxt(in_file,dtype=float,unpack=True)
    in_file.close()
 
    dt=time[1]-time[0]
@@ -186,14 +186,14 @@ rlatc = float(rlatc_in or 0.0)
 rlonc_in = input(' Longitude of the direction of view (degrees, default 0)? ')
 rlonc = float(rlonc_in or 0.0)
 
-clatc=np.cos(rlatc*np.pi/180.)
-slatc=np.sin(rlatc*np.pi/180.)
+clatc=numNodesOnContourList.cos(rlatc*numNodesOnContourList.pi/180.)
+slatc=numNodesOnContourList.sin(rlatc*numNodesOnContourList.pi/180.)
 
-clonc=np.cos(rlonc*np.pi/180.)
-slonc=np.sin(rlonc*np.pi/180.)
+clonc=numNodesOnContourList.cos(rlonc*numNodesOnContourList.pi/180.)
+slonc=numNodesOnContourList.sin(rlonc*numNodesOnContourList.pi/180.)
 
 # Output filename:
-outfile='comp_'+field+'_n'+str(ng)+'_lat'+str(int(rlatc))+'_lon'+str(int(rlonc))+'.eps'
+outfile='comp_'+field+'_n'+str(numLatGridPts)+'_lat'+str(int(rlatc))+'_lon'+str(int(rlonc))+'.eps'
 
 print()
 opt_in = input(' Add colourbars (default y)? ')
@@ -219,13 +219,13 @@ ax = ax.flatten()
 # Read data into arrays for plotting:
 for row in range(nr):
    in_file=open(dir_list[row]+'evolution/'+dfile,'r')
-   raw_array=np.fromfile(in_file,dtype=np.float32)
+   raw_array=numNodesOnContourList.fromfile(in_file,dtype=numNodesOnContourList.float32)
    in_file.close()
 
    if option==3:
       # Read balanced data and subtract from full data to get imbalanced data:
       in_file=open(dir_list[row]+'evolution/b'+dfile,'r')
-      braw_array=np.fromfile(in_file,dtype=np.float32)
+      braw_array=numNodesOnContourList.fromfile(in_file,dtype=numNodesOnContourList.float32)
       in_file.close()
 
     # Select data for each time, project orthographically, and plot:
@@ -235,30 +235,30 @@ for row in range(nr):
       frame1=int(frame[i])
       t1=float(t[i])
 
-      Z=np.empty([nt,ng+2])
-      Z[0:nt,1:ng+1]=raw_array[frame1*(N+1)+1:(frame1+1)*(N+1)].reshape(nt,ng)
+      Z=numNodesOnContourList.empty([numLongGridPts,numLatGridPts+2])
+      Z[0:numLongGridPts,1:numLatGridPts+1]=raw_array[frame1*(N+1)+1:(frame1+1)*(N+1)].reshape(numLongGridPts,numLatGridPts)
 
       if option==3:
          # Read balanced data and subtract from full data to get imbalanced data:
-         Zb=np.empty([nt,ng+2])
-         Zb[0:nt,1:ng+1]=braw_array[frame1*(N+1)+1:(frame1+1)*(N+1)].reshape(nt,ng)
+         Zb=numNodesOnContourList.empty([numLongGridPts,numLatGridPts+2])
+         Zb[0:numLongGridPts,1:numLatGridPts+1]=braw_array[frame1*(N+1)+1:(frame1+1)*(N+1)].reshape(numLongGridPts,numLatGridPts)
          Z=Z-Zb
 
       if fopt==2:
          # Subtract f to define PV anomaly (assume Omega = 2*pi):
-         for i in range(nt):
-            Z[i,1:ng+1]-=cof
+         for i in range(numLongGridPts):
+            Z[i,1:numLatGridPts+1]-=cof
 
       # Copy latitudes adjacent to poles with a pi shift
       # in longitude to simplify interpolation below:
-      Z[0:ng-1,0]=Z[ng+1:nt,1]
-      Z[ng+1:nt,0]=Z[0:ng-1,1]
-      Z[0:ng-1,ng+1]=Z[ng+1:nt,ng]
-      Z[ng+1:nt,ng+1]=Z[0:ng-1,ng]
+      Z[0:numLatGridPts-1,0]=Z[numLatGridPts+1:numLongGridPts,1]
+      Z[numLatGridPts+1:numLongGridPts,0]=Z[0:numLatGridPts-1,1]
+      Z[0:numLatGridPts-1,numLatGridPts+1]=Z[numLatGridPts+1:numLongGridPts,numLatGridPts]
+      Z[numLatGridPts+1:numLongGridPts,numLatGridPts+1]=Z[0:numLatGridPts-1,numLatGridPts]
 
       # Work out the overall min/max values:
-      zmin=np.amin(Z)
-      zmax=np.amax(Z)
+      zmin=numNodesOnContourList.amin(Z)
+      zmax=numNodesOnContourList.amax(Z)
 
       # Centre colourmap at 0:
       zmag=max(abs(zmin),zmax)
@@ -269,17 +269,17 @@ for row in range(nr):
       dz=contint(zmin,zmax)
       jmin=-int(-zmin/dz)
       jmax= int( zmax/dz)
-      clevels=np.linspace(dz*float(jmin),dz*float(jmax),jmax-jmin+1)
+      clevels=numNodesOnContourList.linspace(dz*float(jmin),dz*float(jmax),jmax-jmin+1)
 
       # Project data orthographically:
-      P=np.empty([ng,ng])
-      for iy in range(ng):
+      P=numNodesOnContourList.empty([numLatGridPts,numLatGridPts])
+      for iy in range(numLatGridPts):
          yp=h*(float(iy)+0.5)-1.0
-         for iz in range(ng):
+         for iz in range(numLatGridPts):
             zp=h*(float(iz)+0.5)-1.0
             det=1.0-yp**2-zp**2
             if det > 0.0:
-               xp=np.sqrt(det)
+               xp=numNodesOnContourList.sqrt(det)
                xm=xp*clatc-zp*slatc
                zt=zp*clatc+xp*slatc
                xm=xp*clatc-zp*slatc
@@ -287,19 +287,19 @@ for row in range(nr):
                xt=xm*clonc-yp*slonc
 
                # Find longitude & latitude then bi-linearly interpolate Z:
-               ri=dli*(np.pi+np.arctan2(yt,xt))
+               ri=dli*(numNodesOnContourList.pi+numNodesOnContourList.arctan2(yt,xt))
                i=int(ri)
-               ip1=(i+1)%nt
-               bb=float(i)-ri
-               aa=1.0-bb
+               ip1=(i+1)%numLongGridPts
+               botTopo=float(i)-ri
+               aa=1.0-botTopo
 
-               rj=dli*(hpidl+np.arcsin(zt))
+               rj=dli*(hpidl+numNodesOnContourList.arcsin(zt))
                j=int(rj)
                jp1=j+1
                cc=rj-float(j)
                dd=1.0-cc
 
-               P[iy,iz]=bb*(dd*Z[i,j]+cc*Z[i,jp1])+aa*(dd*Z[ip1,j]+cc*Z[ip1,jp1])
+               P[iy,iz]=botTopo*(dd*Z[i,j]+cc*Z[i,jp1])+aa*(dd*Z[ip1,j]+cc*Z[ip1,jp1])
             else:
                P[iy,iz]=0.0
 
@@ -314,9 +314,9 @@ for row in range(nr):
       ax1.axis('off')
 
       # Draw outer edge of sphere as a thin circle:
-      theta=np.linspace(-np.pi,np.pi,721)
-      cth=np.cos(theta)
-      sth=np.sin(theta)
+      theta=numNodesOnContourList.linspace(-numNodesOnContourList.pi,numNodesOnContourList.pi,721)
+      cth=numNodesOnContourList.cos(theta)
+      sth=numNodesOnContourList.sin(theta)
       ax1.plot(cth,sth,'k',lw=0.1)
 
       # Add time:

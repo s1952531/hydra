@@ -10,17 +10,17 @@ use constants
 ! Declarations:
 implicit none
 
-double precision:: qq(ng,nt), q1(ng)
+double precision:: qq(numLatGridPts,numLongGridPts), qAnom1(numLatGridPts)
 integer:: i, j
 
 !------------------------------------------------------------------
  !Define PV for a rest state:
-do j = 1,ng
-  q1(j) = fpole*sin((dble(j)-f12)*dl-hpi)
+do j = 1,numLatGridPts
+  qAnom1(j) = fpole*sin((dble(j)-f12)*dl-hpi)
 enddo
 
-do i = 1,nt
-   qq(:,i) = q1
+do i = 1,numLongGridPts
+   qq(:,i) = qAnom1
 enddo
 
  !Write initial PV field:

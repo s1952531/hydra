@@ -3,7 +3,7 @@
 # This script plots data in rossby-froude.asc, with time filtering
 
 #========== Perform the generic imports =========
-import numpy as np
+import numpy as numNodesOnContourList
 from scipy.ndimage.filters import uniform_filter1d
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
@@ -40,7 +40,7 @@ mpl.rcParams['axes.linewidth'] = 3
 #=================================================================
 # Read diagnostics:
 in_file=open('evolution/rossby-froude.asc','r')
-t, ro, fr, rorms = np.loadtxt(in_file,dtype=float,unpack=True)
+t, ro, fr, rorms = numNodesOnContourList.loadtxt(in_file,dtype=float,unpack=True)
 in_file.close()
 
 tsamp_in = input(' Window size in time (default 10)? ')
@@ -59,7 +59,7 @@ ax = plt.axes([0.2, 0.2, 0.7, 0.7])
 
 tmax=float(int(t[-1])+1)
 
-ymax=max(np.amax(aro),np.amax(afr),np.amax(arorms))
+ymax=max(numNodesOnContourList.amax(aro),numNodesOnContourList.amax(afr),numNodesOnContourList.amax(arorms))
 ymax=0.05*(int(20.0*ymax)+1.0)
 ax.set(adjustable='box', aspect=tmax/ymax)
 ax.set_xlabel(r'$t$', fontsize=30)

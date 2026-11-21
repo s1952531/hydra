@@ -7,8 +7,8 @@ use common
 implicit none
 
  !Various PV fields:
-double precision:: qt1(ng,nt),qc1(ng,nt),qd1(ng,nt)
-double precision:: qt2(ng,nt),qc2(ng,nt),qd2(ng,nt)
+double precision:: qt1(numLatGridPts,numLongGridPts),qc1(numLatGridPts,numLongGridPts),qd1(numLatGridPts,numLongGridPts)
+double precision:: qt2(numLatGridPts,numLongGridPts),qc2(numLatGridPts,numLongGridPts),qd2(numLatGridPts,numLongGridPts)
 
 !::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
  !Internal subroutine definitions (inherit global variables):
@@ -49,8 +49,8 @@ do while (t .le. tsim)
 
    !Save data periodically:
   itime=nint(t/dt)
-  jtime=itime/ngsave
-  if (ngsave*jtime .eq. itime) then
+  jtime=itime/gridSaveInterval
+  if (gridSaveInterval*jtime .eq. itime) then
     call inversion
     call savegrid(jtime+1)
     ggen=.false.
@@ -58,8 +58,8 @@ do while (t .le. tsim)
     ggen=.true.
   endif
    !ggen is used to indicate if calling inversion is needed in advance below
-  jtime=itime/ncsave
-  if (ncsave*jtime .eq. itime) call savecont(jtime+1)
+  jtime=itime/contourSaveInterval
+  if (contourSaveInterval*jtime .eq. itime) call savecont(jtime+1)
 
    !Perform contour surgery or recontouring when twist is large enough:
   if (twist .gt. twistmax) then
@@ -67,7 +67,7 @@ do while (t .le. tsim)
 
      !Don't continue if maximum number of regularisations reached:
     if (ireg .eq. nregmax) then
-       !Prepare PV residual qr for recontouring (and preserve qs):
+       !Prepare PV residual qResid for recontouring (and preserve qs):
       call prepare
        !Exit module and go to recontouring:
       return
@@ -76,7 +76,7 @@ do while (t .le. tsim)
      !Regularise the PV contours (surgery + node redistribution):
     call surgery
      !Record active contour complexity to complexity.asc:
-    write(14,'(1x,f12.5,1x,i9,1x,i10)') t,n,npt
+    write(14,'(1x,f12.5,1x,i9,1x,i10)') t,numContoursTot,numNodesTot
 
     twist=twist-twistmax
   endif
@@ -90,13 +90,13 @@ enddo
 
  !Possibly save final data:
 itime=nint(t/dt)
-jtime=itime/ngsave
-if (ngsave*jtime .eq. itime) then
+jtime=itime/gridSaveInterval
+if (gridSaveInterval*jtime .eq. itime) then
   call inversion
   call savegrid(jtime+1)
 endif
-jtime=itime/ncsave
-if (ncsave*jtime .eq. itime) call savecont(jtime+1)
+jtime=itime/contourSaveInterval
+if (contourSaveInterval*jtime .eq. itime) call savecont(jtime+1)
 
 return
 end subroutine advect
@@ -106,17 +106,17 @@ end subroutine advect
 subroutine init
 
 ! Initialises residual PV for normal time integration following 
-! contour regeneration. Note qs1 & qs2 contain the semi-spectral
+! contour regeneration. Note qSpec1 & qSpec2 contain the semi-spectral
 ! PV anomaly in each layer.
 
 implicit none
 
 ! Local variable:
-double precision:: qa(ng,nt,nz)
+double precision:: qa(numLatGridPts,numLongGridPts,numLayers)
 
 !------------------------------------------------------------------
  !Record active contour complexity to complexity.asc:
-write(14,'(1x,f12.5,1x,i8,1x,i9)') t,n,npt
+write(14,'(1x,f12.5,1x,i8,1x,i9)') t,numContoursTot,numNodesTot
 
 !------------------------------------------------------------
  !Convert PV contours (x,y,z) to gridded PV anomaly as qa:
@@ -124,13 +124,13 @@ call con2grid(qa)
 
  !Convert each component to semi-spectral space as qc1 & qc2:
 qc1=qa(:,:,1)
-call forfft(ng,nt,qc1,trig,factors) 
+call forfft(numLatGridPts,numLongGridPts,qc1,trig,factors) 
 qc2=qa(:,:,2)
-call forfft(ng,nt,qc2,trig,factors) 
+call forfft(numLatGridPts,numLongGridPts,qc2,trig,factors) 
 
  !Define (semi-spectral) residual PV qd = (1-F)*(qs-qc) in each layer:
-qd1=qs1-qc1
-qd2=qs2-qc2
+qd1=qSpec1-qc1
+qd2=qSpec2-qc2
 
 call hipass(qd1)
 call hipass(qd2)
@@ -144,12 +144,12 @@ subroutine prepare
 
 ! This routine is called just before exiting to contour regeneration.
 ! The current PV anomaly field is stored in qs (semi-spectral), and
-! the residual PV field needed in congen.f90 will be stored in qr.
+! the residual PV field needed in congen.f90 will be stored in qResid.
 
 implicit none
 
 ! Local variables:
-double precision:: zpf(ng,nt),avgzpf
+double precision:: zpf(numLatGridPts,numLongGridPts),avgzpf
 integer:: i,iz
 
 !------------------------------------------------------------
@@ -160,44 +160,44 @@ integer:: i,iz
 call reset
  !Note, qc is obtained in reset by a call to con2grid.
 
- !Obtain full PV anomaly on the grid as qr:
-qr(:,:,1)=qs1
-call revfft(ng,nt,qr(:,:,1),trig,factors)
-qr(:,:,2)=qs2
-call revfft(ng,nt,qr(:,:,2),trig,factors)
+ !Obtain full PV anomaly on the grid as qResid:
+qResid(:,:,1)=qSpec1
+call revfft(numLatGridPts,numLongGridPts,qResid(:,:,1),trig,factors)
+qResid(:,:,2)=qSpec2
+call revfft(numLatGridPts,numLongGridPts,qResid(:,:,2),trig,factors)
 
  !Add f to define the total PV, including the planetary part:
-do iz=1,nz
-  do i=1,nt
-    qr(:,i,iz)=qr(:,i,iz)+cof
+do iz=1,numLayers
+  do i=1,numLongGridPts
+    qResid(:,i,iz)=qResid(:,i,iz)+cof
   enddo
 enddo
 
  !Correct average PV in each layer by enforcing zero average vorticity:
-zpf=qr(:,:,1)*(one+h1)
+zpf=qResid(:,:,1)*(one+h1)
 avgzpf=average(zpf)
-qr(:,:,1)=qr(:,:,1)-avgzpf
+qResid(:,:,1)=qResid(:,:,1)-avgzpf
 
-zpf=qr(:,:,2)*(one+h2)
+zpf=qResid(:,:,2)*(one+h2)
 avgzpf=average(zpf)
-qr(:,:,2)=qr(:,:,2)-avgzpf
+qResid(:,:,2)=qResid(:,:,2)-avgzpf
 
- !Obtain unique polar values of qr for use in recontouring:
-do iz=1,nz
-  qsp(iz) = sum(qr( 1,:,iz))/dble(nt)
-  qnp(iz) = sum(qr(ng,:,iz))/dble(nt)
+ !Obtain unique polar values of qResid for use in recontouring:
+do iz=1,numLayers
+  qSPole(iz) = sum(qResid( 1,:,iz))/dble(numLongGridPts)
+  qNPole(iz) = sum(qResid(numLatGridPts,:,iz))/dble(numLongGridPts)
 enddo
  !These are averages of points half a latitude spacing from the poles
 
  !Obtain PV anomaly due to contours (qc) on the grid:
-call revfft(ng,nt,qc1,trig,factors)
-call revfft(ng,nt,qc2,trig,factors)
+call revfft(numLatGridPts,numLongGridPts,qc1,trig,factors)
+call revfft(numLatGridPts,numLongGridPts,qc2,trig,factors)
  !Note: qc1 & qc2 were obtained in reset and are in this module's commons.
 
- !Define residual PV (qr) needed for recontouring:
-do i=1,nt
-  qr(:,i,1)=qr(:,i,1)-qc1(:,i)-cof
-  qr(:,i,2)=qr(:,i,2)-qc2(:,i)-cof
+ !Define residual PV (qResid) needed for recontouring:
+do i=1,numLongGridPts
+  qResid(:,i,1)=qResid(:,i,1)-qc1(:,i)-cof
+  qResid(:,i,2)=qResid(:,i,2)-qc2(:,i)-cof
 enddo
 
  !Note: We are leaving this module after this; qd will be redefined
@@ -232,23 +232,23 @@ logical:: ggen
 integer,parameter:: niter=2
 
  !Semi-spectral fields needed in time stepping (layers 1 and 2):
-double precision:: qsi1(ng,nt),qsi2(ng,nt)
-double precision:: sqs1(ng,nt),sqs2(ng,nt)
+double precision:: qsi1(numLatGridPts,numLongGridPts),qsi2(numLatGridPts,numLongGridPts)
+double precision:: sqs1(numLatGridPts,numLongGridPts),sqs2(numLatGridPts,numLongGridPts)
 
-double precision:: qdi1(ng,nt),qdi2(ng,nt)
-double precision:: qdm1(ng,nt),qdm2(ng,nt)
-double precision:: sqd1(ng,nt),sqd2(ng,nt)
+double precision:: qdi1(numLatGridPts,numLongGridPts),qdi2(numLatGridPts,numLongGridPts)
+double precision:: qdm1(numLatGridPts,numLongGridPts),qdm2(numLatGridPts,numLongGridPts)
+double precision:: sqd1(numLatGridPts,numLongGridPts),sqd2(numLatGridPts,numLongGridPts)
 
-double precision:: dsi1(ng,nt),dsi2(ng,nt)
-double precision:: nds1(ng,nt),nds2(ng,nt)
-double precision:: sds1(ng,nt),sds2(ng,nt)
+double precision:: dsi1(numLatGridPts,numLongGridPts),dsi2(numLatGridPts,numLongGridPts)
+double precision:: nds1(numLatGridPts,numLongGridPts),nds2(numLatGridPts,numLongGridPts)
+double precision:: sds1(numLatGridPts,numLongGridPts),sds2(numLatGridPts,numLongGridPts)
 
-double precision:: gsi1(ng,nt),gsi2(ng,nt)
-double precision:: ngs1(ng,nt),ngs2(ng,nt)
-double precision:: sgs1(ng,nt),sgs2(ng,nt)
+double precision:: gsi1(numLatGridPts,numLongGridPts),gsi2(numLatGridPts,numLongGridPts)
+double precision:: ngs1(numLatGridPts,numLongGridPts),ngs2(numLatGridPts,numLongGridPts)
+double precision:: sgs1(numLatGridPts,numLongGridPts),sgs2(numLatGridPts,numLongGridPts)
 
  !Initial contour nodes and velocities needed in time stepping:
-double precision:: xi(npt),yi(npt),zi(npt),u(npt),v(npt),w(npt)
+double precision:: xi(numNodesTot),yi(numNodesTot),zi(numNodesTot),u(numNodesTot),v(numNodesTot),w(numNodesTot)
 
  !Other local quantities:
 double precision:: xtmp,ytmp,ztmp,fac
@@ -278,7 +278,7 @@ call velint(u1,u2,v1,v2,u,v,w)
  !at time level n, e.g. u(x^n,t^n).
 
  !Loop over nodes i:
-do i=1,npt
+do i=1,numNodesTot
    !Store x^n+0.5*dt*u(x^n,t^n) for efficiency in the iteration below:
   xtmp=x(i)+dt2*u(i)
   ytmp=y(i)+dt2*v(i)
@@ -301,11 +301,11 @@ enddo
 
  !Store delta and gamma at the current time level "n" after projection
  !onto vertical modes in dsi & gsi:
-dsi1=ds1*vm11+ds2*vm12
-dsi2=ds1*vm21+ds2*vm22
+dsi1=deltaSpec1*vm11+deltaSpec2*vm12
+dsi2=deltaSpec1*vm21+deltaSpec2*vm22
 
-gsi1=gs1*vm11+gs2*vm12
-gsi2=gs1*vm21+gs2*vm22
+gsi1=gammaSpec1*vm11+gammaSpec2*vm12
+gsi2=gammaSpec1*vm21+gammaSpec2*vm22
  !dsi & gsi remain fixed throughout the iteration below (do not re-use).
 
  !Calculate the source terms for PV (sqs,sqd) as well as those for
@@ -321,16 +321,16 @@ qdi2=qd2
 qdm1=qd1+dt4*sqd1
 qdm2=qd2+dt4*sqd2
 
-qsi1=qs1+dt2*sqs1
-qsi2=qs2+dt2*sqs2 
+qsi1=qSpec1+dt2*sqs1
+qsi2=qSpec2+dt2*sqs2 
  !Note: the PV evolution does not couple the layers.
 
  !Initial guess for qd & qs at time level "n+1":
 qd1=diss*(qdm1+dt4*sqd1)-qdi1
 qd2=diss*(qdm2+dt4*sqd2)-qdi2
 
-qs1=qsi1+dt2*sqs1
-qs2=qsi2+dt2*sqs2
+qSpec1=qsi1+dt2*sqs1
+qSpec2=qsi2+dt2*sqs2
 
  !Store arrays needed for updating delta and gamma (in mode space):
 nds1=sds1*vm11+sds2*vm12+dt4i*dsi1 !N_delta^n + (4/dt)*delta^n (mode 1)
@@ -347,7 +347,7 @@ call dgstep(dsi1,dsi2,gsi1,gsi2,nds1,nds2,ngs1,ngs2,sds1,sds2,sgs1,sgs2)
  !On return, ds & gs (in commons) contain first estimates for
  !delta^{n+1} & gamma^{n+1} for each *layer*.
 
- !If there is baroclinic PV forcing (fq), update its form:
+ !If there is baroclinic PV forcing (qForcing), update its form:
 if (forcing) call pvforce
  !Note: the forcing stays constant in time within a time step.
 
@@ -366,7 +366,7 @@ do iter=1,niter
 
    !Update contours:
   call velint(u1,u2,v1,v2,u,v,w)
-  do i=1,npt
+  do i=1,numNodesTot
     xtmp=xi(i)+dt2*u(i)
     ytmp=yi(i)+dt2*v(i)
     ztmp=zi(i)+dt2*w(i)
@@ -381,8 +381,8 @@ do iter=1,niter
   qd1=diss*(qdm1+dt4*sqd1)-qdi1
   qd2=diss*(qdm2+dt4*sqd2)-qdi2
 
-  qs1=qsi1+dt*sqs1
-  qs2=qsi2+dt*sqs2
+  qSpec1=qsi1+dt*sqs1
+  qSpec2=qsi2+dt*sqs2
 
    !Update delta and gamma:
   call dgstep(dsi1,dsi2,gsi1,gsi2,nds1,nds2,ngs1,ngs2,sds1,sds2,sgs1,sgs2)
@@ -396,11 +396,11 @@ enddo
 call latdamp(qd1)
 call latdamp(qd2)
 
-call latdamp(ds1)
-call latdamp(ds2)
+call latdamp(deltaSpec1)
+call latdamp(deltaSpec2)
 
-call latdamp(gs1)
-call latdamp(gs2)
+call latdamp(gammaSpec1)
+call latdamp(gammaSpec2)
  !The longitudinal part is incorporated above in diss, rdis and simp
  !for ds & gs (see dgstep and subroutine init_spectral in spectral.f90).
 
@@ -438,52 +438,52 @@ subroutine dgstep(dsi1,dsi2,gsi1,gsi2,nds1,nds2,ngs1,ngs2,sds1,sds2,sgs1,sgs2)
 implicit none
 
  !Passed variables:
-double precision:: dsi1(ng,nt),dsi2(ng,nt)
-double precision:: nds1(ng,nt),nds2(ng,nt)
-double precision:: sds1(ng,nt),sds2(ng,nt)
+double precision:: dsi1(numLatGridPts,numLongGridPts),dsi2(numLatGridPts,numLongGridPts)
+double precision:: nds1(numLatGridPts,numLongGridPts),nds2(numLatGridPts,numLongGridPts)
+double precision:: sds1(numLatGridPts,numLongGridPts),sds2(numLatGridPts,numLongGridPts)
 
-double precision:: gsi1(ng,nt),gsi2(ng,nt)
-double precision:: ngs1(ng,nt),ngs2(ng,nt)
-double precision:: sgs1(ng,nt),sgs2(ng,nt)
+double precision:: gsi1(numLatGridPts,numLongGridPts),gsi2(numLatGridPts,numLongGridPts)
+double precision:: ngs1(numLatGridPts,numLongGridPts),ngs2(numLatGridPts,numLongGridPts)
+double precision:: sgs1(numLatGridPts,numLongGridPts),sgs2(numLatGridPts,numLongGridPts)
 
 !---------------------------------------------------------------
  !First convert layer sources in (sds,sgs) to modes as (ds,gs)
  !in commons; it is safe to do this as ds & gs are available for
  !use, and they are overwritten here on return with the solution
  !for delta^{n+1} and gamma^{n+1} for each *layer*:
-ds1=sds1*vm11+sds2*vm12
-ds2=sds1*vm21+sds2*vm22
+deltaSpec1=sds1*vm11+sds2*vm12
+deltaSpec2=sds1*vm21+sds2*vm22
 
-gs1=sgs1*vm11+sgs2*vm12
-gs2=sgs1*vm21+sgs2*vm22
+gammaSpec1=sgs1*vm11+sgs2*vm12
+gammaSpec2=sgs1*vm21+sgs2*vm22
 
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
  !Update delta^{n+1} & gamma^{n+1} for mode 1:
-sds1=nds1+ds1            !N_delta^{n+1} + N_delta^n + (4/dt)*delta^n
-sgs1=ngs1+gs1            !N_gamma^{n+1} + N_gamma^n + (4/dt)*gamma^n
-gs1=rdis*sds1+sgs1       !Source for delta^n + delta^{n+1}
-call simp1(gs1,sgs1,ds1) !sgs = delta^{n} + delta^{n+1}; ds is not used
-ds1=sgs1-dsi1            !delta^{n+1}
-gs1=rdis*sgs1-sds1-gsi1  !gamma^{n+1}
+sds1=nds1+deltaSpec1            !N_delta^{n+1} + N_delta^n + (4/dt)*delta^n
+sgs1=ngs1+gammaSpec1            !N_gamma^{n+1} + N_gamma^n + (4/dt)*gamma^n
+gammaSpec1=rdis*sds1+sgs1       !Source for delta^n + delta^{n+1}
+call simp1(gammaSpec1,sgs1,deltaSpec1) !sgs = delta^{n} + delta^{n+1}; ds is not used
+deltaSpec1=sgs1-dsi1            !delta^{n+1}
+gammaSpec1=rdis*sgs1-sds1-gsi1  !gamma^{n+1}
 
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
  !Update delta^{n+1} & gamma^{n+1} for mode 2:
-sds2=nds2+ds2            !N_delta^{n+1} + N_delta^n + (4/dt)*delta^n
-sgs2=ngs2+gs2            !N_gamma^{n+1} + N_gamma^n + (4/dt)*gamma^n
-gs2=rdis*sds2+sgs2       !Source for delta^n + delta^{n+1}
-call simp2(gs2,sgs2,ds2) !sgs = delta^{n} + delta^{n+1}; ds is not used
-ds2=sgs2-dsi2            !delta^{n+1}
-gs2=rdis*sgs2-sds2-gsi2  !gamma^{n+1}
+sds2=nds2+deltaSpec2            !N_delta^{n+1} + N_delta^n + (4/dt)*delta^n
+sgs2=ngs2+gammaSpec2            !N_gamma^{n+1} + N_gamma^n + (4/dt)*gamma^n
+gammaSpec2=rdis*sds2+sgs2       !Source for delta^n + delta^{n+1}
+call simp2(gammaSpec2,sgs2,deltaSpec2) !sgs = delta^{n} + delta^{n+1}; ds is not used
+deltaSpec2=sgs2-dsi2            !delta^{n+1}
+gammaSpec2=rdis*sgs2-sds2-gsi2  !gamma^{n+1}
 
 !-------------------------------------------------------------
- !Finally convert mode quantities (ds1,ds2,gs1,gs2) to layers:
-sds1=ds1*vt11+ds2*vt12
-ds2 =ds1*vt21+ds2*vt22
-ds1=sds1
+ !Finally convert mode quantities (deltaSpec1,deltaSpec2,gammaSpec1,gammaSpec2) to layers:
+sds1=deltaSpec1*vt11+deltaSpec2*vt12
+deltaSpec2 =deltaSpec1*vt21+deltaSpec2*vt22
+deltaSpec1=sds1
 
-sgs1=gs1*vt11+gs2*vt12
-gs2 =gs1*vt21+gs2*vt22
-gs1=sgs1
+sgs1=gammaSpec1*vt11+gammaSpec2*vt12
+gammaSpec2 =gammaSpec1*vt21+gammaSpec2*vt22
+gammaSpec1=sgs1
  !Now gs & gs contain delta^{n+1} & gamma^{n+1} for each *layer*
 
  !Above, subroutines simpj (for each mode j) invert R^2-G to obtain
@@ -514,22 +514,22 @@ subroutine source(sqs1,sqs2,sqd1,sqd2,sds1,sds2,sgs1,sgs2)
 implicit none
 
  !Passed variables:
-double precision:: sqs1(ng,nt),sqs2(ng,nt),sqd1(ng,nt),sqd2(ng,nt)
-double precision:: sds1(ng,nt),sds2(ng,nt),sgs1(ng,nt),sgs2(ng,nt)
+double precision:: sqs1(numLatGridPts,numLongGridPts),sqs2(numLatGridPts,numLongGridPts),sqd1(numLatGridPts,numLongGridPts),sqd2(numLatGridPts,numLongGridPts)
+double precision:: sds1(numLatGridPts,numLongGridPts),sds2(numLatGridPts,numLongGridPts),sgs1(numLatGridPts,numLongGridPts),sgs2(numLatGridPts,numLongGridPts)
 
  !Local variables:
-double precision:: wka(ng,nt),wkb(ng,nt),wkc(ng,nt),wkd(ng,nt)
-double precision:: wke(ng,nt),wkf(ng,nt),wkg(ng,nt),wkh(ng,nt)
-double precision:: om1(ng,nt),om2(ng,nt)
-double precision:: usq1(ng,nt),usq2(ng,nt)
-double precision:: d1(ng,nt),d2(ng,nt),rhs(ng),avgval
+double precision:: wka(numLatGridPts,numLongGridPts),wkb(numLatGridPts,numLongGridPts),wkc(numLatGridPts,numLongGridPts),wkd(numLatGridPts,numLongGridPts)
+double precision:: wke(numLatGridPts,numLongGridPts),wkf(numLatGridPts,numLongGridPts),wkg(numLatGridPts,numLongGridPts),wkh(numLatGridPts,numLongGridPts)
+double precision:: om1(numLatGridPts,numLongGridPts),om2(numLatGridPts,numLongGridPts)
+double precision:: usq1(numLatGridPts,numLongGridPts),usq2(numLatGridPts,numLongGridPts)
+double precision:: d1(numLatGridPts,numLongGridPts),d2(numLatGridPts,numLongGridPts),rhs(numLatGridPts),avgval
 integer:: i
 
 !--------------------------------------------------------------
  !First define Omega = u/r (where r = cos(lat)) for each layer:
-do i=1,nt
-  om1(:,i)=clati*u1(:,i)
-  om2(:,i)=clati*u2(:,i)
+do i=1,numLongGridPts
+  om1(:,i)=secantLat*u1(:,i)
+  om2(:,i)=secantLat*u2(:,i)
 enddo
  !*** Do not re-use om1 & om2 below ***
 
@@ -538,21 +538,21 @@ enddo
 
 !:::::::::::::::::::::::::::::::::::::::::::::::::::::::::
  !Obtain qd source for layer 1 (sqd1):
-call deriv(ng,nt,rk,qd1,wkg)
-call revfft(ng,nt,wkg,trig,factors) ! wkg = d(qd1)/d(lon)
+call deriv(numLatGridPts,numLongGridPts,rk,qd1,wkg)
+call revfft(numLatGridPts,numLongGridPts,wkg,trig,factors) ! wkg = d(qd1)/d(lon)
 wka=qd1
-call revfft(ng,nt,wka,trig,factors) 
+call revfft(numLatGridPts,numLongGridPts,wka,trig,factors) 
 call latder(wka,wkh)                ! wkh = d(qd1)/d(lat)
 sqd1=-om1*wkg-v1*wkh
 
- !Add baroclinic PV forcing (fq) if present:
-if (forcing) sqd1=sqd1-mrat2*fq
+ !Add baroclinic PV forcing (qForcing) if present:
+if (forcing) sqd1=sqd1-mrat2*qForcing
  !mrat2 = m_2/(m_1+m_2) where m_j is the mass of layer j (see constants.f90)
 
  !Add non-conservative term associated with thermal damping if present:
 if (thermal) then
-  do i=1,nt
-    sqd1(:,i)=sqd1(:,i)+rth*(q1(:,i)+cof)*(one-one/(one+h1(:,i)))
+  do i=1,numLongGridPts
+    sqd1(:,i)=sqd1(:,i)+thermDampRate*(qAnom1(:,i)+cof)*(one-one/(one+h1(:,i)))
   enddo
 endif
 
@@ -561,21 +561,21 @@ call dealias(sqd1)
 
 !:::::::::::::::::::::::::::::::::::::::::::::::::::::::::
  !Obtain qd source for layer 2 (sqd2):
-call deriv(ng,nt,rk,qd2,wkg)
-call revfft(ng,nt,wkg,trig,factors) ! wkg = d(qd2)/d(lon)
+call deriv(numLatGridPts,numLongGridPts,rk,qd2,wkg)
+call revfft(numLatGridPts,numLongGridPts,wkg,trig,factors) ! wkg = d(qd2)/d(lon)
 wka=qd2
-call revfft(ng,nt,wka,trig,factors) 
+call revfft(numLatGridPts,numLongGridPts,wka,trig,factors) 
 call latder(wka,wkh)                ! wkh = d(qd2)/d(lat)
 sqd2=-om2*wkg-v2*wkh
 
- !Add baroclinic PV forcing (fq) if present:
-if (forcing) sqd2=sqd2+mrat1*fq
+ !Add baroclinic PV forcing (qForcing) if present:
+if (forcing) sqd2=sqd2+mrat1*qForcing
  !mrat1 = m_1/(m_2+m_2) where m_j is the mass of layer j (see constants.f90)
 
  !Add non-conservative term associated with thermal damping if present:
 if (thermal) then
-  do i=1,nt
-    sqd2(:,i)=sqd2(:,i)+rth*(q2(:,i)+cof)*(one-one/(one+h2(:,i)))
+  do i=1,numLongGridPts
+    sqd2(:,i)=sqd2(:,i)+thermDampRate*(qAnom2(:,i)+cof)*(one-one/(one+h2(:,i)))
   enddo
 endif
 
@@ -587,26 +587,26 @@ call dealias(sqd2)
 
 !:::::::::::::::::::::::::::::::::::::::::::::::::::::::::
  !Obtain qs source for layer 1 (sqs1):
-call deriv(ng,nt,rk,qs1,wkg)
-call revfft(ng,nt,wkg,trig,factors) ! wkg = d(qs1)/d(lon)
-wka=qs1
-call revfft(ng,nt,wka,trig,factors) 
-call latder(wka,wkh)                ! wkh = d(qs1)/d(lat)
-do i=1,nt
-  sqs1(:,i)=-om1(:,i)*wkg(:,i)-v1(:,i)*(wkh(:,i)+bet) !include beta*v1
+call deriv(numLatGridPts,numLongGridPts,rk,qSpec1,wkg)
+call revfft(numLatGridPts,numLongGridPts,wkg,trig,factors) ! wkg = d(qSpec1)/d(lon)
+wka=qSpec1
+call revfft(numLatGridPts,numLongGridPts,wka,trig,factors) 
+call latder(wka,wkh)                ! wkh = d(qSpec1)/d(lat)
+do i=1,numLongGridPts
+  sqs1(:,i)=-om1(:,i)*wkg(:,i)-v1(:,i)*(wkh(:,i)+beta) !include beta*v1
 enddo
  !Convert to semi-spectral space and de-alias:
 call dealias(sqs1)
 
 !:::::::::::::::::::::::::::::::::::::::::::::::::::::::::
  !Obtain qs source for layer 2 (sqs2):
-call deriv(ng,nt,rk,qs2,wkg)
-call revfft(ng,nt,wkg,trig,factors) ! wkg = d(qs2)/d(lon)
-wka=qs2
-call revfft(ng,nt,wka,trig,factors) 
-call latder(wka,wkh)                ! wkh = d(qs2)/d(lat)
-do i=1,nt
-  sqs2(:,i)=-om2(:,i)*wkg(:,i)-v2(:,i)*(wkh(:,i)+bet) !include beta*v2
+call deriv(numLatGridPts,numLongGridPts,rk,qSpec2,wkg)
+call revfft(numLatGridPts,numLongGridPts,wkg,trig,factors) ! wkg = d(qSpec2)/d(lon)
+wka=qSpec2
+call revfft(numLatGridPts,numLongGridPts,wka,trig,factors) 
+call latder(wka,wkh)                ! wkh = d(qSpec2)/d(lat)
+do i=1,numLongGridPts
+  sqs2(:,i)=-om2(:,i)*wkg(:,i)-v2(:,i)*(wkh(:,i)+beta) !include beta*v2
 enddo
  !Convert to semi-spectral space and de-alias:
 call dealias(sqs2)
@@ -623,33 +623,33 @@ call dealias(sqs2)
 
  !Convert v1 & om1 (= u_1/r) to semi-spectral space as wka & wkb:
 wka=v1
-call forfft(ng,nt,wka,trig,factors) 
+call forfft(numLatGridPts,numLongGridPts,wka,trig,factors) 
 wkb=om1
-call forfft(ng,nt,wkb,trig,factors) 
+call forfft(numLatGridPts,numLongGridPts,wkb,trig,factors) 
 
  !Compute longitudinal derivatives of wka & wkb:
-call deriv(ng,nt,rk,wka,wkc)
-call deriv(ng,nt,rk,wkb,wkd)
+call deriv(numLatGridPts,numLongGridPts,rk,wka,wkc)
+call deriv(numLatGridPts,numLongGridPts,rk,wkb,wkd)
 
  !Recover physical fields (inverse FFT):
-call revfft(ng,nt,wkc,trig,factors) 
-call revfft(ng,nt,wkd,trig,factors) 
+call revfft(numLatGridPts,numLongGridPts,wkc,trig,factors) 
+call revfft(numLatGridPts,numLongGridPts,wkd,trig,factors) 
 
  !Complete definition of A & B:
-do i=1,nt
-  wka(:,i)=slat*om1(:,i)+clati*wkc(:,i)
-  wkb(:,i)=tlat*v1(:,i)-wkd(:,i)
+do i=1,numLongGridPts
+  wka(:,i)=sinLat*om1(:,i)+secantLat*wkc(:,i)
+  wkb(:,i)=tanLat*v1(:,i)-wkd(:,i)
 enddo
  !tlat = tan(lat) above; *** Do not re-use wka or wkb ***
 
  !Get physical space velocity divergence -> d1:
-d1=ds1
-call revfft(ng,nt,d1,trig,factors) 
+d1=deltaSpec1
+call revfft(numLatGridPts,numLongGridPts,d1,trig,factors) 
  !*** Do not re-use d1 ***
 
  !Get physical space derivatives of divergence:
-call deriv(ng,nt,rk,ds1,wkg)
-call revfft(ng,nt,wkg,trig,factors) ! wkg = d(delta)/d(lon)
+call deriv(numLatGridPts,numLongGridPts,rk,deltaSpec1,wkg)
+call revfft(numLatGridPts,numLongGridPts,wkg,trig,factors) ! wkg = d(delta)/d(lon)
 call latder(d1,wkc)                 ! wkc = d(delta)/d(lat)
 
  !Compute the nonlinear part of the velocity divergence tendency:
@@ -658,7 +658,7 @@ sds1=two*(wka*(z1-wka)-wkb*(wkb+d1))-usq1-d1**2-om1*wkg-v1*wkc
  !om1 = u_1/r on rhs above; *** wka & wkb now safe to re-use below ***
 
  !Add effect of fixed topography (if present) --- layer 1 only:
-if (topogr) sds1=sds1-tsds
+if (topoFlag) sds1=sds1-specDeltaTopoSrc
 
  !Convert to semi-spectral space and de-alias:
 call dealias(sds1)
@@ -672,33 +672,33 @@ call dealias(sds1)
 
  !Convert v2 & om2 (= u_2/r) to semi-spectral space as wka & wkb:
 wka=v2
-call forfft(ng,nt,wka,trig,factors) 
+call forfft(numLatGridPts,numLongGridPts,wka,trig,factors) 
 wkb=om2
-call forfft(ng,nt,wkb,trig,factors) 
+call forfft(numLatGridPts,numLongGridPts,wkb,trig,factors) 
 
  !Compute longitudinal derivatives of wka & wkb:
-call deriv(ng,nt,rk,wka,wkc)
-call deriv(ng,nt,rk,wkb,wkd)
+call deriv(numLatGridPts,numLongGridPts,rk,wka,wkc)
+call deriv(numLatGridPts,numLongGridPts,rk,wkb,wkd)
 
  !Recover physical fields (inverse FFT):
-call revfft(ng,nt,wkc,trig,factors) 
-call revfft(ng,nt,wkd,trig,factors) 
+call revfft(numLatGridPts,numLongGridPts,wkc,trig,factors) 
+call revfft(numLatGridPts,numLongGridPts,wkd,trig,factors) 
 
  !Complete definition of A & B:
-do i=1,nt
-  wka(:,i)=slat*om2(:,i)+clati*wkc(:,i)
-  wkb(:,i)=tlat*v2(:,i)-wkd(:,i)
+do i=1,numLongGridPts
+  wka(:,i)=sinLat*om2(:,i)+secantLat*wkc(:,i)
+  wkb(:,i)=tanLat*v2(:,i)-wkd(:,i)
 enddo
  !tlat = tan(lat) above; *** Do not re-use wka or wkb ***
 
  !Get physical space velocity divergence -> d2:
-d2=ds2
-call revfft(ng,nt,d2,trig,factors) 
+d2=deltaSpec2
+call revfft(numLatGridPts,numLongGridPts,d2,trig,factors) 
  !*** Do not re-use d2 ***
 
  !Get physical space derivatives of divergence:
-call deriv(ng,nt,rk,ds2,wkg)
-call revfft(ng,nt,wkg,trig,factors) ! wkg = d(delta)/d(lon)
+call deriv(numLatGridPts,numLongGridPts,rk,deltaSpec2,wkg)
+call revfft(numLatGridPts,numLongGridPts,wkg,trig,factors) ! wkg = d(delta)/d(lon)
 call latder(d2,wkc)                 ! wkc = d(delta)/d(lat)
 
  !Compute the nonlinear part of the velocity divergence tendency:
@@ -718,15 +718,15 @@ call dealias(sds2)
 !::::::::::::::::::::::::::::::::::::::::::::::::::::::
  !Compute c_1^2*div((u_1,v_1)*h_1) -> wke:
 wka=h1
-call forfft(ng,nt,wka,trig,factors) 
-call deriv(ng,nt,rk,wka,wkd)
-call revfft(ng,nt,wkd,trig,factors) ! wkd = dh_1/d(lon)
+call forfft(numLatGridPts,numLongGridPts,wka,trig,factors) 
+call deriv(numLatGridPts,numLongGridPts,rk,wka,wkd)
+call revfft(numLatGridPts,numLongGridPts,wkd,trig,factors) ! wkd = dh_1/d(lon)
 call latder(h1,wkc)                 ! wkc = dh_1/d(lat)
 wke=d1*h1+om1*wkd+v1*wkc
  !Note om1 = u_1/r on rhs above
 
  !If thermal damping is present, add its contribution:
-if (thermal) wke=wke+rth*h1
+if (thermal) wke=wke+thermDampRate*h1
 
  !Compute Laplacian of wke = div(h_1*(u_1,v_1)) after de-aliasing:
 call dealias(wke)
@@ -737,15 +737,15 @@ wkg=csq1*wkg
 !::::::::::::::::::::::::::::::::::::::::::::::::::::::
  !Compute c_2^2*div((u_2,v_2)*h_2) -> wke:
 wka=h2
-call forfft(ng,nt,wka,trig,factors) 
-call deriv(ng,nt,rk,wka,wkd)
-call revfft(ng,nt,wkd,trig,factors) ! wkd = dh_2/d(lon)
+call forfft(numLatGridPts,numLongGridPts,wka,trig,factors) 
+call deriv(numLatGridPts,numLongGridPts,rk,wka,wkd)
+call revfft(numLatGridPts,numLongGridPts,wkd,trig,factors) ! wkd = dh_2/d(lon)
 call latder(h2,wkc)                 ! wkc = dh_2/d(lat)
 wke=d2*h2+om2*wkd+v2*wkc
  !Note om2 = u_2/r on rhs above
 
  !If thermal damping is present, add its contribution:
-if (thermal) wke=wke+rth*h2
+if (thermal) wke=wke+thermDampRate*h2
 
  !Compute Laplacian of wke after de-aliasing:
 call dealias(wke)
@@ -757,16 +757,16 @@ wkh=csq2*wkh
  !Obtain gamma source for layer 1 (sgs1):
 
  !Define wkf = f*zeta_1 & wkd = 2*f*beta*v_1:
-do i=1,nt
+do i=1,numLongGridPts
   wkf(:,i)=cof*z1(:,i)            !cof = f
   wkd(:,i)=dfb*v1(:,i)            !dfb = 2*f*beta
 enddo
 
  !Compute div((u_1,v_1)*Z_1) where Z_1 = f*zeta_1:
 wka=wkf
-call forfft(ng,nt,wka,trig,factors)
-call deriv(ng,nt,rk,wka,wke)
-call revfft(ng,nt,wke,trig,factors) ! wke = dZ/d(lon)
+call forfft(numLatGridPts,numLongGridPts,wka,trig,factors)
+call deriv(numLatGridPts,numLongGridPts,rk,wka,wke)
+call revfft(numLatGridPts,numLongGridPts,wke,trig,factors) ! wke = dZ/d(lon)
 call latder(wkf,wkc)                ! wkc = dZ/d(lat)
 
  !Store div((u_1,v_1)*Z_1) + 2*f*beta*v_1 in sgs1 temporarily:
@@ -775,16 +775,16 @@ sgs1=d1*wkf+om1*wke+v1*wkc+wkd
 call dealias(sgs1)
 
  !Define B = c_1^2*h_1 + (rho_2/rho_1)*c_2^2*h_2 + (u_1^2 + v_1^2)/2 -> wkb:
-wkb=csq1*h1+denrat*csq2*h2+f12*usq1
+wkb=csq1*h1+densityRatio*csq2*h2+f12*usq1
  !De-alias and convert to semi-spectral space:
 call dealias(wkb)
  !Add effect of fixed topography (if present) --- layer 1 only:
-if (topogr) wkb=wkb+tsgs
+if (topoFlag) wkb=wkb+specGammaTopoSrc
  !Calculate dB/d(lon) -> wkf (keep this semi-spectral):
-call deriv(ng,nt,rk,wkb,wkf)
+call deriv(numLatGridPts,numLongGridPts,rk,wkb,wkf)
 
  !Complete calculation of (de-aliased) nonlinear part of gamma tendency:
-sgs1=wkg+denrat*wkh+fpole*wkf-sgs1
+sgs1=wkg+densityRatio*wkh+fpole*wkf-sgs1
  !wkg & wkh are defined above as the Laplacian of c^2*div(h*(u,v))
  !in layers 1 and 2, respectively.
 
@@ -792,16 +792,16 @@ sgs1=wkg+denrat*wkh+fpole*wkf-sgs1
  !Obtain gamma source for layer 2 (sgs2):
 
  !Define wkf = f*zeta_2 & wkd = 2*f*beta*v_2:
-do i=1,nt
+do i=1,numLongGridPts
   wkf(:,i)=cof*z2(:,i)            !cof = f
   wkd(:,i)=dfb*v2(:,i)            !dfb = 2*f*beta
 enddo
 
  !Compute div((u_2,v_2)*Z_2) where Z_2 = f*zeta_2:
 wka=wkf
-call forfft(ng,nt,wka,trig,factors)
-call deriv(ng,nt,rk,wka,wke)
-call revfft(ng,nt,wke,trig,factors) ! wke = dZ/d(lon)
+call forfft(numLatGridPts,numLongGridPts,wka,trig,factors)
+call deriv(numLatGridPts,numLongGridPts,rk,wka,wke)
+call revfft(numLatGridPts,numLongGridPts,wke,trig,factors) ! wke = dZ/d(lon)
 call latder(wkf,wkc)                ! wkc = dZ/d(lat)
 
  !Store div((u_2,v_2)*Z_2) + 2*f*beta*v_2 in sgs2 temporarily:
@@ -814,7 +814,7 @@ wkb=csq1*h1+csq2*h2+f12*usq2
  !De-alias and convert to semi-spectral space:
 call dealias(wkb)
  !Calculate dB/d(lon) -> wkf (keep this semi-spectral):
-call deriv(ng,nt,rk,wkb,wkf)
+call deriv(numLatGridPts,numLongGridPts,rk,wkb,wkf)
 
  !Complete calculation of (de-aliased) nonlinear part of gamma tendency:
 sgs2=wkg+wkh+fpole*wkf-sgs2
@@ -823,20 +823,20 @@ sgs2=wkg+wkh+fpole*wkf-sgs2
 
 !-----------------------------------------------------
  !Remove global mean values of sds & sgs:
-rhs=sds1(:,1)*clat
-avgval=(f1112*(rhs(1)+rhs(ng))+sum(rhs(2:ngm1)))*rsumi
+rhs=sds1(:,1)*cosLat
+avgval=(f1112*(rhs(1)+rhs(numLatGridPts))+sum(rhs(2:ngm1)))*rsumi
 sds1(:,1)=sds1(:,1)-avgval
 
-rhs=sds2(:,1)*clat
-avgval=(f1112*(rhs(1)+rhs(ng))+sum(rhs(2:ngm1)))*rsumi
+rhs=sds2(:,1)*cosLat
+avgval=(f1112*(rhs(1)+rhs(numLatGridPts))+sum(rhs(2:ngm1)))*rsumi
 sds2(:,1)=sds2(:,1)-avgval
 
-rhs=sgs1(:,1)*clat
-avgval=(f1112*(rhs(1)+rhs(ng))+sum(rhs(2:ngm1)))*rsumi
+rhs=sgs1(:,1)*cosLat
+avgval=(f1112*(rhs(1)+rhs(numLatGridPts))+sum(rhs(2:ngm1)))*rsumi
 sgs1(:,1)=sgs1(:,1)-avgval
 
-rhs=sgs2(:,1)*clat
-avgval=(f1112*(rhs(1)+rhs(ng))+sum(rhs(2:ngm1)))*rsumi
+rhs=sgs2(:,1)*cosLat
+avgval=(f1112*(rhs(1)+rhs(numLatGridPts))+sum(rhs(2:ngm1)))*rsumi
 sgs2(:,1)=sgs2(:,1)-avgval
 
 return
@@ -853,7 +853,7 @@ subroutine inversion
 implicit none
 
 ! Local variable:
-double precision:: qa(ng,nt,nz)
+double precision:: qa(numLatGridPts,numLongGridPts,numLayers)
 
 !------------------------------------------------------------
  !Convert PV contours (x,y,z) to gridded PV anomaly as qa:
@@ -861,14 +861,14 @@ call con2grid(qa)
 
  !Convert each component to semi-spectral space as qc1 & qc2:
 qc1=qa(:,:,1)
-call forfft(ng,nt,qc1,trig,factors) 
+call forfft(numLatGridPts,numLongGridPts,qc1,trig,factors) 
 qc2=qa(:,:,2)
-call forfft(ng,nt,qc2,trig,factors) 
+call forfft(numLatGridPts,numLongGridPts,qc2,trig,factors) 
 
- !Combine fields to update qt with full (semi-spectral) field,
- !qt = F*(qs-qc) + qc + qd, where F is a low pass filter:
-qt1=qs1-qc1
-qt2=qs2-qc2
+ !Combine fields to update qTot with full (semi-spectral) field,
+ !qTot = F*(qs-qc) + qc + qd, where F is a low pass filter:
+qt1=qSpec1-qc1
+qt2=qSpec2-qc2
 
 call lopass(qt1)
 call lopass(qt2)
@@ -879,8 +879,8 @@ qt2=qt2+qc2+qd2
  !Invert PV, divergence and acceleration divergence to obtain the
  !dimensionless height anomaly and velocity field, as well as the
  !gridded PV anomaly and relative vorticity (see spectral.f90):
-call main_invert(qt1,qt2,ds1,ds2,gs1,gs2,h1,h2,u1,u2,v1,v2,q1,q2,z1,z2)
- !Note: qt, ds & gs (for each layer) are in semi-spectral space while 
+call main_invert(qt1,qt2,deltaSpec1,deltaSpec2,gammaSpec1,gammaSpec2,h1,h2,u1,u2,v1,v2,qAnom1,qAnom2,z1,z2)
+ !Note: qTot, ds & gs (for each layer) are in semi-spectral space while 
  !      h, u, v, q and z are in physical space.
 
 return
@@ -895,7 +895,7 @@ subroutine reset
 implicit none
 
  !Local variable:
-double precision:: qa(ng,nt,nz)
+double precision:: qa(numLatGridPts,numLongGridPts,numLayers)
 
 !-------------------------------------------------------------------
  !Reset  qs = F*(qs-qc) + qc + qd  and  qd = (1-F)*(qs-qc)
@@ -907,22 +907,22 @@ call con2grid(qa)
 
  !Convert each component to semi-spectral space as qc1 & qc2:
 qc1=qa(:,:,1)
-call forfft(ng,nt,qc1,trig,factors) 
+call forfft(numLatGridPts,numLongGridPts,qc1,trig,factors) 
 qc2=qa(:,:,2)
-call forfft(ng,nt,qc2,trig,factors) 
+call forfft(numLatGridPts,numLongGridPts,qc2,trig,factors) 
 
  !Reset qs & qd in each layer:
-qs1=qs1-qc1
-qs2=qs2-qc2
+qSpec1=qSpec1-qc1
+qSpec2=qSpec2-qc2
 
-call lopass(qs1)
-call lopass(qs2)
+call lopass(qSpec1)
+call lopass(qSpec2)
 
-qs1=qs1+qc1+qd1
-qs2=qs2+qc2+qd2
+qSpec1=qSpec1+qc1+qd1
+qSpec2=qSpec2+qc2+qd2
 
-qd1=qs1-qc1
-qd2=qs2-qc2
+qd1=qSpec1-qc1
+qd2=qSpec2-qc2
 
 call hipass(qd1)
 call hipass(qd2)
@@ -934,26 +934,26 @@ end subroutine reset
 
 subroutine pvforce
 ! Updates the PV forcing by blending a new random field into the
-! existing one in fq.
+! existing one in qForcing.
 
 implicit none
 
 ! Local variables:
-double precision:: wkb(ng,nt)
+double precision:: wkb(numLatGridPts,numLongGridPts)
 double precision:: fac
 
 !-------------------------------------------------------------------
  !Generate forcing at t+dt:
-call generate_forcing(wkb,fqrms)
+call generate_forcing(wkb,rmsPvForcing)
 
  !Blend with existing forcing (Markovian process):
-fq=wold*fq+wnew*wkb
+qForcing=wold*qForcing+wnew*wkb
  !See constants.f90 for wold and wnew
 
  !Restore rms value of blended field:
-call getrms(fq,fac)
-fac=fqrms/fac
-fq=fac*fq
+call getrms(qForcing,fac)
+fac=rmsPvForcing/fac
+qForcing=fac*qForcing
 
 return
 end subroutine pvforce
@@ -968,7 +968,7 @@ subroutine diagnose
 implicit none
 
  !Local variables:
-double precision:: wka(ng,nt),wkb(ng,nt)
+double precision:: wka(numLatGridPts,numLongGridPts),wkb(numLatGridPts,numLongGridPts)
 double precision:: zmax,frmax,zrms
 
 !----------------------------------------------------------------------
@@ -1006,31 +1006,31 @@ implicit none
 integer:: igrids
 
  !Local variables:
-double precision:: wkp(ng,nt),wka(ng,nt),wkb(ng,nt)
-double precision:: spec1(ng),spec2(ng)
+double precision:: wkp(numLatGridPts,numLongGridPts),wka(numLatGridPts,numLongGridPts),wkb(numLatGridPts,numLongGridPts)
+double precision:: spec1(numLatGridPts),spec2(numLatGridPts)
 double precision:: ekin,epot,etot,angm
 integer:: i,m
 
 !-----------------------------------------------------------------
 ! Compute energy components, divided by rho_1*H where H = H_1+H_2:
-wka=hbar1*(one+h1) !Physical thickness of layer 1
-wkb=hbar2*(one+h2) !Physical thickness of layer 2
+wka=hAvgLayer1*(one+h1) !Physical thickness of layer 1
+wkb=hAvgLayer2*(one+h2) !Physical thickness of layer 2
 ! *** Do not re-use wka & wkb ***
 
 ! Horizontal and vertical parts of the kinetic energy:
-wkp=wka*(u1**2+v1**2)+denrat*wkb*(u2**2+v2**2) !kinetic energy density
-ekin=twopi*average(wkp)
+wkp=wka*(u1**2+v1**2)+densityRatio*wkb*(u2**2+v2**2) !kinetic energy density
+ekin=twoPi*average(wkp)
 ! This is the area integral of the kinetic energy density
-! denrat = rho_2/rho_1 (see constants.f90)
+! densityRatio = rho_2/rho_1 (see constants.f90)
 
 ! Potential energy:
-if (topogr) then
-   wkp=hbar1*bb+wka !Physical height of the top of layer 1
-   wkp=wka*(two*wkp-wka)+denrat*wkb*(two*wkp+wkb)-dape
+if (topoFlag) then
+   wkp=hAvgLayer1*botTopo+wka !Physical height of the top of layer 1
+   wkp=wka*(two*wkp-wka)+densityRatio*wkb*(two*wkp+wkb)-dape
 else
-   wkp=wka**2+denrat*wkb*(two*wka+wkb)-dape
+   wkp=wka**2+densityRatio*wkb*(two*wka+wkb)-dape
 endif
-epot=twopi*gravity*average(wkp)
+epot=twoPi*gravity*average(wkp)
 ! wkp: potential energy density
 ! dape = hbar_1**2+(rho_2/rho_1)*hbar_2*(2*hbar_1+hbar_2): ensures that
 !        a state of rest has zero potential energy (see constants.f90)
@@ -1040,13 +1040,13 @@ epot=twopi*gravity*average(wkp)
 etot=ekin+epot
 
  !Compute angular momentum:
-do i=1,nt
-  wka(:,i)=clat*((one+h1(:,i))*u1(:,i)+omega*clat*h1(:,i))
-  wkb(:,i)=clat*((one+h2(:,i))*u2(:,i)+omega*clat*h2(:,i))
+do i=1,numLongGridPts
+  wka(:,i)=cosLat*((one+h1(:,i))*u1(:,i)+omega*cosLat*h1(:,i))
+  wkb(:,i)=cosLat*((one+h2(:,i))*u2(:,i)+omega*cosLat*h2(:,i))
 enddo
  !wka & wkb: angular momentum densities in layers 1 and 2
  !Omega = planetary rotation rate (= 2*pi, see constants.f90)
-wkp=wka+denrat*wkb
+wkp=wka+densityRatio*wkb
 angm=fourpi*average(wkp)
 
  !Write energies & angular momentum to ecomp.asc:
@@ -1064,57 +1064,57 @@ write(*,'(a,f13.6,a,f14.7,a,f14.7)') ' t = ',t,'     E = ',etot, &
 
 ! Relative vorticity:
 wka=z1
-call forfft(ng,nt,wka,trig,factors)
+call forfft(numLatGridPts,numLongGridPts,wka,trig,factors)
 wkb=z2
-call forfft(ng,nt,wkb,trig,factors)
+call forfft(numLatGridPts,numLongGridPts,wkb,trig,factors)
 wkp=wka*mrat1+wkb*mrat2    !Barotropic
 call longspec(wkp,spec1)
 spec1=log10(spec1+1.d-32)
 wkp=wkb-wka                !Baroclinic
 call longspec(wkp,spec2)
 spec2=log10(spec2+1.d-32)
-write(51,'(f13.6,1x,i5)') t,ng
-do m=1,ng
+write(51,'(f13.6,1x,i5)') t,numLatGridPts
+do m=1,numLatGridPts
   write(51,'(3(1x,f12.8))') alm(m),spec1(m),spec2(m)
 enddo
 
 ! Divergence:
-wkp=ds1*mrat1+ds2*mrat2    !Barotropic
+wkp=deltaSpec1*mrat1+deltaSpec2*mrat2    !Barotropic
 call longspec(wkp,spec1)
 spec1=log10(spec1+1.d-32)
-wkp=ds2-ds1                !Baroclinic
+wkp=deltaSpec2-deltaSpec1                !Baroclinic
 call longspec(wkp,spec2)
 spec2=log10(spec2+1.d-32)
-write(52,'(f13.6,1x,i5)') t,ng
-do m=1,ng
+write(52,'(f13.6,1x,i5)') t,numLatGridPts
+do m=1,numLatGridPts
   write(52,'(2(1x,f12.8))') alm(m),spec1(m),spec2(m)
 enddo
 
 ! Acceleration divergence:
-wkp=gs1*mrat1+gs2*mrat2    !Barotropic
+wkp=gammaSpec1*mrat1+gammaSpec2*mrat2    !Barotropic
 call longspec(wkp,spec1)
 spec1=log10(spec1+1.d-32)
-wkp=gs2-gs1                !Baroclinic
+wkp=gammaSpec2-gammaSpec1                !Baroclinic
 call longspec(wkp,spec2)
 spec2=log10(spec2+1.d-32)
-write(53,'(f13.6,1x,i5)') t,ng
-do m=1,ng
+write(53,'(f13.6,1x,i5)') t,numLatGridPts
+do m=1,numLatGridPts
   write(53,'(2(1x,f12.8))') alm(m),spec1(m),spec2(m)
 enddo
 
 ! Dimensionless height (thickness) anomaly:
 wka=h1
-call forfft(ng,nt,wka,trig,factors)
+call forfft(numLatGridPts,numLongGridPts,wka,trig,factors)
 wkb=h2
-call forfft(ng,nt,wkb,trig,factors)
+call forfft(numLatGridPts,numLongGridPts,wkb,trig,factors)
 wkp=wka*mrat1+wkb*mrat2    !Barotropic
 call longspec(wkp,spec1)
 spec1=log10(spec1+1.d-32)
 wkp=wkb-wka                !Baroclinic
 call longspec(wkp,spec2)
 spec2=log10(spec2+1.d-32)
-write(54,'(f13.6,1x,i5)') t,ng
-do m=1,ng
+write(54,'(f13.6,1x,i5)') t,numLatGridPts
+do m=1,numLatGridPts
   write(54,'(3(1x,f12.8))') alm(m),spec1(m),spec2(m)
 enddo
 
@@ -1122,23 +1122,23 @@ enddo
 ! Write various gridded fields to direct access files:
 
 ! PV anomaly:
-write(31,rec=igrids) real(t),real(q1)
-write(41,rec=igrids) real(t),real(q2)
+write(31,rec=igrids) real(t),real(qAnom1)
+write(41,rec=igrids) real(t),real(qAnom2)
 
 ! Velocity divergence:
-wkp=ds1
-call revfft(ng,nt,wkp,trig,factors)
+wkp=deltaSpec1
+call revfft(numLatGridPts,numLongGridPts,wkp,trig,factors)
 write(32,rec=igrids) real(t),real(wkp)
-wkp=ds2
-call revfft(ng,nt,wkp,trig,factors)
+wkp=deltaSpec2
+call revfft(numLatGridPts,numLongGridPts,wkp,trig,factors)
 write(42,rec=igrids) real(t),real(wkp)
 
 ! Acceleration divergence:
-wkp=gs1
-call revfft(ng,nt,wkp,trig,factors)
+wkp=gammaSpec1
+call revfft(numLatGridPts,numLongGridPts,wkp,trig,factors)
 write(33,rec=igrids) real(t),real(wkp)
-wkp=gs2
-call revfft(ng,nt,wkp,trig,factors)
+wkp=gammaSpec2
+call revfft(numLatGridPts,numLongGridPts,wkp,trig,factors)
 write(43,rec=igrids) real(t),real(wkp)
 
 ! Dimensionless height (thickness) anomaly:
@@ -1164,7 +1164,7 @@ implicit none
 integer:: irec
 
  !Local variables:
-double precision:: qa(ng,nt)
+double precision:: qa(numLatGridPts,numLongGridPts)
 character(len=3):: pind
 
 !---------------------------------------------------------------
@@ -1172,24 +1172,24 @@ write(*,'(a,f12.5)') ' Saving contours at t = ',t
 write(pind(1:3),'(i3.3)') irec
 
  !Write contours to the contours subdirectory:
-write(80,'(i8,1x,i9,1x,f12.5,1x,f16.12)') n,npt,t,dq
+write(80,'(i8,1x,i9,1x,f12.5,1x,f16.12)') numContoursTot,numNodesTot,t,dq
 
  !Save residual needed to build ultra-fine-grid PV for plotting purposes:
 qa=qt1-qc1
-call revfft(ng,nt,qa,trig,factors)
+call revfft(numLatGridPts,numLongGridPts,qa,trig,factors)
 write(83,rec=2*irec-1) real(t),real(qa)
 qa=qt2-qc2
-call revfft(ng,nt,qa,trig,factors)
+call revfft(numLatGridPts,numLongGridPts,qa,trig,factors)
 write(83,rec=2*irec) real(t),real(qa)
 ! Note: both layers are saved above
 
  !Save PV contours:
 open(81,file='contours/qqindex'//pind,form='unformatted',status='replace')
-write(81) np(1:n),i1(1:n),ind(1:n),lay(1:n)
+write(81) numNodesOnContourList(1:numContoursTot),firstNodeIdxList(1:numContoursTot),contsQIdx(1:numContoursTot),contourIdxToLayerIdx(1:numContoursTot)
 close(81)
 
 open(82,file='contours/qqnodes'//pind,form='unformatted',status='replace')
-write(82) x(1:npt),y(1:npt),z(1:npt)
+write(82) x(1:numNodesTot),y(1:numNodesTot),z(1:numNodesTot)
 close(82)
 
 return

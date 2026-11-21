@@ -2,7 +2,7 @@ module congen
 
 !:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 !  Converts PV contours to gridded values on an ultra-fine grid of
-!  dimensions mgu*nt x mgu*ng, adds the residual qr (interpolated to
+!  dimensions mgu*numLongGridPts x mgu*numLatGridPts, adds the residual qResid (interpolated to
 !  the ultra-fine grid), then creates new contours.
 
 !  Adapted from ~dgd/cs/spe/sources/mcongen.F on 26/2/13
@@ -40,31 +40,31 @@ subroutine recontour
 
 ! The following quantities are available in commons.f90, included here:
   
-! qr             : a gridded field added to that due to contours;
+! qResid             : a gridded field added to that due to contours;
 !                  if there are no contours (as when t = 0),
-!                  then qr is the full PV field
-! qsp, qnp       : the PV at the south and north poles; these are
+!                  then qResid is the full PV field
+! qSPole, qNPole       : the PV at the south and north poles; these are
 !                  needed to uniquely define the combined field
 !                  (the array qa in this module)
 ! x(i),y(i),z(i) : Cartesian position of node i on the sphere
-! next(i)        : index of the node following node i 
-! lay(j)         : layer (integer) containing contour j
-! ind(j)         : field level (integer) of contour j
-! np(j)          : number of nodes on contour j
-! i1(j)          : beginning node index on contour j
-! i2(j)          : ending node index on contour j
-! jl1(iz)        : beginning contour index in layer iz
-! jl2(iz)        : ending contour index in layer iz
-! il1(iz)        : beginning node index in layer iz
-! il2(iz)        : ending node index in layer iz
-! n              : number of contours
-! npt            : total number of nodes
+! nextNode(i)        : index of the node following node i 
+! contourIdxToLayerIdx(j)         : layer (integer) containing contour j
+! contsQIdx(j)         : field level (integer) of contour j
+! numNodesOnContourList(j)          : number of nodes on contour j
+! firstNodeIdxList(j)          : beginning node index on contour j
+! lastNodeIdxList(j)          : ending node index on contour j
+! layerFirstContIdx(iz)        : beginning contour index in layer iz
+! layerLastContIdx(iz)        : ending contour index in layer iz
+! layerFirstNodeIdx(iz)        : beginning node index in layer iz
+! layerLastNodeIdx(iz)        : ending node index in layer iz
+! numContoursTot              : number of contours
+! numNodesTot            : total number of nodes
 
 implicit none
 
  !Local variables:
-double precision:: qq0(0:ng,nt)
-double precision:: xtd(nt),utd(nt),xend
+double precision:: qq0(0:numLatGridPts,numLongGridPts)
+double precision:: xtd(numLongGridPts),utd(numLongGridPts),xend
 double precision:: qrsp,qrnp,qinc
 integer:: ix,ixf,ix0,ix1
 integer:: iy,iyf,iy0,iy1
@@ -78,57 +78,57 @@ na=0
  !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
  !              Begin a major loop over layers
  !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-do iz=1,nz
+do iz=1,numLayers
    !Obtain ultra-fine grid field qa in layer iz:
 
-   !Interpolate the residual qr to the fine grid and add to qa
-   !(note: qr contains the full field at the start of a simulation);
+   !Interpolate the residual qResid to the fine grid and add to qa
+   !(note: qResid contains the full field at the start of a simulation);
 
    !loop over great circles in latitude (only half the longitudes):
-  do ix=1,ng
-    ic=ix+ng
+  do ix=1,numLatGridPts
+    ic=ix+numLatGridPts
 
-    !Interpolate qr (store in qq0) by 4th-order method (periodic):
-    utd(1)=f23*(qr(1,ix,iz)+qr(1,ic,iz))
-    do j=2,ng
-      utd(j)=f23*(qr(j,ix,iz)+qr(j-1,ix,iz))
+    !Interpolate qResid (store in qq0) by 4th-order method (periodic):
+    utd(1)=f23*(qResid(1,ix,iz)+qResid(1,ic,iz))
+    do j=2,numLatGridPts
+      utd(j)=f23*(qResid(j,ix,iz)+qResid(j-1,ix,iz))
     enddo
-    utd(ngp1)=f23*(qr(ng,ic,iz)+qr(ng,ix,iz))
-    do j=ngp2,nt
-      utd(j)=f23*(qr(ntp2-j,ic,iz)+qr(ntp1-j,ic,iz))
+    utd(ngp1)=f23*(qResid(numLatGridPts,ic,iz)+qResid(numLatGridPts,ix,iz))
+    do j=ngp2,numLongGridPts
+      utd(j)=f23*(qResid(ntp2-j,ic,iz)+qResid(ntp1-j,ic,iz))
     enddo
 
     xtd(1)=utd(1)*htd(1)
-    do j=2,nt
+    do j=2,numLongGridPts
       xtd(j)=(utd(j)-f16*xtd(j-1))*htd(j)
     enddo
     do j=ntm2,1,-1
       xtd(j)=etd(j)*xtd(j+1)+xtd(j)
     enddo
-    xtd(nt)=(etd(nt)*xtd(1)+xtd(nt))*xndeno
-    xend=xtd(nt)
+    xtd(numLongGridPts)=(etd(numLongGridPts)*xtd(1)+xtd(numLongGridPts))*xndeno
+    xend=xtd(numLongGridPts)
 
     do j=1,ntm1
       xtd(j)=ptd(j)*xend+xtd(j)
     enddo
 
-    do j=0,ng
+    do j=0,numLatGridPts
       qq0(j,ix)=xtd(j+1)
     enddo
     qq0(0,ic)=xtd(1)
-    do j=1,ng
+    do j=1,numLatGridPts
       qq0(j,ic)=xtd(ntp1-j)
     enddo
   enddo
   !Ends loops over great circles. Interpolation complete.
 
   !Obtain unique polar values of the residual qq0 for use below:
-  qrsp=sum(qq0( 0,:))/dble(nt)
-  qrnp=sum(qq0(ng,:))/dble(nt)
+  qrsp=sum(qq0( 0,:))/dble(numLongGridPts)
+  qrnp=sum(qq0(numLatGridPts,:))/dble(numLongGridPts)
   qq0(0 ,:)=qrsp
-  qq0(ng,:)=qrnp
+  qq0(numLatGridPts,:)=qrnp
 
-  if (jl2(iz) > 0) then
+  if (layerLastContIdx(iz) > 0) then
     !This means that there are also contours in this layer;
     !convert them to gridded values (in the array qa):
     call con2ugrid(iz)
@@ -151,11 +151,11 @@ do iz=1,nz
       enddo
       qa(ngu,ix)=qa(ngu,ix)+qrnp
     enddo
-    !qrsp & qrnp are the polar qr values (necessarily uniform).
+    !qrsp & qrnp are the polar qResid values (necessarily uniform).
 
     !Next adjust qa by an overall constant so that the PV at the south 
-    !pole is the same as that in that of the input field, qsp(iz):
-    qinc=qsp(iz)-qa(0,1)
+    !pole is the same as that in that of the input field, qSPole(iz):
+    qinc=qSPole(iz)-qa(0,1)
     !note: qa does not vary with longitude at either pole
     qa(0:ngu,1:ntu)=qa(0:ngu,1:ntu)+qinc
 
@@ -168,7 +168,7 @@ do iz=1,nz
       ix0=ix0w(ix)
       ix1=ix1w(ix)
 
-      qa(0,ix)=qsp(iz)
+      qa(0,ix)=qSPole(iz)
       do iy=1,ngu-1
         iyf=iyfw(iy)
         iy0=iy0w(iy)
@@ -176,9 +176,9 @@ do iz=1,nz
         qa(iy,ix)=w00(iyf,ixf)*qq0(iy0,ix0)+w10(iyf,ixf)*qq0(iy1,ix0)+ &
                   w01(iyf,ixf)*qq0(iy0,ix1)+w11(iyf,ixf)*qq0(iy1,ix1)
       enddo
-      qa(ngu,ix)=qnp(iz)
+      qa(ngu,ix)=qNPole(iz)
     enddo
-    !qsp & qnp are the polar PV values (necessarily uniform).
+    !qSPole & qNPole are the polar PV values (necessarily uniform).
 
   endif
 
@@ -187,15 +187,15 @@ do iz=1,nz
   qa(0:ngu,ix)=qa(0:ngu,1)
 
   !Reset starting contour and node indices in each layer:
-  jl1(iz)=na+1
-  il1(iz)=npta+1
+  layerFirstContIdx(iz)=na+1
+  layerFirstNodeIdx(iz)=npta+1
 
   !Generate new contours (xa,ya) from qa array:
   call ugrid2con
 
   !Reset ending contour and node indices in each layer:
-  jl2(iz)=na
-  il2(iz)=npta
+  layerLastContIdx(iz)=na
+  layerLastNodeIdx(iz)=npta
 
 enddo
 ! Ends the loop over layers
@@ -205,26 +205,26 @@ do i=1,npta
   x(i)=xa(i)
   y(i)=ya(i)
   z(i)=za(i)
-  next(i)=nexta(i)
+  nextNode(i)=nexta(i)
 enddo
 
 do j=1,na
-  i1(j)=i1a(j)
-  i2(j)=i2a(j)
-  np(j)=npa(j)
-  ind(j)=inda(j)
+  firstNodeIdxList(j)=i1a(j)
+  lastNodeIdxList(j)=i2a(j)
+  numNodesOnContourList(j)=npa(j)
+  contsQIdx(j)=inda(j)
 enddo
 
-do iz=1,nz
-  if (jl2(iz) .gt. 0) then
-    do j=jl1(iz),jl2(iz)
-      lay(j)=iz
+do iz=1,numLayers
+  if (layerLastContIdx(iz) .gt. 0) then
+    do j=layerFirstContIdx(iz),layerLastContIdx(iz)
+      contourIdxToLayerIdx(j)=iz
     enddo
   endif
 enddo
 
-n=na
-npt=npta
+numContoursTot=na
+numNodesTot=npta
 
 return
 end subroutine recontour
@@ -240,26 +240,26 @@ implicit none
 integer:: iz
 
  !Local variables:
-double precision:: cx(npt),cy(npt),cz(npt),sq(npt)
+double precision:: cx(numNodesTot),cy(numNodesTot),cz(numNodesTot),sq(numNodesTot)
 double precision:: sig,rlatc,p,qasp,qanp
-integer:: ntc(npt),ilm1(npt)
+integer:: ntc(numNodesTot),ilm1(numNodesTot)
 integer:: k,ka,jump,ioff,i,j,ncr
 
 !----------------------------------------------------------------
  !Initialise crossing information:
-do k=il1(iz),il2(iz)
+do k=layerFirstNodeIdx(iz),layerLastNodeIdx(iz)
   ilm1(k)=int(dlui*(pi+atan2(y(k),x(k))))
 enddo
 
-do k=il1(iz),il2(iz)
-  ka=next(k)
+do k=layerFirstNodeIdx(iz),layerLastNodeIdx(iz)
+  ka=nextNode(k)
   cx(k)=z(k)*y(ka)-y(k)*z(ka)
   cy(k)=x(k)*z(ka)-z(k)*x(ka)
   cz(k)=x(k)*y(ka)-y(k)*x(ka)
   ntc(k)=ilm1(ka)-ilm1(k)
 enddo
 
-do k=il1(iz),il2(iz)
+do k=layerFirstNodeIdx(iz),layerLastNodeIdx(iz)
   sig=sign(one,cz(k))
   sq(k)=dq*sig
   ntc(k)=ntc(k)-ntu*((2*ntc(k))/ntu)
@@ -275,7 +275,7 @@ enddo
 qa=zero
 
  !Determine crossing indices:
-do k=il1(iz),il2(iz)
+do k=layerFirstNodeIdx(iz),layerLastNodeIdx(iz)
   if (ntc(k) .ne. 0) then
     jump=sign(1,ntc(k))
     ioff=ntu+ilm1(k)+(1+jump)/2
@@ -338,8 +338,8 @@ double precision:: xd(nprm),yd(nprm),zd(nprm)
 double precision:: qamax,qamin,qtmp,xgt,ygt,coslat
 integer:: isx(ntu+1),isy(0:ngu)
 integer:: icrtab(ntng,2)
-integer:: levbeg,levend,lev,indq
-integer:: ncr,ix,iy,inc,icr,npd,noc,icrn,ibeg,iend,i
+integer:: levbeg,levend,popQIdx,indq
+integer:: ncr,ix,iy,inc,icr,npd,noc,icrn,firstNodeIdx,lastNodeIdx,i
 integer(kind=halfint):: noctab(ntng)
 logical:: free(ncrm),keep
 
@@ -355,15 +355,15 @@ levend=int((qoff+qamax)*dqi+f12)
 if (levbeg > levend) return 
 
  !Loop over contour levels and process:
-do lev=levbeg,levend
+do popQIdx=levbeg,levend
    !Integer index giving contour level:
-  indq=lev-nlevm+(lev-1)/nlevm-1
+  indq=popQIdx-nlevm+(popQIdx-1)/nlevm-1
 
    !Counter for total number of grid line crossings:
   ncr=0
 
    !Contour level being sought (defined in contours.f90):
-  qtmp=qlev(lev)
+  qtmp=qlev(popQIdx)
 
    !Initialise number of crossings per box:
   do kob=1,ntng
@@ -431,8 +431,8 @@ do lev=levbeg,levend
        !A new contour (indexed na) starts here:
       na=na+1
       inda(na)=indq
-      ibeg=npta+1
-      i1a(na)=ibeg
+      firstNodeIdx=npta+1
+      i1a(na)=firstNodeIdx
 
        !First point on the contour:
       npd=1
@@ -466,13 +466,13 @@ do lev=levbeg,levend
        !Re-distribute nodes on this contour 3 times to reduce complexity:
       keep=.false.
       do
-        call renode(xd,yd,zd,npd,xa(ibeg),ya(ibeg),za(ibeg),npa(na))
+        call renode(xd,yd,zd,npd,xa(firstNodeIdx),ya(firstNodeIdx),za(firstNodeIdx),npa(na))
          !Delete contour if deemed too small (see renode):
-        if (np(n) == 0) exit
-        call renode(xa(ibeg),ya(ibeg),za(ibeg),npa(na),xd,yd,zd,npd)
+        if (numNodesOnContourList(numContoursTot) == 0) exit
+        call renode(xa(firstNodeIdx),ya(firstNodeIdx),za(firstNodeIdx),npa(na),xd,yd,zd,npd)
          !Delete contour if deemed too small (see renode):
         if (npd == 0) exit
-        call renode(xd,yd,zd,npd,xa(ibeg),ya(ibeg),za(ibeg),npa(na))
+        call renode(xd,yd,zd,npd,xa(firstNodeIdx),ya(firstNodeIdx),za(firstNodeIdx),npa(na))
          !Delete contour if deemed too small (see renode):
         if (npa(na) == 0) exit
          !Contour is big enough to keep:
@@ -482,12 +482,12 @@ do lev=levbeg,levend
 
       if (keep) then 
         npta=npta+npa(na)
-        iend=ibeg+npa(na)-1
-        i2a(na)=iend
-        do i=ibeg,iend-1
+        lastNodeIdx=firstNodeIdx+npa(na)-1
+        i2a(na)=lastNodeIdx
+        do i=firstNodeIdx,lastNodeIdx-1
           nexta(i)=i+1
         enddo
-        nexta(iend)=ibeg
+        nexta(lastNodeIdx)=firstNodeIdx
       else
         na=na-1
       endif

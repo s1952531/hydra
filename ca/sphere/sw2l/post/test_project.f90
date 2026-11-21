@@ -11,9 +11,9 @@ use constants
 
 implicit none
 
-double precision:: h1(ng,nt),h1o(ng,nt)
-double precision:: h2(ng,nt),h2o(ng,nt)
-double precision:: wka(ng,nt),wkb(ng,nt)
+double precision:: h1(numLatGridPts,numLongGridPts),h1o(numLatGridPts,numLongGridPts)
+double precision:: h2(numLatGridPts,numLongGridPts),h2o(numLatGridPts,numLongGridPts)
+double precision:: wka(numLatGridPts,numLongGridPts),wkb(numLatGridPts,numLongGridPts)
 double precision:: t
 
 !----------------------------------------------------------------------

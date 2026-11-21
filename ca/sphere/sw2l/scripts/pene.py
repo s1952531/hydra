@@ -5,7 +5,7 @@
 # angular momentum versus time.
 
 #========== Perform the generic imports =========
-import numpy as np
+import numpy as numNodesOnContourList
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 from matplotlib.ticker import MultipleLocator, FormatStrFormatter
@@ -41,7 +41,7 @@ mpl.rcParams['axes.linewidth'] = 3
 #=================================================================
 # Read energies:
 in_file=open('evolution/ecomp.asc','r')
-t, ekin, epot, etot, angm = np.loadtxt(in_file,dtype=float,unpack=True)
+t, ekin, epot, etot, angm = numNodesOnContourList.loadtxt(in_file,dtype=float,unpack=True)
 in_file.close()
 
 opt_in = input(' Plot also the balanced counterparts? (default n)? ')
@@ -49,7 +49,7 @@ opt = str(opt_in or 'n')
 
 if opt != 'n':
    in_file=open('evolution/becomp.asc','r')
-   tb, ekinb, epotb, etotb, angmb = np.loadtxt(in_file,dtype=float,unpack=True)
+   tb, ekinb, epotb, etotb, angmb = numNodesOnContourList.loadtxt(in_file,dtype=float,unpack=True)
    in_file.close()
 
 #=================================================================

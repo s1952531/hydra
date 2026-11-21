@@ -7,19 +7,19 @@ program genfg
 use constants
 implicit none
 
-integer,parameter:: mgv=16,ntv=mgv*nt, ngv=mgv*ng
+integer,parameter:: mgv=16,ntv=mgv*numLongGridPts, ngv=mgv*numLatGridPts
  !mgv:       Ultra-fine conversion grid ratio
  !ntv,ngv:   number of grid boxes in the x & y directions
 
-integer:: n,npt,i,j,iind,loop
+integer:: numContoursTot,numNodesTot,i,j,iind,loop
 integer:: ix,ic,iy,ixx,iyy
 integer:: ixf,ix0,ix1,ix2,ix1u,ix2u,ixu
 integer:: iyf,iy0,iy1,iy2,iy1u,iy2u,iyu
 integer:: nxu,nyu,ixo,iyo,inc,iopt
 integer:: iix1,iix2,iiy1,iiy2
 
-double precision:: qq0(0:ng,nt,nz),qd(ng,nt,nz)
-double precision:: xtd(nt),utd(nt),etd(nt),htd(nt),ptd(nt),xndeno
+double precision:: qq0(0:numLatGridPts,numLongGridPts,numLayers),qd(numLatGridPts,numLongGridPts,numLayers)
+double precision:: xtd(numLongGridPts),utd(numLongGridPts),etd(numLongGridPts),htd(numLongGridPts),ptd(numLongGridPts),xndeno
 double precision:: rhs(ngv),etdu(ngv),htdu(ngv)
 
 double precision:: w00(mgv,mgv),w10(mgv,mgv)
@@ -29,10 +29,10 @@ integer:: ix0w(ntv),iy0w(ngv)
 integer:: ix1w(ntv),iy1w(ngv)
 
 double precision:: xend,fac,pxu,pxc,pyu,pyc
-double precision:: t,qsp(nz),qdsp(nz),qdnp(nz),qinc,dq0
+double precision:: t,qSPole(numLayers),qdsp(numLayers),qdnp(numLayers),qinc,dq0
 
 double precision:: qa(0:ngv+1,ntv+1)
-real:: tin,qin(ng,nt),rqa(ngv,ntv),rrqa(ngv/2,ntv/2)
+real:: tin,qin(numLatGridPts,numLongGridPts),rqa(ngv,ntv),rrqa(ngv/2,ntv/2)
 character(len=3):: pind
 character(len=1):: play
 
@@ -57,7 +57,7 @@ enddo
 do ix=1,ntv
   ixx=(ix-1)/mgv
   ix0w(ix)=1+ixx
-  ix1w(ix)=2+ixx-nt*(ix0w(ix)/nt)
+  ix1w(ix)=2+ixx-numLongGridPts*(ix0w(ix)/numLongGridPts)
   ixfw(ix)=ix-mgv*ixx
 enddo
 
@@ -82,7 +82,7 @@ htd(1)=one
 ptd(1)=-f16*htd(1)
 etd(1)=ptd(1)
 
-do j=2,nt
+do j=2,numLongGridPts
   htd(j)=one/(one+f16*etd(j-1))
   ptd(j)=-f16*ptd(j-1)*htd(j)
   etd(j)=-f16*htd(j)
@@ -93,7 +93,7 @@ do j=ntm2,1,-1
   ptd(j)=etd(j)*ptd(j+1)+ptd(j)
 enddo
 
-xndeno=one/(one-etd(nt)*ptd(1)-ptd(nt))
+xndeno=one/(one-etd(numLongGridPts)*ptd(1)-ptd(numLongGridPts))
 
 !------------------------------------------------------------
 write(*,*)
@@ -104,61 +104,61 @@ write(pind(1:3),'(i3.3)') iind
 loop=iind+1
 
 !--------------------------------------------------------------------
- !Read gridded PV field to find the PV value at the south pole (qsp):
+ !Read gridded PV field to find the PV value at the south pole (qSPole):
 
  !:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
  !Layer 1:
-open(41,file='evolution/q1.r4',form='unformatted', &
+open(41,file='evolution/qAnom1.r4',form='unformatted', &
       access='direct',status='old',recl=nbytes)
 read(41,rec=loop) tin,qin
 close(41)
  !qin is single precision; convert to double:
-qq0(1:ng,:,1)=dble(qin)
+qq0(1:numLatGridPts,:,1)=dble(qin)
 
  !:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
  !Layer 2:
-open(41,file='evolution/q2.r4',form='unformatted', &
+open(41,file='evolution/qAnom2.r4',form='unformatted', &
       access='direct',status='old',recl=nbytes)
 read(41,rec=loop) tin,qin
 close(41)
  !qin is single precision; convert to double:
-qq0(1:ng,:,2)=dble(qin)
+qq0(1:numLatGridPts,:,2)=dble(qin)
 
  !------------------------------------------------------
-qsp=zero
+qSPole=zero
  !Loop over layers; form great circles to carry out 
  !half grid -> full grid interpolation of qq0:
-do iz=1,nz
-  do ix=1,ng
-    ic=ix+ng
+do iz=1,numLayers
+  do ix=1,numLatGridPts
+    ic=ix+numLatGridPts
 
     !Source vector:
     utd(1)=f23*(qq0(1,ix,iz)+qq0(1,ic,iz))
-    do j=2,ng
+    do j=2,numLatGridPts
       utd(j)=f23*(qq0(j,ix,iz)+qq0(j-1,ix,iz))
     enddo
-    utd(ngp1)=f23*(qq0(ng,ic,iz)+qq0(ng,ix,iz))
-    do j=ngp2,nt
+    utd(ngp1)=f23*(qq0(numLatGridPts,ic,iz)+qq0(numLatGridPts,ix,iz))
+    do j=ngp2,numLongGridPts
       utd(j)=f23*(qq0(ntp2-j,ic,iz)+qq0(ntp1-j,ic,iz))
     enddo
 
      !Interpolate qq0 by 4th-order method (periodic):
     xtd(1)=utd(1)*htd(1)
-    do j=2,nt
+    do j=2,numLongGridPts
       xtd(j)=(utd(j)-f16*xtd(j-1))*htd(j)
     enddo
     do j=ntm2,1,-1
       xtd(j)=etd(j)*xtd(j+1)+xtd(j)
     enddo
-    xtd(nt)=(etd(nt)*xtd(1)+xtd(nt))*xndeno
+    xtd(numLongGridPts)=(etd(numLongGridPts)*xtd(1)+xtd(numLongGridPts))*xndeno
   
      !Increment south pole PV value (averaged below):
-    qsp(iz)=qsp(iz)+ptd(1)*xtd(nt)+xtd(1)
+    qSPole(iz)=qSPole(iz)+ptd(1)*xtd(numLongGridPts)+xtd(1)
   enddo
 enddo
 
- !Obtain average qsp:
-qsp=qsp/dble(ng)
+ !Obtain average qSPole:
+qSPole=qSPole/dble(numLatGridPts)
 
 !----------------------------------------------------------------
  !Read residual PV (qd) and convert to full grid as qq0:
@@ -173,41 +173,41 @@ close(41)
 
  !Form great circles to carry out half grid -> full grid
  !interpolation of qd:
-do iz=1,nz
-  do ix=1,ng
-    ic=ix+ng
+do iz=1,numLayers
+  do ix=1,numLatGridPts
+    ic=ix+numLatGridPts
 
     !Source vector:
     utd(1)=f23*(qd(1,ix)+qd(1,ic,iz))
-    do j=2,ng
+    do j=2,numLatGridPts
       utd(j)=f23*(qd(j,ix)+qd(j-1,ix,iz))
     enddo
-    utd(ngp1)=f23*(qd(ng,ic)+qd(ng,ix,iz))
-    do j=ngp2,nt
+    utd(ngp1)=f23*(qd(numLatGridPts,ic)+qd(numLatGridPts,ix,iz))
+    do j=ngp2,numLongGridPts
       utd(j)=f23*(qd(ntp2-j,ic)+qd(ntp1-j,ic,iz))
     enddo
 
      !Interpolate qd by 4th-order method (periodic):
     xtd(1)=utd(1)*htd(1)
-    do j=2,nt
+    do j=2,numLongGridPts
       xtd(j)=(utd(j)-f16*xtd(j-1))*htd(j)
     enddo
     do j=ntm2,1,-1
       xtd(j)=etd(j)*xtd(j+1)+xtd(j)
     enddo
-    xtd(nt)=(etd(nt)*xtd(1)+xtd(nt))*xndeno
-    xend=xtd(nt)
+    xtd(numLongGridPts)=(etd(numLongGridPts)*xtd(1)+xtd(numLongGridPts))*xndeno
+    xend=xtd(numLongGridPts)
 
     do j=1,ntm1
       xtd(j)=ptd(j)*xend+xtd(j)
     enddo
 
     !Copy back into full grid array (qq0):
-    do j=0,ng
+    do j=0,numLatGridPts
       qq0(j,ix,iz)=xtd(j+1)
     enddo
     qq0(0,ic,iz)=xtd(1)
-    do j=1,ng
+    do j=1,numLatGridPts
       qq0(j,ic,iz)=xtd(ntp1-j)
     enddo
   enddo
@@ -217,16 +217,16 @@ enddo
  !Obtain unique polar values of qd for use below:
 qdsp=zero
 qdnp=zero
-do iz=1,nz
-  do ix=1,nt
+do iz=1,numLayers
+  do ix=1,numLongGridPts
     qdsp(iz)=qdsp(iz)+qq0(0 ,ix)
-    qdnp(iz)=qdnp(iz)+qq0(ng,ix)
+    qdnp(iz)=qdnp(iz)+qq0(numLatGridPts,ix)
   enddo
-  qdsp(iz)=qdsp(iz)/dble(nt)
-  qdnp(iz)=qdnp(iz)/dble(nt)
-  do ix=1,nt
+  qdsp(iz)=qdsp(iz)/dble(numLongGridPts)
+  qdnp(iz)=qdnp(iz)/dble(numLongGridPts)
+  do ix=1,numLongGridPts
     qq0(0 ,ix,iz)=qdsp(iz)
-    qq0(ng,ix,iz)=qdnp(iz)
+    qq0(numLatGridPts,ix,iz)=qdnp(iz)
   enddo
 enddo
 
@@ -234,7 +234,7 @@ enddo
 !Read PV contours and convert to fine (full) grid as qa:
 open(40,file='contours/synopsis.asc',status='old')
 do i=1,loop
-  read(40,*) t,n,npt,dq0
+  read(40,*) t,numContoursTot,numNodesTot,dq0
 enddo
 close(40)
 
@@ -254,17 +254,17 @@ if (iopt .eq. 2) then
   write(*,*) ' Enter the stride, n:'
   read(*,*) inc
 else if (iopt .eq. 3) then
-  write(*,'(a,i5,a)') ' There are ',nt,' longitudes.'
-  write(*,*) ' Range of longitude grid points (i1,i2) on original grid?'
-  write(*,*) ' (Periodic wrapping is allowed => i2 > i1)'
+  write(*,'(a,i5,a)') ' There are ',numLongGridPts,' longitudes.'
+  write(*,*) ' Range of longitude grid points (firstNodeIdxList,lastNodeIdxList) on original grid?'
+  write(*,*) ' (Periodic wrapping is allowed => lastNodeIdxList > firstNodeIdxList)'
   read(*,*) iix1,iix2
-  write(*,'(a,i5,a)') ' There are ',ng,' latitudes.'
+  write(*,'(a,i5,a)') ' There are ',numLatGridPts,' latitudes.'
   write(*,*) ' Range of latitude grid points (j1,j2) on original grid?'
   read(*,*) iiy1,iiy2
 enddo
 
  !Process layer by layer to save memory:
-do iz=1,nz
+do iz=1,numLayers
    !Bi-linear interpolate qq0 to the fine grid and add to qa:
   do ix=1,ntv
     ixf=ixfw(ix)
@@ -288,7 +288,7 @@ do iz=1,nz
 
    !Adjustment needed so that the PV at the south pole is the same 
    !as that in pvgrid.dat:
-  qinc=qsp(iz)-qa(0,1)
+  qinc=qSPole(iz)-qa(0,1)
 
    !Perform 4th-order compact interpolation to get qa on the half-grid:
   do ix=1,ntv
@@ -316,7 +316,7 @@ do iz=1,nz
   enddo
 
    !Open output file:
-  write(play,'(i1)') lay
+  write(play,'(firstNodeIdxList)') contourIdxToLayerIdx
 
   open(44,file='fine/q'//play//'-'//pind//'.r4',form='unformatted', &
         access='stream',status='replace')
@@ -359,9 +359,9 @@ write(*,*)
 write(*,*) ' Image by typing the command'
 write(*,*)
 write(*,'(a,i5,1x,i5)') &
-     ' dataview fine/q1-'//pind//'.r4 -ndim ',nxu,nyu
+     ' dataview fine/qAnom1-'//pind//'.r4 -ndim ',nxu,nyu
 write(*,'(a,i5,1x,i5)') &
-     ' dataview fine/q2-'//pind//'.r4 -ndim ',nxu,nyu
+     ' dataview fine/qAnom2-'//pind//'.r4 -ndim ',nxu,nyu
 write(*,*)
 
 
@@ -380,47 +380,47 @@ implicit none
 
  !Local variables:
  !Local arrays:
-double precision:: x(npt),y(npt),z(npt),sq(npt)
-double precision:: cx(npt),cy(npt),cz(npt)
+double precision:: x(numNodesTot),y(numNodesTot),z(numNodesTot),sq(numNodesTot)
+double precision:: cx(numNodesTot),cy(numNodesTot),cz(numNodesTot)
 
 double precision:: clonf(ntv),slonf(ntv)
 double precision:: dlf,dlfi,rlonf
 double precision:: sig,rlatc,p,qasp,qanp
 
-integer:: i1(n),i2(n),np(n),ind(n),lay(n)
-integer:: next(0:npt),ntc(npt),ilm1(npt)
-integer:: ibeg,iend,k,ka,i,j,jump,ioff,ncr
+integer:: firstNodeIdxList(numContoursTot),lastNodeIdxList(numContoursTot),numNodesOnContourList(numContoursTot),contsQIdx(numContoursTot),contourIdxToLayerIdx(numContoursTot)
+integer:: nextNode(0:numNodesTot),ntc(numNodesTot),ilm1(numNodesTot)
+integer:: firstNodeIdx,lastNodeIdx,k,ka,i,j,jump,ioff,ncr
 
-double precision:: cx(npt),cy(npt),cz(npt)
+double precision:: cx(numNodesTot),cy(numNodesTot),cz(numNodesTot)
 double precision:: sig,rlatc,p,qasp,qanp
-integer:: ntc(npt),ilm1(npt)
+integer:: ntc(numNodesTot),ilm1(numNodesTot)
 integer:: k,ka,jump,ioff,i,j,ncr
 
 !-----------------------------------------------------------------
  !Read contour indices and nodes:
 open(40,file='contours/index'//pind,form='unformatted',status='old')
-read(40) np(1:n),i1(1:n),ind(1:n),lay(1:n)
+read(40) numNodesOnContourList(1:numContoursTot),firstNodeIdxList(1:numContoursTot),contsQIdx(1:numContoursTot),contourIdxToLayerIdx(1:numContoursTot)
 close(40)
 
 open(40,file='contours/nodes'//pind,form='unformatted',status='old')
-read(40) x(1:npt),y(1:npt),z(1:npt)
+read(40) x(1:numNodesTot),y(1:numNodesTot),z(1:numNodesTot)
 close(40)
 
 !----------------------------------------------------------------
  !Initialise crossing information:
-do k=il1(iz),il2(iz)
+do k=layerFirstNodeIdx(iz),layerLastNodeIdx(iz)
   ilm1(k)=int(dlui*(pi+atan2(y(k),x(k))))
 enddo
 
-do k=il1(iz),il2(iz)
-  ka=next(k)
+do k=layerFirstNodeIdx(iz),layerLastNodeIdx(iz)
+  ka=nextNode(k)
   cx(k)=z(k)*y(ka)-y(k)*z(ka)
   cy(k)=x(k)*z(ka)-z(k)*x(ka)
   cz(k)=x(k)*y(ka)-y(k)*x(ka)
   ntc(k)=ilm1(ka)-ilm1(k)
 enddo
 
-do k=il1(iz),il2(iz)
+do k=layerFirstNodeIdx(iz),layerLastNodeIdx(iz)
   sig=sign(one,cz(k))
   sq(k)=dq*sig
   ntc(k)=ntc(k)-ntu*((2*ntc(k))/ntu)
@@ -436,7 +436,7 @@ enddo
 qa=zero
 
  !Determine crossing indices:
-do k=il1(iz),il2(iz)
+do k=layerFirstNodeIdx(iz),layerLastNodeIdx(iz)
   if (ntc(k) .ne. 0) then
     jump=sign(1,ntc(k))
     ioff=ntu+ilm1(k)+(1+jump)/2
@@ -481,30 +481,30 @@ end subroutine con2ugrid
 
 
  !Construct next array:
-do j=1,n
-  ibeg=i1(j)
-  iend=ibeg+np(j)-1
-  do i=ibeg,iend-1
-    next(i)=i+1
+do j=1,numContoursTot
+  firstNodeIdx=firstNodeIdxList(j)
+  lastNodeIdx=firstNodeIdx+numNodesOnContourList(j)-1
+  do i=firstNodeIdx,lastNodeIdx-1
+    nextNode(i)=i+1
   enddo
-  next(iend)=ibeg
+  nextNode(lastNodeIdx)=firstNodeIdx
 enddo 
 
 !----------------------------------------------------------------
  !Initialise crossing information:
-do k=1,npt
+do k=1,numNodesTot
   ilm1(k)=int(dlfi*(pi+atan2(y(k),x(k))))
 enddo
 
-do k=1,npt
-  ka=next(k)
+do k=1,numNodesTot
+  ka=nextNode(k)
   cx(k)=z(k)*y(ka)-y(k)*z(ka)
   cy(k)=x(k)*z(ka)-z(k)*x(ka)
   cz(k)=x(k)*y(ka)-y(k)*x(ka)
   ntc(k)=ilm1(ka)-ilm1(k)
 enddo
 
-do k=1,npt
+do k=1,numNodesTot
   sig=sign(one,cz(k))
   sq(k)=dq0*sig
   ntc(k)=ntc(k)-ntv*((2*ntc(k))/ntv)
@@ -524,7 +524,7 @@ do i=1,ntv
 enddo
 
  !Determine crossing indices:
-do k=1,npt
+do k=1,numNodesTot
   if (ntc(k) .ne. 0) then
     jump=sign(1,ntc(k))
     ioff=ntv+ilm1(k)+(1+jump)/2

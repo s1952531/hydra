@@ -12,27 +12,27 @@ use spectral
 implicit none
 
  !Physical fields:
-double precision:: q1(ng,nt),q2(ng,nt)
-double precision:: d1(ng,nt),d2(ng,nt)
-double precision:: g1(ng,nt),g2(ng,nt)
-double precision:: h1(ng,nt),h2(ng,nt)
-double precision:: z1(ng,nt),z2(ng,nt)
-double precision:: u1(ng,nt),u2(ng,nt)
-double precision:: v1(ng,nt),v2(ng,nt)
+double precision:: qAnom1(numLatGridPts,numLongGridPts),qAnom2(numLatGridPts,numLongGridPts)
+double precision:: d1(numLatGridPts,numLongGridPts),d2(numLatGridPts,numLongGridPts)
+double precision:: g1(numLatGridPts,numLongGridPts),g2(numLatGridPts,numLongGridPts)
+double precision:: h1(numLatGridPts,numLongGridPts),h2(numLatGridPts,numLongGridPts)
+double precision:: z1(numLatGridPts,numLongGridPts),z2(numLatGridPts,numLongGridPts)
+double precision:: u1(numLatGridPts,numLongGridPts),u2(numLatGridPts,numLongGridPts)
+double precision:: v1(numLatGridPts,numLongGridPts),v2(numLatGridPts,numLongGridPts)
 
  !Copies of h, u & v to compute differences from input fields:
-double precision:: h1i(ng,nt),h2i(ng,nt)
-double precision:: u1i(ng,nt),u2i(ng,nt)
-double precision:: v1i(ng,nt),v2i(ng,nt)
-double precision:: z1i(ng,nt),z2i(ng,nt)
+double precision:: h1i(numLatGridPts,numLongGridPts),h2i(numLatGridPts,numLongGridPts)
+double precision:: u1i(numLatGridPts,numLongGridPts),u2i(numLatGridPts,numLongGridPts)
+double precision:: v1i(numLatGridPts,numLongGridPts),v2i(numLatGridPts,numLongGridPts)
+double precision:: z1i(numLatGridPts,numLongGridPts),z2i(numLatGridPts,numLongGridPts)
 
  !Spectral fields:
-double precision:: qs1(ng,nt),qs2(ng,nt)
-double precision:: ds1(ng,nt),ds2(ng,nt)
-double precision:: gs1(ng,nt),gs2(ng,nt)
+double precision:: qSpec1(numLatGridPts,numLongGridPts),qSpec2(numLatGridPts,numLongGridPts)
+double precision:: deltaSpec1(numLatGridPts,numLongGridPts),deltaSpec2(numLatGridPts,numLongGridPts)
+double precision:: gammaSpec1(numLatGridPts,numLongGridPts),gammaSpec2(numLatGridPts,numLongGridPts)
 
  !Other:
-double precision:: wka(ng,nt)
+double precision:: wka(numLatGridPts,numLongGridPts)
 double precision:: t
 integer:: i,iopt
 
@@ -45,50 +45,50 @@ call init_spectral
  !vorticity and h is the dimensionless height anomaly in each layer:
 open(11, file = 'qq_init.r8', form = 'unformatted', &
       access = 'direct', status = 'old', recl = 2*nbytes)
-read(11,rec=1) t, q1
-read(11,rec=2) t, q2
+read(11,rec=1) t, qAnom1
+read(11,rec=2) t, qAnom2
 close(11)
 
  !Subtract planetary vorticity (cof), and convert to
- !semi-spectral space as qs1 & qs2:
-do i = 1,nt
-  qs1(:,i) = q1(:,i)-cof
-  qs2(:,i) = q2(:,i)-cof
+ !semi-spectral space as qSpec1 & qSpec2:
+do i = 1,numLongGridPts
+  qSpec1(:,i) = qAnom1(:,i)-cof
+  qSpec2(:,i) = qAnom2(:,i)-cof
 enddo
-call forfft(ng,nt,qs1,trig,factors) 
-call forfft(ng,nt,qs2,trig,factors) 
+call forfft(numLatGridPts,numLongGridPts,qSpec1,trig,factors) 
+call forfft(numLatGridPts,numLongGridPts,qSpec2,trig,factors) 
 
 !----------------------------------------------------------------------
  !Read in gridded divergence, ds:
 open(11, file = 'dd0_init.r8', form = 'unformatted', &
       access = 'direct', status = 'old', recl = 2*nbytes)
-read(11,rec=1) t, ds1
-read(11,rec=2) t, ds2
+read(11,rec=1) t, deltaSpec1
+read(11,rec=2) t, deltaSpec2
 close(11)
 
  !Ensure domain average is zero:
-call zeroavg(ds1)
-call zeroavg(ds2)
+call zeroavg(deltaSpec1)
+call zeroavg(deltaSpec2)
 
  !Convert to semi-spectral space as ds:
-call forfft(ng,nt,ds1,trig,factors) 
-call forfft(ng,nt,ds2,trig,factors) 
+call forfft(numLatGridPts,numLongGridPts,deltaSpec1,trig,factors) 
+call forfft(numLatGridPts,numLongGridPts,deltaSpec2,trig,factors) 
 
 !----------------------------------------------------------------------
  !Read in gridded acceleration divergence, gs:
 open(11, file = 'gg0_init.r8', form = 'unformatted', &
       access = 'direct', status = 'old', recl = 2*nbytes)
-read(11,rec=1) t, gs1
-read(11,rec=2) t, gs2
+read(11,rec=1) t, gammaSpec1
+read(11,rec=2) t, gammaSpec2
 close(11)
 
  !Ensure domain average is zero:
-call zeroavg(gs1)
-call zeroavg(gs2)
+call zeroavg(gammaSpec1)
+call zeroavg(gammaSpec2)
 
  !Convert to semi-spectral space as gs:
-call forfft(ng,nt,gs1,trig,factors) 
-call forfft(ng,nt,gs2,trig,factors) 
+call forfft(numLatGridPts,numLongGridPts,gammaSpec1,trig,factors) 
+call forfft(numLatGridPts,numLongGridPts,gammaSpec2,trig,factors) 
 
 !----------------------------------------------------------------------
  !Read h:
@@ -155,7 +155,7 @@ endif
 
  !These quantities need initialisation before the first call in order
  !to measure convergence in subroutine main_invert:
-call main_invert(qs1,qs2,ds1,ds2,gs1,gs2,h1,h2,u1,u2,v1,v2,q1,q2,z1,z2)
+call main_invert(qSpec1,qSpec2,deltaSpec1,deltaSpec2,gammaSpec1,gammaSpec2,h1,h2,u1,u2,v1,v2,qAnom1,qAnom2,z1,z2)
  !Note: qsj, dsj & gsj (j = 1 & 2) are in semi-spectral space while 
  !      hj, uj, vj, qj and zj are in physical space.
 

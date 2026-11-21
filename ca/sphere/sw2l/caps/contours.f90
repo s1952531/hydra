@@ -12,17 +12,17 @@ integer,parameter:: nlevm=10000
 
  !Contour arrays:
 double precision:: x(npm),y(npm),z(npm)
-integer:: i1(nm),i2(nm),np(nm),ind(nm),lay(nm)
-integer:: il1(nz),il2(nz),jl1(nz),jl2(nz)
-integer:: next(0:npm),n,npt
+integer:: firstNodeIdxList(nm),lastNodeIdxList(nm),numNodesOnContourList(nm),contsQIdx(nm),contourToLayerIdx(nm)
+integer:: layerFirstNodeIdx(numLayers),layerLastNodeIdx(numLayers),layerFirstContIdx(numLayers),layerLastContIdx(numLayers)
+integer:: next(0:npm),numContoursTot,numNodesTot
 
  !Contour to grid conversion quantities (fine grid used in this module):
 double precision:: clonf(ntf),slonf(ntf)
-double precision,parameter:: dlf=twopi/dble(ntf),dlfi=dble(ntf)/(twopi+small)
+double precision,parameter:: dlf=twoPi/dble(ntf),dlfi=dble(ntf)/(twoPi+small)
 
  !Contour to grid conversion quantities (ultra-fine grid used in congen):
 double precision:: clonu(ntu),slonu(ntu)
-double precision,parameter:: dlu=twopi/dble(ntu),dlui=dble(ntu)/(twopi+small)
+double precision,parameter:: dlu=twoPi/dble(ntu),dlui=dble(ntu)/(twoPi+small)
 
  !Weight arrays for grid to ultra-fine grid interpolation:
 double precision:: w00(mgu,mgu),w10(mgu,mgu)
@@ -37,10 +37,10 @@ double precision:: qlev(2*nlevm),qoff
 integer(kind=dbleint):: ibx(ntu,0:1)
 
  !Half-grid -> Full-grid tri-diagonal arrays:
-double precision:: etd(nt),htd(nt),ptd(nt),xndeno
+double precision:: etd(numLongGridPts),htd(numLongGridPts),ptd(numLongGridPts),xndeno
 
  !Coriolis frequency:
-double precision:: fcor(ng)
+double precision:: fcor(numLatGridPts)
 
 !Constants used in contour node placement (Fontane & Dritschel JCP 2009):
 double precision,parameter:: amu=0.2d0, ell=6.25d0*dl
@@ -64,10 +64,10 @@ implicit none
 
 double precision:: fac,pxu,pyu,pxc,pyc,rlonu,rlonf
 integer(kind=dbleint):: ngulong
-integer:: ixu,iyu,ix,iy,ixx,iyy,lev,i,j
+integer:: ixu,iyu,ix,iy,ixx,iyy,popQIdx,i,j
 
 !--------------------------------------------------------------------
- !Initialise area weights for interpolation of residual PV (qr) 
+ !Initialise area weights for interpolation of residual PV (qResid) 
  !onto the ultra-fine horizontal grid:
 fac=one/dble(mgu)
 do ixu=1,mgu
@@ -87,7 +87,7 @@ enddo
 do ix=1,ntu
   ixx=(ix-1)/mgu
   ix0w(ix)=1+ixx
-  ix1w(ix)=2+ixx-nt*(ix0w(ix)/nt)
+  ix1w(ix)=2+ixx-numLongGridPts*(ix0w(ix)/numLongGridPts)
   ixfw(ix)=ix-mgu*ixx
 enddo
 
@@ -105,8 +105,8 @@ qoff=dq*dble(nlevm)
 !       contour interval, dq.  The multiple should exceed 
 !       the maximum expected number of contour levels.
 
-do lev=1,2*nlevm
-  qlev(lev)=(dble(lev)-f12)*dq-qoff
+do popQIdx=1,2*nlevm
+  qlev(popQIdx)=(dble(popQIdx)-f12)*dq-qoff
 enddo
 
  !Fixed arrays:
@@ -143,12 +143,12 @@ do i=1,ntf
 enddo
 
  !Coriolis frequency (f):
-do j=1,ng
+do j=1,numLatGridPts
   fcor(j)=fpole*sin((dble(j)-f12)*dl-hpi)
 enddo
 
 !----------------------------------------------------------------------
- !Tri-diagonal arrays for half grid -> full grid interpolation of qr
+ !Tri-diagonal arrays for half grid -> full grid interpolation of qResid
  !(used in congen.f90)
 
  !Initialise periodic tridiagonal problem:
@@ -156,7 +156,7 @@ htd(1)=one
 ptd(1)=-f16*htd(1)
 etd(1)=ptd(1)
 
-do j=2,nt
+do j=2,numLongGridPts
   htd(j)=one/(one+f16*etd(j-1))
   ptd(j)=-f16*ptd(j-1)*htd(j)
   etd(j)=-f16*htd(j)
@@ -167,7 +167,7 @@ do j=ntm2,1,-1
   ptd(j)=etd(j)*ptd(j+1)+ptd(j)
 enddo
 
-xndeno=one/(one-etd(nt)*ptd(1)-ptd(nt))
+xndeno=one/(one-etd(numLongGridPts)*ptd(1)-ptd(numLongGridPts))
 
 return
 end subroutine init_contours
@@ -181,24 +181,24 @@ subroutine velint(u1,u2,v1,v2,u,v,w)
 implicit none
 
  !Passed variables:
-double precision:: u1(ng,nt),u2(ng,nt)
-double precision:: v1(ng,nt),v2(ng,nt)
-double precision:: u(npt),v(npt),w(npt)
+double precision:: u1(numLatGridPts,numLongGridPts),u2(numLatGridPts,numLongGridPts)
+double precision:: v1(numLatGridPts,numLongGridPts),v2(numLatGridPts,numLongGridPts)
+double precision:: u(numNodesTot),v(numNodesTot),w(numNodesTot)
 
  !Local variables:
-double precision:: uu(0:ng+1,nt,nz),vv(0:ng+1,nt,nz)
+double precision:: uu(0:numLatGridPts+1,numLongGridPts,numLayers),vv(0:numLatGridPts+1,numLongGridPts,numLayers)
 double precision:: ri,rj,abl,bbl,cbl,dbl
 double precision:: ulon,ulat,rr,rri,zula
 integer:: i,ic,ip1,j,jp1,k,iz
 
- !Extend the velocity field adjacent to poles (j = 1 and ng)
+ !Extend the velocity field adjacent to poles (j = 1 and numLatGridPts)
  !with a pi shift in longitude to simplify interpolation below:
-uu(1:ng,:,1)=u1
-uu(1:ng,:,2)=u2
-vv(1:ng,:,1)=v1
-vv(1:ng,:,2)=v2
-do i=1,ng
-  ic=i+ng
+uu(1:numLatGridPts,:,1)=u1
+uu(1:numLatGridPts,:,2)=u2
+vv(1:numLatGridPts,:,1)=v1
+vv(1:numLatGridPts,:,2)=v2
+do i=1,numLatGridPts
+  ic=i+numLatGridPts
   uu(0,i,1)=-u1(1,ic)
   uu(0,i,2)=-u2(1,ic)
   vv(0,i,1)=-v1(1,ic)
@@ -209,26 +209,26 @@ do i=1,ng
   vv(0,ic,1)=-v1(1,i)
   vv(0,ic,2)=-v2(1,i)
 
-  uu(ngp1,i,1)=-u1(ng,ic)
-  uu(ngp1,i,2)=-u2(ng,ic)
-  vv(ngp1,i,1)=-v1(ng,ic)
-  vv(ngp1,i,2)=-v2(ng,ic)
+  uu(ngp1,i,1)=-u1(numLatGridPts,ic)
+  uu(ngp1,i,2)=-u2(numLatGridPts,ic)
+  vv(ngp1,i,1)=-v1(numLatGridPts,ic)
+  vv(ngp1,i,2)=-v2(numLatGridPts,ic)
 
-  uu(ngp1,ic,1)=-u1(ng,i)
-  uu(ngp1,ic,2)=-u2(ng,i)
-  vv(ngp1,ic,1)=-v1(ng,i)
-  vv(ngp1,ic,2)=-v2(ng,i)
+  uu(ngp1,ic,1)=-u1(numLatGridPts,i)
+  uu(ngp1,ic,2)=-u2(numLatGridPts,i)
+  vv(ngp1,ic,1)=-v1(numLatGridPts,i)
+  vv(ngp1,ic,2)=-v2(numLatGridPts,i)
 enddo
 
  !Loop over layers:
-do iz=1,nz
+do iz=1,numLayers
    !Only process if the layer contains contours:
-  if (jl2(iz) > 0) then
+  if (layerLastContIdx(iz) > 0) then
      !Bi-linearly zonal and meridional velocity at the contour nodes (x,y,z):
-    do k=il1(iz),il2(iz)
+    do k=layerFirstNodeIdx(iz),layerLastNodeIdx(iz)
       ri=dli*(pi+atan2(y(k),x(k)))
       i=1+int(ri)
-      ip1=1+mod(i,nt)
+      ip1=1+mod(i,numLongGridPts)
       bbl=dble(i)-ri
       abl=one-bbl
 
@@ -266,27 +266,27 @@ subroutine con2grid(qc)
 implicit none
 
  !Passed array:
-double precision:: qc(ng,nt,nz)
+double precision:: qc(numLatGridPts,numLongGridPts,numLayers)
 
  !Local variables:
 double precision:: qa(0:ngf+1,ntf),qaend(ngf/2)
-double precision:: cx(npt),cy(npt),cz(npt),sq(npt)
+double precision:: cx(numNodesTot),cy(numNodesTot),cz(numNodesTot),sq(numNodesTot)
 double precision:: sig,rlatc,p
-integer:: ilm1(npt),ntc(npt)
+integer:: ilm1(numNodesTot),ntc(numNodesTot)
 integer:: iz,k,ka,jump,ncr,i,j,ioff,ip1
 integer:: ic,io,ie,je,ngh,nth,nghh,nthh,nghp1
 
 !----------------------------------------------------------------
  !Begin a major loop over layers
 !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-do iz=1,nz
-  if (jl2(iz) > 0) then
+do iz=1,numLayers
+  if (layerLastContIdx(iz) > 0) then
      !There are contours in this layer.  Initialise crossing information:
-    do k=il1(iz),il2(iz)
+    do k=layerFirstNodeIdx(iz),layerLastNodeIdx(iz)
       ilm1(k)=int(dlfi*(pi+atan2(y(k),x(k))))
     enddo
 
-    do k=il1(iz),il2(iz)
+    do k=layerFirstNodeIdx(iz),layerLastNodeIdx(iz)
       ka=next(k)
       cx(k)=z(k)*y(ka)-y(k)*z(ka)
       cy(k)=x(k)*z(ka)-z(k)*x(ka)
@@ -294,7 +294,7 @@ do iz=1,nz
       ntc(k)=ilm1(ka)-ilm1(k)
     enddo
 
-    do k=il1(iz),il2(iz)
+    do k=layerFirstNodeIdx(iz),layerLastNodeIdx(iz)
       sig=sign(one,cz(k))
       sq(k)=dq*sig
       ntc(k)=ntc(k)-ntf*((2*ntc(k))/ntf)
@@ -309,7 +309,7 @@ do iz=1,nz
     qa=zero
 
      !Determine crossing indices:
-    do k=il1(iz),il2(iz)
+    do k=layerFirstNodeIdx(iz),layerLastNodeIdx(iz)
       if (ntc(k) .ne. 0) then
         jump=sign(1,ntc(k))
         ioff=ntf+ilm1(k)+(1+jump)/2
@@ -337,11 +337,11 @@ do iz=1,nz
 
      !----------------------------------------------------------------------
      !Average PV values on the fine grid to get corresponding 
-     !values on the inversion grid (ng,nt):
+     !values on the inversion grid (numLatGridPts,numLongGridPts):
     ngh=ngf
     nth=ntf
 
-    do while (ngh > ng)
+    do while (ngh > numLatGridPts)
        !Pre-store PV adjacent to poles at complementary longitudes (+pi):
       nthh=nth/2
       nghp1=ngh+1
@@ -406,8 +406,8 @@ do iz=1,nz
     enddo
 
      !Finalise and take away f to define PV anomaly:
-    do i=1,nt
-      do j=1,ng
+    do i=1,numLongGridPts
+      do j=1,numLatGridPts
         qc(j,i,iz)=qa(j,i)-fcor(j)
       enddo
     enddo
@@ -440,7 +440,7 @@ subroutine surgery
 implicit none
 
  !Local arrays and parameters:
-integer,parameter:: ngbs=nt*ng+1
+integer,parameter:: ngbs=numLongGridPts*numLatGridPts+1
 ! nlevm: max number of distinct vorticity levels
 ! ngbs:  (+1) max number of boxes used in surgery below
 integer,parameter:: nsegm=npm
@@ -452,148 +452,226 @@ integer,parameter:: nsegm=npm
 !        level to npm, dbar is the average segment length,
 !        and bw is the box width.
 
-double precision:: dx(npt),dy(npt),dz(npt)
+double precision:: dx(numNodesTot),dy(numNodesTot),dz(numNodesTot)
 double precision:: xd(nprm),yd(nprm),zd(nprm)
-double precision:: lonc(npt),dlonc(npt),dsq(npt)
+double precision:: lonc(numNodesTot),dlonc(numNodesTot),dsq(numNodesTot)
 double precision:: xa(npm),ya(npm),za(npm)
-double precision:: xx,fnq,fnbl,fnbz,bw,bwl,bwli,fac,zbm,bwz,bwzi
+double precision:: xx,numNodesOnQLvl,approxNumLongBoxes,approxNumZBoxes,bw,longBoxWidth,recipLongBoxWidth,fac,zbm,bwz,bwzi
 double precision:: c0,adl,adz,delx,dely,delz,aa,cc
 double precision:: dxa,dya,dza
-integer:: jq1(nlevm),jq2(nlevm),iq1(nlevm),iq2(nlevm),levq(nlevm)
+integer:: popQsFirstContIdx(nlevm),popQsLastContIdx(nlevm),popQsFirstNodeIdx(nlevm),popQsLastNodeIdx(nlevm),orderedPopQsIdxs(nlevm)
 integer:: nspb(0:ngbs),kb1(0:ngbs),kb2(0:ngbs)
 integer:: loc(nsegm),list(nsegm),node(nsegm)
 integer:: i1a(nm),i2a(nm),nexta(npm)
-integer:: i,ia,iz,j1,j2,levp,nlev,j,lev,levt,ibeg,iend
-integer:: nptq,nbl,nbz,nbzp1,nblm1,nblp1,nbox,nseg,ib
+integer:: i,ia,iz,firstContIdx,lastContIdx,oldQIdx,numPopulatedQLvls,currContIdx,newQIdx,qIdx,firstNodeIdx,lastNodeIdx
+integer:: numLongBoxes,numZBoxes,nblp1,numBoxesTot,numSegs,ib
 integer:: mbl,mbl1,mbl2,mbz1,mbz2,mbz,mmbz,mb,k,ks,isb,is
 integer:: jbeg,npd
  !Logicals:
-logical:: avail(npt)
+logical:: avail(numNodesTot)
 
 !------------------------------------------------------------------------
  !Get work arrays for efficient surgery:
-do i=1,npt
+do i=1,numNodesTot
   xx=atan2(y(i),x(i))
-  lonc(i)=xx-twopi*dble(int(xx*hlxi))
+  lonc(i)=xx-twoPi*dble(int(xx*hlxi))
 enddo
 
-do i=1,npt
+do i=1,numNodesTot
   ia=next(i)
   xx=lonc(ia)-lonc(i)
-  dlonc(i)=xx-twopi*dble(int(xx*hlxi))
+  dlonc(i)=xx-twoPi*dble(int(xx*hlxi))
    !dlonc: the change in longitude from node i to node ia
   dx(i)=x(ia)-x(i)
   dy(i)=y(ia)-y(i)
   dz(i)=z(ia)-z(i)
 enddo
 
-do i=1,npt
+do i=1,numNodesTot
   dsq(i)=dx(i)**2+dy(i)**2+dz(i)**2
 enddo
 
  !Zero out counters for contours and nodes for building new contours:
-n=0
-npt=0
+numContoursTot=0
+numNodesTot=0
 
  !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
  !              Begin a major loop over layers
  !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-do iz=1,nz
-  if (jl2(iz) .gt. 0) then
-     !There are contours in this layer.  Calculate beginning and 
-     !ending contours (jq1,jq2) for each distinct value of ind:
-    j1=jl1(iz)
-    j2=jl2(iz)
+do iz=1,numLayers
+  if (layerLastContIdx(iz) .gt. 0) then
+    ! Then there are contours in this layer
 
-    levp=ind(j1)
-    nlev=1
-    jq1(1)=j1
-    levq(1)=levp
-    do j=j1+1,j2
-      lev=ind(j)
-      if (lev .gt. levp) then
-        jq2(nlev)=j-1
-        nlev=nlev+1
-        jq1(nlev)=j
-        levq(nlev)=lev
-        levp=lev
+    ! for this layer
+    firstContIdx=layerFirstContIdx(iz) ! get its first contour index
+    lastContIdx=layerLastContIdx(iz)   ! get its final contour index
+    numPopulatedQLvls=1                           ! init number of populated q levels
+
+    ! The following calculates the first and final contours of each populated 
+    ! (i.e. contour containing) discrete q level
+    ! Note: the following code assumes (thus requires) that 
+    !       the contours are ordered by increasing q level 
+    !       We will loop through contours which, under the ordering assumption,
+    !       loops through the q levels from lowest to highest index
+    !       As we go we store the first and final contour indices for each populated q level
+    !       (Any discrete q level which has no contours is not stored)
+
+    ! Start with the first contour in this layer
+    oldQIdx=contsQIdx(firstContIdx)  ! store its q level index so we can tell when we have moved to a new q level
+    popQsFirstContIdx(1)=firstContIdx    ! get its first contour index
+    orderedPopQsIdxs(1)=oldQIdx           ! Since this q level has contours, store its index
+
+    ! Loop through the remaining contours
+    do currContIdx=firstContIdx+1,lastContIdx 
+      newQIdx=contsQIdx(currContIdx)                   ! find what q level this contour is in
+      if (newQIdx .gt. oldQIdx) then                            ! if the q level has increased, we are on a new level
+        popQsLastContIdx(numPopulatedQLvls)=currContIdx-1  ! so we know to store the previous contour as the final of the previous q level
+        numPopulatedQLvls=numPopulatedQLvls+1                           ! and increment the number of populated q levels
+        popQsFirstContIdx(numPopulatedQLvls)=currContIdx   ! Now store the first contour of the new q level
+        orderedPopQsIdxs(numPopulatedQLvls)=newQIdx         ! Since this q level has contours, store its index
+        oldQIdx=newQIdx                                         ! store the current q level index so we know when we have moved to a new one
       endif
     enddo
-    jq2(nlev)=j2
-     !Note: levq(lev) gives the q level (ind) of contours.
 
-    do lev=1,nlev
-      iq1(lev)=i1(jq1(lev))
-      iq2(lev)=i2(jq2(lev))
+    ! store the last contour as the final of the last q level
+    popQsLastContIdx(numPopulatedQLvls)=lastContIdx
+
+     !Note: orderedPopQsIdxs(newQIdx) gives the q level (contsQIdx) of contours.
+
+    ! for populated q levels, create arrays for mapping Qidx -> first/last node index 
+    do popQIdx=1,numPopulatedQLvls
+      popQsFirstNodeIdx(popQIdx)=firstNodeIdxList(popQsFirstContIdx(popQIdx))
+      popQsLastNodeIdx(popQIdx)=lastNodeIdxList(popQsLastContIdx(popQIdx))
     enddo
 
      !Reset initial layer counters for contours and nodes:
-    jl1(iz)=n+1
-    il1(iz)=npt+1
+    layerFirstContIdx(iz)=numContoursTot+1
+    layerFirstNodeIdx(iz)=numNodesTot+1
 
      !-----------------------------------------------------------------
      !              Begin a major loop over q levels
      !-----------------------------------------------------------------
 
-    do lev=1,nlev
-       !Current contour level:       
-      levt=levq(lev)
-      ibeg=iq1(lev)
-      iend=iq2(lev)
+    do popQIdx=1,numPopulatedQLvls
+      ! for the current populated q level get: 
+      
+      ! the q level index
+      qIdx=orderedPopQsIdxs(popQIdx)
 
-       !Work out optimal box number, nbox, for fast surgery:
-      nptq=iend-ibeg+1
-       !nptq: number of nodes having this q level.
-      fnq=dble(nptq)
+      ! its first/last node indices
+      firstNodeIdx=popQsFirstNodeIdx(popQIdx)
+      lastNodeIdx=popQsLastNodeIdx(popQIdx)
 
-       !Balance boxing costs, (3+15*nseg/nbox)*nbox, with surgery 
-       !search costs, 24*nptq*nseg/nbox, to work out optimal box number;
-       !here we estimate nseg, the total number of segments counted
-       !in all boxes, as (1+3*eps*nb)*nptq, where nb=sqrt(nbox);
-       !this has been verified in realistically complex tests).
-       !This balance results in a quartic equation for a = nb/sqrt(nptq)
-       !whose solution only depends on r = 3*eps*sqrt(nptq), where
-       !eps=(average distance between adjacent nodes)/(domain area).
-       !Fortunately, a only varies from 1.129 to 1.265 over the entire
-       !range of r (from 0 to infinity).  Here, therefore, we simply
-       !take a = 1.2, i.e. nb = 1.2*sqrt(nptq), as an approximation:
-      fnbl=1.2d0*sqrt(fnq*pi)
-      fnbz=fnbl/pi
-      nbl=max(min(nint(fnbl),nt),1)
-       !nbl: number of boxes in longitude (lambda); nbl <= nt.
-      nbz=max(min(nint(fnbz),ng),1)
-       !nbz: number of boxes in sine(latitude) (z); nbz <= ng.
-      nblm1=nbl-1
-      nbzp1=nbz+1
-      nbox=nbl*nbz+1
-       !nbox: (+1) total number of boxes (including circular patches
-       !      at each pole (box numbers 0 and nbox)
-      bwl=twopi/dble(nbl)
-      bwli=one/bwl
-       !Ensure radius of polar "boxes" equals the z box division:
-      fac=two/dble(nbz)
+      ! the number of nodes
+      numNodesOnQLvl=dble(lastNodeIdx-firstNodeIdx+1)
+
+      ! Contour segments are binned into boxes to reduce the search costs in surgery.  
+      ! The optimal number of boxes is chosen by balancing the cost of boxing (creating boxes 
+      ! and binning segments into them) with the cost of surgery search (finding which 
+      ! segments to perform surgery on).
+
+      ! any segment which crosses a box boundary will be binned into both boxes
+      ! The total number of segments processed in surgery, numSegs, is 
+      ! the true number of segments (equal to numNodesOnQLvl since there is one segment per node) 
+      ! plus duplicates from segments which cross box boundaries.
+      ! we estimate numSegs empirically, based on a realistically complex tests, as: 
+      !   (1+3*(avgNodeSpacing/domainArea)*sqrt(numBoxesTot))*numNodesOnQLvl;
+
+      ! boxing costs are estimated as:
+      !   (3+15*numSegs/numBoxesTot)*numBoxesTot 
+
+      ! surgery search costs are estimated as:
+      !   24*numNodesOnQLvl*numSegs/numBoxesTot, to work out optimal box number;
+      
+      ! This balance results in a quartic equation for a = sqrt(numBoxesTot)/sqrt(numNodesOnQLvl)
+      ! whose solution only depends on r = 3*(avgNodeSpacing/domainArea)*sqrt(numNodesOnQLvl)
+      ! Note: (avgNodeSpacing/domainArea) was previously called eps (epsilon?) in this comment
+
+      ! Fortunately, a only varies from 1.129 to 1.265 when r ranges from 0 to infinity.  
+      ! Thus we take a = 1.2
+      ! which gives 
+      !    sqrt(numBoxesTot) = 1.2*sqrt(numNodesOnQLvl),
+      ! => numBoxesTot = 1.44*numNodesOnQLvl
+
+      ! For boxing (i.e. gridding the sphere), 
+      ! we construct approximately square boxes in the plane of longitude and cartesian z (sine(latitude))
+      ! We use circular patches at the poles to circumvent the pole problem.
+
+      ! Since longitude spans a range of 2*pi, and z spans a range of 2, to achieve square boxes, 
+      ! there should be pi times as many boxes in longitude as in z
+      ! this is satisfied by:
+      !   numLongBoxes = 1.2*sqrt(numNodesOnQLvl*pi)
+      !   numZBoxes    = 1.2*sqrt(numNodesOnQLvl/pi) = numLongBoxes/pi
+      approxNumLongBoxes=1.2d0*sqrt(numNodesOnQLvl*pi)
+      approxNumZBoxes=approxNumLongBoxes/pi
+
+      ! Round to the nearest ninteger
+      numLongBoxes=nint(approxNumLongBoxes)
+      numZBoxes=nint(approxNumZBoxes)
+
+      ! we bound the number of boxes to be at least 1 and at most the number of grid points in that direction
+      numLongBoxes=max(min(numLongBoxes,numLongGridPts),1) !enforce 1 <= numLongBoxes <= numLongGridPts
+      numZBoxes=max(min(numZBoxes,numLatGridPts),1)        !enforce 1 <= numZBoxes <= numLatGridPts
+
+      ! The total number of boxes (including polar patches) is then:
+      numBoxesTot=numLongBoxes*numZBoxes+1 
+      !   where the +1 accounts for one polar patch and the other comes from 0 indexing
+
+      ! Calculate the width of the boxes in longitude
+      ! and precompute its reciprocal to minimise division (compiler likely does this automatically)
+      longBoxWidth=twoPi/numLongBoxes
+      recipLongBoxWidth=one/longBoxWidth 
+
+      !----------
+      ! I don't understand the following...
+
+      ! fac = tan(latitude)
+      ! zbm = cos(latitude)
+      ! bwz = sin(latitude)
+
+      ! let zbm be the distance of the polar patch (boundary) from the origin in z
+      ! the z thickness of the polar patch is then 1-zbm
+
+      ! let bwz be the radius of the polar patch (boundary) x-y plane
+      ! then, since we are working on a unit sphere, 
+      ! zbm**2 + bwz**2 = 1
+
+      ! Ensure radius of polar "boxes" equals the z box division:
+      ! i.e. set bwz ~= fac
+      ! for small fac this is satisfied by
+      ! bwz = fac/sqrt(1+fac**2)
+
+      ! get the nominal spacing of the boxes in the cartesian z direction
+      ! z=sin(latitude) spans a range of 2 (i.e. [-1,1]) 
+      ! which we divide by the number of boxes in z
+      fac=two/numZBoxes 
+
+      ! let the distance in z, from the origin, 
+      ! at which the polar patch (boundary) is located be zbm
       zbm=one/sqrt(one+fac**2)
+
       bwz=zbm*fac
-      bwzi=one/bwz
+      bwzi=one/bwz !precompute the reciprocal to minimise division (compiler likely does this automatically)
+      !----------
 
        !Box all segments [i,next(i)] to reduce search costs in surgery:
-      do mb=0,nbox
+      do mb=0,numBoxesTot
         nspb(mb)=0
       enddo
-      nseg=0
+      numSegs=0
 
-      c0=pi+bwl*dble(nbl+1)
+      c0=pi+longBoxWidth*dble(numLongBoxes+1)
       !above, pi is the domain half-width (in longitude).
-      do ib=ibeg,iend
+      do ib=firstNodeIdx,lastNodeIdx
         i=next(ib)
          !find range of boxes spanned by segment (i,next(i)):
         adl=c0+lonc(i)
         if (dlonc(i) > zero) then
-          mbl1=int(bwli*adl)-nbl
-          mbl2=int(bwli*(adl+dlonc(i)))-nbl
+          mbl1=int(recipLongBoxWidth*adl)-numLongBoxes
+          mbl2=int(recipLongBoxWidth*(adl+dlonc(i)))-numLongBoxes
         else
-          mbl1=int(bwli*(adl+dlonc(i)))-nbl
-          mbl2=int(bwli*adl)-nbl
+          mbl1=int(recipLongBoxWidth*(adl+dlonc(i)))-numLongBoxes
+          mbl2=int(recipLongBoxWidth*adl)-numLongBoxes
         endif
          !mbl1,mbl2 is the longitude range spanned by the segment
 
@@ -611,43 +689,43 @@ do iz=1,nz
           if (mbz == 0) then
              !This is the "box" at the south pole:
             nspb(0)=nspb(0)+1
-            nseg=nseg+1
-            loc(nseg)=0
-            list(nseg)=ib
-          else if (mbz == nbzp1) then
+            numSegs=numSegs+1
+            loc(numSegs)=0
+            list(numSegs)=ib
+          else if (mbz == (numZBoxes+1)) then
              !This is the "box" at the north pole:
-            nspb(nbox)=nspb(nbox)+1
-            nseg=nseg+1
-            loc(nseg)=nbox
-            list(nseg)=ib
+            nspb(numBoxesTot)=nspb(numBoxesTot)+1
+            numSegs=numSegs+1
+            loc(numSegs)=numBoxesTot
+            list(numSegs)=ib
           else
              !All other boxes:
             mmbz=mbz-1
             do mbl=mbl1,mbl2
-              mb=nbl*mmbz+mod(mbl+nblm1,nbl)+1
-              !nblm1=nbl-1 above
+              mb=numLongBoxes*mmbz+mod(mbl+(numLongBoxes-1),numLongBoxes)+1
+
               nspb(mb)=nspb(mb)+1
-              nseg=nseg+1
-              loc(nseg)=mb
-              list(nseg)=ib
+              numSegs=numSegs+1
+              loc(numSegs)=mb
+              list(numSegs)=ib
             enddo
           endif
         enddo
       enddo
        !nspb counts number of segments that cross through box mb.
-       !nseg counts the total number of segments crossing all boxes.
+       !numSegs counts the total number of segments crossing all boxes.
        !loc gives the box location of this segment
        !list gives the node before the one at the segment origin (i).
 
       kb1(0)=1
-      do mb=0,nbox-1
+      do mb=0,numBoxesTot-1
         kb1(mb+1)=kb1(mb)+nspb(mb)
       enddo
-      do mb=0,nbox
+      do mb=0,numBoxesTot
         kb2(mb)=kb1(mb)-1
       enddo
 
-      do k=1,nseg
+      do k=1,numSegs
         mb=loc(k)
         ks=kb2(mb)+1
         node(ks)=list(k)
@@ -658,25 +736,25 @@ do iz=1,nz
        ![node(kb1(mb)+1),next(node(kb1(mb)+1)], ..., 
        ![node(kb2(mb)),next(node(kb2(mb))] cross through box mb.
 
-       !Note: roughly (3+15*nseg/nbox)*nbox operations are required
+       !Note: roughly (3+15*numSegs/numBoxesTot)*numBoxesTot operations are required
        !      up to this point (in the loop over q levels) to do
        !      all the segment boxing.
 
        !Now search for surgery with segments crossing through the box 
        !containing i:
-      do ib=ibeg,iend
+      do ib=firstNodeIdx,lastNodeIdx
         i=next(ib)
 
         mbz=int(bwzi*(zbm+z(i))+one)
         if (mbz == 0) then
            !This is the "box" at the south pole:
           mb=0
-        else if (mbz == nbzp1) then
+        else if (mbz == (numZBoxes+1)) then
            !This is the "box" at the north pole:
-          mb=nbox
+          mb=numBoxesTot
         else
            !All other boxes:
-          mb=nbl*(mbz-1)+int(bwli*(pi+lonc(i)))+1
+          mb=numLongBoxes*(mbz-1)+int(recipLongBoxWidth*(pi+lonc(i)))+1
            !mb: box containing the node i.
         endif
 
@@ -693,7 +771,7 @@ do iz=1,nz
           delz=z(is)-z(i)
           aa=delx*dx(is)+dely*dy(is)+delz*dz(is)
 
-           !Note: roughly 24*nptq*(nseg/nbox) operations are required 
+           !Note: roughly 24*numNodesOnQLvl*(numSegs/numBoxesTot) operations are required 
            !up to the following statement (which is rarely satisfied); 
            !this is assumed to be the dominant cost of surgery.  
            !Even if each node i surgically reconnects on average 
@@ -767,17 +845,17 @@ do iz=1,nz
 
        !---------------------------------------------------------------
        !It remains to rebuild the contours using the next() information
-       !and to eliminate small contours (having np < 5):
-      do i=ibeg,iend
+       !and to eliminate small contours (having numNodesOnContourList < 5):
+      do i=firstNodeIdx,lastNodeIdx
         avail(i)=.true.
       enddo
 
-      jbeg=n+1
-      do i=ibeg,iend
+      jbeg=numContoursTot+1
+      do i=firstNodeIdx,lastNodeIdx
         if (avail(i)) then
            !avail(i) is true if node i has not yet been associated with
            !a contour. Start a new contour:
-          n=n+1
+          numContoursTot=numContoursTot+1
 
            !First point on the contour:
           npd=1
@@ -801,22 +879,22 @@ do iz=1,nz
           enddo
 
            !Re-distribute nodes on this contour:
-          np(n)=npd
+          numNodesOnContourList(numContoursTot)=npd
           if (npd > 3) &
-            call renode(xd,yd,zd,npd,xa(npt+1),ya(npt+1),za(npt+1),np(n))
-          if (np(n) > 3) then
-            i1a(n)=npt+1
-            npt=npt+np(n)
-            i2a(n)=npt
-            ind(n)=levt
-            lay(n)=iz
-            do is=i1a(n),npt-1
+            call renode(xd,yd,zd,npd,xa(numNodesTot+1),ya(numNodesTot+1),za(numNodesTot+1),numNodesOnContourList(numContoursTot))
+          if (numNodesOnContourList(numContoursTot) > 3) then
+            i1a(numContoursTot)=numNodesTot+1
+            numNodesTot=numNodesTot+numNodesOnContourList(numContoursTot)
+            i2a(numContoursTot)=numNodesTot
+            contsQIdx(numContoursTot)=qIdx
+            contourToLayerIdx(numContoursTot)=iz
+            do is=i1a(numContoursTot),numNodesTot-1
               nexta(is)=is+1
             enddo
-            nexta(npt)=i1a(n)
+            nexta(numNodesTot)=i1a(numContoursTot)
           else
              !Delete contour if deemed too small (see renode):
-            n=n-1
+            numContoursTot=numContoursTot-1
           endif
         endif
       enddo
@@ -827,8 +905,8 @@ do iz=1,nz
      !--------------------------------------------------------------------
 
      !Reset final layer counters for contours and nodes:
-    jl2(iz)=n
-    il2(iz)=npt
+    layerLastContIdx(iz)=numContoursTot
+    layerLastNodeIdx(iz)=numNodesTot
   endif
 enddo
  !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -836,7 +914,7 @@ enddo
  !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
  !Copy nodes back to those in the argument of the subroutine:
-do i=1,npt
+do i=1,numNodesTot
   x(i)=xa(i)
   y(i)=ya(i)
   z(i)=za(i)
@@ -844,9 +922,9 @@ do i=1,npt
 enddo
  !next(i) is not altered until surgery.
 
-do j=1,n
-  i1(j)=i1a(j)
-  i2(j)=i2a(j)
+do j=1,numContoursTot
+  firstNodeIdxList(j)=i1a(j)
+  lastNodeIdxList(j)=i2a(j)
 enddo
 
 return
@@ -874,7 +952,7 @@ double precision:: dsa(npd),dsb(npd)
 double precision:: bdif,ww,sum,fac,acc,p,eta,del,xtmp,ytmp,ztmp
 double precision:: afac,ax,ay,az,sx,sy,sz
 integer:: node(npd+1),nextr(0:npd)
-integer:: i,ia,ib,ncorn,im,k,ibeg,iend,npseg
+integer:: i,ia,ib,ncorn,im,k,firstNodeIdx,lastNodeIdx,npseg
 logical:: corner(npd)
 
 !------------------------------------------------------------------
@@ -1065,13 +1143,13 @@ else
    !preserve locations of all corners:
   npr=0
   node(ncorn+1)=node(1)
-  ibeg=node(1)
+  firstNodeIdx=node(1)
 
   do k=1,ncorn
-    iend=node(k+1)
-    i=ibeg
+    lastNodeIdx=node(k+1)
+    i=firstNodeIdx
     sum=zero
-    do while (i .ne. iend)
+    do while (i .ne. lastNodeIdx)
       sum=sum+e(i)
       i=nextr(i)
     enddo
@@ -1084,21 +1162,21 @@ else
 
        !Make the sum of e(i) equal to npseg
       fac=dble(npseg)/sum
-      i=ibeg
-      do while (i .ne. iend)
+      i=firstNodeIdx
+      do while (i .ne. lastNodeIdx)
         e(i)=fac*e(i)
         i=nextr(i)
       enddo
 
        !Fix the first node along the segment as the corner:
-      xr(npr+1)=xd(ibeg)
-      yr(npr+1)=yd(ibeg)
-      zr(npr+1)=zd(ibeg)
+      xr(npr+1)=xd(firstNodeIdx)
+      yr(npr+1)=yd(firstNodeIdx)
+      zr(npr+1)=zd(firstNodeIdx)
 
       if (npseg > 1) then
          !Find the remaining points along this segment:
         acc=zero
-        i=ibeg-1
+        i=firstNodeIdx-1
         do im=npr+2,npr+npseg
           do while (acc < one)
             i=nextr(i)
@@ -1127,7 +1205,7 @@ else
       npr=npr+npseg
 
     endif
-    ibeg=iend
+    firstNodeIdx=lastNodeIdx
 
      !go on and consider the next segment (if any) between corners:
   enddo

@@ -54,10 +54,10 @@ set second=`date +%-S`
 set minute=`date +%-M`
 set hour=`date +%-H`
 set day=`date +%-d`
-@ iseed = ( $second + ( 60 * ( $minute + 60 * ( $hour + ( 24 * $day ) ) ) ) )
+@ rngSeed = ( $second + ( 60 * ( $minute + 60 * ( $hour + ( 24 * $day ) ) ) ) )
 
 # Create a temporary directory:
-set tmpdir = $outdir/tmp{$iseed}
+set tmpdir = $outdir/tmp{$rngSeed}
 mkdir $tmpdir
 cd $tmpdir
 
@@ -124,22 +124,22 @@ if ($topography == "y") then
       if ($iopt == "1") then
          # Narrow band:
          echo ' We consider a flat spectrum between n = n1 and n2.'
-         @ nbeg = ( $kb - 2 )
-         echo -n ' Starting order, n1 (default' $nbeg')? '
+         @ minSpherHarmDegree = ( $kb - 2 )
+         echo -n ' Starting order, n1 (default' $minSpherHarmDegree')? '
          set var = $<
-         if ($var != "") set nbeg = $var
-         @ nend = ( $nbeg + 4 )
-         echo -n '  Ending  order, n2 (default' $nend')? '
+         if ($var != "") set minSpherHarmDegree = $var
+         @ maxSpherHarmDegree = ( $minSpherHarmDegree + 4 )
+         echo -n '  Ending  order, n2 (default' $maxSpherHarmDegree')? '
          set var = $<
-         if ($var != "") set nend = $var
+         if ($var != "") set maxSpherHarmDegree = $var
          echo ' Narrow-band topography' >> job_info
-         echo ' between n = ' $nbeg ' and ' $nend >> job_info
+         echo ' between n = ' $minSpherHarmDegree ' and ' $maxSpherHarmDegree >> job_info
       else
          # Broad band:
          echo ' We consider a spectrum S(n) = alpha*exp(-alpha) where'
          echo ' alpha = (n/kb)^3 and n is the spherical harmonic order.'
-         set nbeg = 1
-         @ nend = ( 9 * ( $kb / 4 ) )
+         set minSpherHarmDegree = 1
+         @ maxSpherHarmDegree = ( 9 * ( $kb / 4 ) )
          echo ' Broad-band topography with spectrum' >> job_info
          echo ' S(n) = a*exp(-a) where a = (n/k_b)^3 and k_b = ' $kb >> job_info
       endif
@@ -150,11 +150,11 @@ if ($topography == "y") then
       if ($var != "") set bmax = $var
       echo ' Maximum absolute amplitude of the topography: ' $bmax >> job_info
 
-      echo $nbeg $nend > in_$topgen
+      echo $minSpherHarmDegree $maxSpherHarmDegree > in_$topgen
       echo $bmax >> in_$topgen
 
-      echo ' Beginning order, n_1:               ' $nbeg >> job_info
-      echo ' Ending order,    n_2:               ' $nend >> job_info
+      echo ' Beginning order, n_1:               ' $minSpherHarmDegree >> job_info
+      echo ' Ending order,    n_2:               ' $maxSpherHarmDegree >> job_info
       echo ' |eta_b|_max/H_1:                    ' $bmax >> job_info
 
       # Append to jobname prefix:
@@ -261,22 +261,22 @@ if ($dataopt == 1) then
    if ($iopt == "1") then
       # Narrow band:
       echo ' We consider a flat spectrum between n = n1 and n2.'
-      @ nbeg = ( $kb - 2 )
-      echo -n ' Starting order, n1 (default' $nbeg')? '
+      @ minSpherHarmDegree = ( $kb - 2 )
+      echo -n ' Starting order, n1 (default' $minSpherHarmDegree')? '
       set var = $<
-      if ($var != "") set nbeg = $var
-      @ nend = ( $nbeg + 4 )
-      echo -n '  Ending  order, n2 (default' $nend')? '
+      if ($var != "") set minSpherHarmDegree = $var
+      @ maxSpherHarmDegree = ( $minSpherHarmDegree + 4 )
+      echo -n '  Ending  order, n2 (default' $maxSpherHarmDegree')? '
       set var = $<
-      if ($var != "") set nend = $var
+      if ($var != "") set maxSpherHarmDegree = $var
       echo ' Narrow-band initial baroclinic PV spectrum' >> job_info
-      echo ' between n = ' $nbeg ' and ' $nend >> job_info
+      echo ' between n = ' $minSpherHarmDegree ' and ' $maxSpherHarmDegree >> job_info
    else
       # Broad band:
       echo ' We consider a spectrum S(n) = alpha*exp(-alpha) where'
       echo ' alpha = (n/kb)^3 and n is the spherical harmonic order.'
-      set nbeg = 1
-      @ nend = ( 9 * ( $kb / 4 ) )
+      set minSpherHarmDegree = 1
+      @ maxSpherHarmDegree = ( 9 * ( $kb / 4 ) )
       echo ' Broad-band initial baroclinic PV spectrum' >> job_info
       echo ' S(n) = a*exp(-a) where a = (n/kb)^3 and kb = ' $kb >> job_info
    endif
@@ -290,7 +290,7 @@ if ($dataopt == 1) then
 
    set fpole = `echo "scale=10; 4 * $pi" | bc -l`
    set fmax = `echo "scale=10; $fpole * $Ro" | bc -l`
-   echo $nbeg $nend > in_$datagen
+   echo $minSpherHarmDegree $maxSpherHarmDegree > in_$datagen
    echo $fmax >> in_$datagen
 
 #-------------------------------------------------------------------
@@ -383,8 +383,8 @@ set v21 = $dum[3]
 set v22 = $dum[4]
 
 # Thicknesses of each layer (they are assumed to sum to 1):
-set hbar1 = $dum[5]
-set hbar2 = $dum[6]
+set hAvgLayer1 = $dum[5]
+set hAvgLayer2 = $dum[6]
 
 # Upper layer to lower layer density ratio, rho_2/rho_1:
 set alpha = $dum[7]
@@ -451,22 +451,22 @@ if ($forcing == "y") then
    if ($iopt == "1") then
       # Narrow band:
       echo ' We consider a flat spectrum between n = n1 and n2.'
-      @ nbeg = ( $kb - 2 )
-      echo -n ' Starting order, n1 (default' $nbeg')? '
+      @ minSpherHarmDegree = ( $kb - 2 )
+      echo -n ' Starting order, n1 (default' $minSpherHarmDegree')? '
       set var = $<
-      if ($var != "") set nbeg = $var
-      @ nend = ( $nbeg + 4 )
-      echo -n '  Ending  order, n2 (default' $nend')? '
+      if ($var != "") set minSpherHarmDegree = $var
+      @ maxSpherHarmDegree = ( $minSpherHarmDegree + 4 )
+      echo -n '  Ending  order, n2 (default' $maxSpherHarmDegree')? '
       set var = $<
-      if ($var != "") set nend = $var
+      if ($var != "") set maxSpherHarmDegree = $var
       echo ' Narrow-band PV forcing' >> job_info
-      echo ' between n = ' $nbeg ' and ' $nend >> job_info
+      echo ' between n = ' $minSpherHarmDegree ' and ' $maxSpherHarmDegree >> job_info
    else
       # Broad band:
       echo ' We consider a spectrum S(n) = alpha*exp(-alpha) where'
       echo ' alpha = (n/kb)^3 and n is the spherical harmonic order.'
-      set nbeg = 1
-      @ nend = ( 9 * ( $kb / 4 ) )
+      set minSpherHarmDegree = 1
+      @ maxSpherHarmDegree = ( 9 * ( $kb / 4 ) )
       echo ' Broad-band PV forcing with spectrum' >> job_info
       echo ' S(n) = a*exp(-a) where a = (n/kb)^3 and kb = ' $kb >> job_info
    endif
@@ -491,8 +491,8 @@ else
    # Set values to enable spectral.f90 to compile
    set frms = 0.0 
    set tq = 1.0
-   set nbeg = 1
-   set nend = 1
+   set minSpherHarmDegree = 1
+   set maxSpherHarmDegree = 1
 endif
 
 #==========================================================================
@@ -580,7 +580,7 @@ echo " Compiling source files....."
 echo " -----------------------------------------------------------------------"
 
 # Use C pre-processor to put chosen parameters $copts into parameters.f90
-set copts = "-DN_G=$n_lat -DN_CONTQ=$n_q -DT_SIM={$t_sim}d0 -DT_GSAVE={$t_gsave}d0 -DT_CSAVE={$t_csave}d0 -DT_STEP={$dt}d0 -DV_11={$v11}d0 -DV_12={$v12}d0 -DV_21={$v21}d0 -DV_22={$v22}d0 -DC_MODE1={$ctsq1}d0 -DC_MODE2={$ctsq2}d0 -DH_BAR1={$hbar1}d0 -DH_BAR2={$hbar2}d0 -DDEN_RAT={$alpha}d0 -DACC_GRAV={$gravity}d0 -DR_THERM={$r_th}d0 -DD_RATE={$d_rate}d0 -DPOW_HYPER=$n_nu -DFQ_RMS={$frms}d0 -DT_FQ={$tq}d0 -DN_BEG=$nbeg -DN_END=$nend -DI_SEED=$iseed -DTOP_FLAG=$topflag"
+set copts = "-DN_G=$n_lat -DN_CONTQ=$n_q -DT_SIM={$t_sim}d0 -DT_GSAVE={$t_gsave}d0 -DT_CSAVE={$t_csave}d0 -DT_STEP={$dt}d0 -DV_11={$v11}d0 -DV_12={$v12}d0 -DV_21={$v21}d0 -DV_22={$v22}d0 -DC_MODE1={$ctsq1}d0 -DC_MODE2={$ctsq2}d0 -DH_BAR1={$hAvgLayer1}d0 -DH_BAR2={$hAvgLayer2}d0 -DDEN_RAT={$alpha}d0 -DACC_GRAV={$gravity}d0 -DR_THERM={$r_th}d0 -DD_RATE={$d_rate}d0 -DPOW_HYPER=$n_nu -DFQ_RMS={$frms}d0 -DT_FQ={$tq}d0 -DN_BEG=$minSpherHarmDegree -DN_END=$maxSpherHarmDegree -DI_SEED=$rngSeed -DTOP_FLAG=$topflag"
 
 precomp $copts parameters.f90
 

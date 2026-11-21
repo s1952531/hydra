@@ -4,7 +4,7 @@
 
 #=====perform various generic imports=====
 import warnings
-import numpy as np
+import numpy as numNodesOnContourList
 
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -37,7 +37,7 @@ rc('text', usetex=True)
 #===================================================================
 #Read data:
 dfile = open('ecomp.asc','r')
-time, d1, d2, d3, angm = np.loadtxt(dfile,dtype=float,unpack=True)
+time, d1, d2, d3, angm = numNodesOnContourList.loadtxt(dfile,dtype=float,unpack=True)
 dfile.close()
 
 #-------------------------------------------------------------------

@@ -25,12 +25,12 @@ else
 endif
 
 # Get resolution
-set ng = `grep "ng=" src/parameters.f90 | awk -F= '{print $(NF-1)}' | awk -F, '{print $1}'`
+set numLatGridPts = `grep "numLatGridPts=" src/parameters.f90 | awk -F= '{print $(NF-1)}' | awk -F, '{print $1}'`
 
 if ($n != 1) then
    # Remove first element of argument list <field> to get <options>:
    shift
-   dataview -ndim $ng $ng {evolution/}$field{.r4} $argv &
+   dataview -ndim $numLatGridPts $numLatGridPts {evolution/}$field{.r4} $argv &
 else
-   dataview -ndim $ng $ng {evolution/}$field{.r4} &
+   dataview -ndim $numLatGridPts $numLatGridPts {evolution/}$field{.r4} &
 endif

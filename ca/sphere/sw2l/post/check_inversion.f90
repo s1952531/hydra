@@ -29,36 +29,36 @@ double precision,parameter:: wgt=0.5d0, wgtc=1.d0-wgt
  !wgt: relaxation parameter used to speed convergence (wgt near 1 fails)
 
  !Physical fields:
-double precision:: q1(ng,nt),q2(ng,nt)
-double precision:: d1(ng,nt),d2(ng,nt)
-double precision:: g1(ng,nt),g2(ng,nt)
-double precision:: h1(ng,nt),h2(ng,nt)
-double precision:: u1(ng,nt),u2(ng,nt)
-double precision:: v1(ng,nt),v2(ng,nt)
-double precision:: z1(ng,nt),z2(ng,nt)
+double precision:: qAnom1(numLatGridPts,numLongGridPts),qAnom2(numLatGridPts,numLongGridPts)
+double precision:: d1(numLatGridPts,numLongGridPts),d2(numLatGridPts,numLongGridPts)
+double precision:: g1(numLatGridPts,numLongGridPts),g2(numLatGridPts,numLongGridPts)
+double precision:: h1(numLatGridPts,numLongGridPts),h2(numLatGridPts,numLongGridPts)
+double precision:: u1(numLatGridPts,numLongGridPts),u2(numLatGridPts,numLongGridPts)
+double precision:: v1(numLatGridPts,numLongGridPts),v2(numLatGridPts,numLongGridPts)
+double precision:: z1(numLatGridPts,numLongGridPts),z2(numLatGridPts,numLongGridPts)
 
 !Copies of h, u & v to compute differences from input fields:
-double precision:: h1i(ng,nt),h2i(ng,nt)
-double precision:: u1i(ng,nt),u2i(ng,nt)
-double precision:: v1i(ng,nt),v2i(ng,nt)
-double precision:: z1i(ng,nt),z2i(ng,nt)
+double precision:: h1i(numLatGridPts,numLongGridPts),h2i(numLatGridPts,numLongGridPts)
+double precision:: u1i(numLatGridPts,numLongGridPts),u2i(numLatGridPts,numLongGridPts)
+double precision:: v1i(numLatGridPts,numLongGridPts),v2i(numLatGridPts,numLongGridPts)
+double precision:: z1i(numLatGridPts,numLongGridPts),z2i(numLatGridPts,numLongGridPts)
 
  !Semi-spectral fields:
-double precision:: ds1(ng,nt),ds2(ng,nt)
-double precision:: gs1(ng,nt),gs2(ng,nt)
+double precision:: deltaSpec1(numLatGridPts,numLongGridPts),deltaSpec2(numLatGridPts,numLongGridPts)
+double precision:: gammaSpec1(numLatGridPts,numLongGridPts),gammaSpec2(numLatGridPts,numLongGridPts)
 
  !Mode values of h1 & h2:
-double precision:: h1m(ng,nt),h2m(ng,nt)
+double precision:: h1m(numLatGridPts,numLongGridPts),h2m(numLatGridPts,numLongGridPts)
 
  !Other:
-double precision:: h1o(ng,nt),h2o(ng,nt)
-double precision:: u1o(ng,nt),u2o(ng,nt)
-double precision:: v1o(ng,nt),v2o(ng,nt)
+double precision:: h1o(numLatGridPts,numLongGridPts),h2o(numLatGridPts,numLongGridPts)
+double precision:: u1o(numLatGridPts,numLongGridPts),u2o(numLatGridPts,numLongGridPts)
+double precision:: v1o(numLatGridPts,numLongGridPts),v2o(numLatGridPts,numLongGridPts)
 
-double precision:: ud1(ng,nt),ud2(ng,nt)
-double precision:: vd1(ng,nt),vd2(ng,nt)
+double precision:: ud1(numLatGridPts,numLongGridPts),ud2(numLatGridPts,numLongGridPts)
+double precision:: vd1(numLatGridPts,numLongGridPts),vd2(numLatGridPts,numLongGridPts)
 
-double precision:: wka(ng,nt),wkb(ng,nt),wkc(ng,nt)
+double precision:: wka(numLatGridPts,numLongGridPts),wkb(numLatGridPts,numLongGridPts),wkc(numLatGridPts,numLongGridPts)
 double precision:: t,enorm
 integer:: i,m,iopt
 
@@ -71,8 +71,8 @@ call init_spectral
  !vorticity and h is the dimensionless height anomaly in each layer:
 open(11, file = 'qq_init.r8', form = 'unformatted', &
       access = 'direct', status = 'old', recl = 2*nbytes)
-read(11,rec=1) t, q1
-read(11,rec=2) t, q2
+read(11,rec=1) t, qAnom1
+read(11,rec=2) t, qAnom2
 close(11)
 
 !----------------------------------------------------------------------
@@ -123,33 +123,33 @@ z2i = z2
  !Read in divergence, ds:
 open(11, file = 'dd0_init.r8', form = 'unformatted', &
       access = 'direct', status = 'old', recl = 2*nbytes)
-read(11,rec=1) t, ds1
-read(11,rec=2) t, ds2
+read(11,rec=1) t, deltaSpec1
+read(11,rec=2) t, deltaSpec2
 close(11)
 
  !Ensure domain average is zero:
-call zeroavg(ds1)
-call zeroavg(ds2)
+call zeroavg(deltaSpec1)
+call zeroavg(deltaSpec2)
 
  !Convert to semi-spectral space as ds:
-call forfft(ng,nt,ds1,trig,factors) 
-call forfft(ng,nt,ds2,trig,factors) 
+call forfft(numLatGridPts,numLongGridPts,deltaSpec1,trig,factors) 
+call forfft(numLatGridPts,numLongGridPts,deltaSpec2,trig,factors) 
 
 !----------------------------------------------------------------------
  !Read in acceleration divergence, gs:
 open(11, file = 'gg0_init.r8', form = 'unformatted', &
       access = 'direct', status = 'old', recl = 2*nbytes)
-read(11,rec=1) t, gs1
-read(11,rec=2) t, gs2
+read(11,rec=1) t, gammaSpec1
+read(11,rec=2) t, gammaSpec2
 close(11)
 
  !Ensure domain average is zero:
-call zeroavg(gs1)
-call zeroavg(gs2)
+call zeroavg(gammaSpec1)
+call zeroavg(gammaSpec2)
 
  !Convert to semi-spectral space as gs:
-call forfft(ng,nt,gs1,trig,factors) 
-call forfft(ng,nt,gs2,trig,factors) 
+call forfft(numLatGridPts,numLongGridPts,gammaSpec1,trig,factors) 
+call forfft(numLatGridPts,numLongGridPts,gammaSpec2,trig,factors) 
 
 !----------------------------------------------------------------------
 write(*,*) ' Start with (1) h = u = v = 0, or (2) the exact solution?'
@@ -171,16 +171,16 @@ endif
  !in the iteration below):
 
  !Invert Laplace's operator on the divergence (ds) in both layers:
-call laplinv(ds1,wka,vd1)
-call laplinv(ds2,wkb,vd2)
+call laplinv(deltaSpec1,wka,vd1)
+call laplinv(deltaSpec2,wkb,vd2)
  !Here the divergence potential is wka or wkb, and its latitudinal
  !derivative is vd1 or vd2, the divergent meridional velocity
  !(all in semi-spectral space)
 
  !Compute divergent zonal velocity ud in both layers:
-call deriv(ng,nt,rk,wka,ud1) 
-call deriv(ng,nt,rk,wkb,ud2) 
-do m=1,nt
+call deriv(numLatGridPts,numLongGridPts,rk,wka,ud1) 
+call deriv(numLatGridPts,numLongGridPts,rk,wkb,ud2) 
+do m=1,numLongGridPts
   ud1(:,m)=clati*ud1(:,m)
   ud2(:,m)=clati*ud2(:,m)
 enddo
@@ -201,9 +201,9 @@ do while (enorm > tole)
   v2o=v2
 
    !Compute relative vorticity (now guaranteed to have zero average):
-  do i=1,nt
-    z1(:,i)=q1(:,i)*(one+h1(:,i))-cof
-    z2(:,i)=q2(:,i)*(one+h2(:,i))-cof
+  do i=1,numLongGridPts
+    z1(:,i)=qAnom1(:,i)*(one+h1(:,i))-cof
+    z2(:,i)=qAnom2(:,i)*(one+h2(:,i))-cof
   enddo
 
    !-------------------------------------------------------------
@@ -214,7 +214,7 @@ do while (enorm > tole)
    !Layer 1:
   
    !Convert the relative vorticity to semi-spectral space:
-  call forfft(ng,nt,z1,trig,factors) 
+  call forfft(numLatGridPts,numLongGridPts,z1,trig,factors) 
 
    !Convert the relative vorticity to semi-spectral space and de-alias:
 !  call dealias(z1)
@@ -225,28 +225,28 @@ do while (enorm > tole)
    !Here the streamfunction is wka while d(wka)/dlat = wkb.
 
    !Compute d(wka)/dlon = wkc:
-  call deriv(ng,nt,rk,wka,wkc)
+  call deriv(numLatGridPts,numLongGridPts,rk,wka,wkc)
 
    !Convert h1 to semi-spectral space:
-  call forfft(ng,nt,h1,trig,factors)
+  call forfft(numLatGridPts,numLongGridPts,h1,trig,factors)
 
    !DGD
    !Replace u1 by its exact form:
   u1 = u1i
-  call forfft(ng,nt,u1,trig,factors)
+  call forfft(numLatGridPts,numLongGridPts,u1,trig,factors)
    !Use exact h1 on rhs below:
   wka=h1i
-  call forfft(ng,nt,wka,trig,factors)
+  call forfft(numLatGridPts,numLongGridPts,wka,trig,factors)
    !DGD
 
-  do m=1,nt
+  do m=1,numLongGridPts
     !DGD
     !u1(:,m)=ud1(:,m)-wkb(:,m)
     !DGD
     v1(:,m)=vd1(:,m)+clati*wkc(:,m)
     !DGD
-    !h1(:,m)=gs1(:,m)+bet*u1(:,m)-cof*(z1(:,m)-cof*h1(:,m))
-    h1(:,m)=gs1(:,m)+bet*u1(:,m)-cof*(z1(:,m)-cof*wka(:,m))
+    !h1(:,m)=gammaSpec1(:,m)+bet*u1(:,m)-cof*(z1(:,m)-cof*h1(:,m))
+    h1(:,m)=gammaSpec1(:,m)+bet*u1(:,m)-cof*(z1(:,m)-cof*wka(:,m))
     !DGD
   enddo
    !All the terms in this loop are semi-spectral. Note, we will solve
@@ -257,7 +257,7 @@ do while (enorm > tole)
    !Layer 2:
 
    !Convert the relative vorticity to semi-spectral space:
-  call forfft(ng,nt,z2,trig,factors) 
+  call forfft(numLatGridPts,numLongGridPts,z2,trig,factors) 
 
    !Convert the relative vorticity to semi-spectral space and de-alias:
 !  call dealias(z2)
@@ -268,28 +268,28 @@ do while (enorm > tole)
    !Here the streamfunction is wka while d(wka)/dlat = wkb.
 
    !Compute d(wka)/dlon = wkc:
-  call deriv(ng,nt,rk,wka,wkc)
+  call deriv(numLatGridPts,numLongGridPts,rk,wka,wkc)
 
    !Convert h2 to semi-spectral space:
-  call forfft(ng,nt,h2,trig,factors)
+  call forfft(numLatGridPts,numLongGridPts,h2,trig,factors)
 
    !DGD
    !Replace u2 by its exact form:
   u2 = u2i
-  call forfft(ng,nt,u2,trig,factors)
+  call forfft(numLatGridPts,numLongGridPts,u2,trig,factors)
    !Use exact h2 on rhs below:
   wka=h2i
-  call forfft(ng,nt,wka,trig,factors)
+  call forfft(numLatGridPts,numLongGridPts,wka,trig,factors)
    !DGD
 
-  do m=1,nt
+  do m=1,numLongGridPts
     !DGD
     !u2(:,m)=ud2(:,m)-wkb(:,m)
     !DGD
     v2(:,m)=vd2(:,m)+clati*wkc(:,m)
     !DGD
-    !h2(:,m)=gs2(:,m)+bet*u2(:,m)-cof*(z2(:,m)-cof*h2(:,m))
-    h2(:,m)=gs2(:,m)+bet*u2(:,m)-cof*(z2(:,m)-cof*wka(:,m))
+    !h2(:,m)=gammaSpec2(:,m)+bet*u2(:,m)-cof*(z2(:,m)-cof*h2(:,m))
+    h2(:,m)=gammaSpec2(:,m)+bet*u2(:,m)-cof*(z2(:,m)-cof*wka(:,m))
     !DGD
   enddo
    !All the terms in this loop are semi-spectral. Note, we will solve
@@ -313,16 +313,16 @@ do while (enorm > tole)
 
    !Return h1 & h2 to layers as semi-spectral arrays, then physical ones:
   h1=h1m*vt11+h2m*vt12
-  call revfft(ng,nt,h1,trig,factors) 
+  call revfft(numLatGridPts,numLongGridPts,h1,trig,factors) 
   h2=h1m*vt21+h2m*vt22
-  call revfft(ng,nt,h2,trig,factors) 
+  call revfft(numLatGridPts,numLongGridPts,h2,trig,factors) 
 
    !Return semi-spectral velocity field to physical space:
-  call revfft(ng,nt,u1,trig,factors)
-  call revfft(ng,nt,u2,trig,factors)
+  call revfft(numLatGridPts,numLongGridPts,u1,trig,factors)
+  call revfft(numLatGridPts,numLongGridPts,u2,trig,factors)
 
-  call revfft(ng,nt,v1,trig,factors)
-  call revfft(ng,nt,v2,trig,factors)
+  call revfft(numLatGridPts,numLongGridPts,v1,trig,factors)
+  call revfft(numLatGridPts,numLongGridPts,v2,trig,factors)
 
    !Compute relative error (measured by the energy norm):
   wka=(u1-u1o)**2+(v1-v1o)**2+csq1*(h1-h1o)**2 &
@@ -349,8 +349,8 @@ enddo
  !Passing this point, we have converged!
 
  !Return semi-spectral relative vorticity field to physical space:
-call revfft(ng,nt,z1,trig,factors)
-call revfft(ng,nt,z2,trig,factors)
+call revfft(numLatGridPts,numLongGridPts,z1,trig,factors)
+call revfft(numLatGridPts,numLongGridPts,z2,trig,factors)
 
 wka = abs(h1-h1i)
 wkb = abs(h1i)

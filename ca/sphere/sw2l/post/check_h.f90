@@ -20,23 +20,23 @@ double precision,parameter:: tole=1.d-12
  !      the difference from the previous guess.
 
  !Physical fields:
-double precision:: h1(ng,nt),h2(ng,nt)
-double precision:: u1(ng,nt),u2(ng,nt)
-double precision:: z1(ng,nt),z2(ng,nt)
-double precision:: g1(ng,nt),g2(ng,nt)
+double precision:: h1(numLatGridPts,numLongGridPts),h2(numLatGridPts,numLongGridPts)
+double precision:: u1(numLatGridPts,numLongGridPts),u2(numLatGridPts,numLongGridPts)
+double precision:: z1(numLatGridPts,numLongGridPts),z2(numLatGridPts,numLongGridPts)
+double precision:: g1(numLatGridPts,numLongGridPts),g2(numLatGridPts,numLongGridPts)
 
 !For computing error from input fields:
-double precision:: h1i(ng,nt),h2i(ng,nt)
+double precision:: h1i(numLatGridPts,numLongGridPts),h2i(numLatGridPts,numLongGridPts)
 
  !Mode values of h1 & h2:
-double precision:: h1m(ng,nt),h2m(ng,nt)
+double precision:: h1m(numLatGridPts,numLongGridPts),h2m(numLatGridPts,numLongGridPts)
 
  !Other:
-double precision:: h1o(ng,nt),h2o(ng,nt)
-double precision:: fs1(ng,nt),fs2(ng,nt)
+double precision:: h1o(numLatGridPts,numLongGridPts),h2o(numLatGridPts,numLongGridPts)
+double precision:: fs1(numLatGridPts,numLongGridPts),fs2(numLatGridPts,numLongGridPts)
 
-double precision:: wka(ng,nt),wkb(ng,nt)
-double precision:: rhs(ng)
+double precision:: wka(numLatGridPts,numLongGridPts),wkb(numLatGridPts,numLongGridPts)
+double precision:: rhs(numLatGridPts)
 double precision:: t,hnorm,avg
 double precision:: wgt,wgtc
 integer:: i,m,iopt
@@ -104,22 +104,22 @@ endif
  !Otherwise, we start from the actual solution.
 
  !Compute fixed parts of the source terms needed to invert h:
-do i=1,nt
+do i=1,numLongGridPts
   fs1(:,i)=g1(:,i)+bet*u1(:,i)-cof*z1(:,i)
   fs2(:,i)=g2(:,i)+bet*u2(:,i)-cof*z2(:,i)
 enddo
 
  !Convert to semi-spectral space:
-call forfft(ng,nt,fs1,trig,factors)
-call forfft(ng,nt,fs2,trig,factors)
+call forfft(numLatGridPts,numLongGridPts,fs1,trig,factors)
+call forfft(numLatGridPts,numLongGridPts,fs2,trig,factors)
 
  !Remove global mean values:
 rhs=fs1(:,1)*clat
-avg=(f1112*(rhs(1)+rhs(ng))+sum(rhs(2:ngm1)))*rsumi
+avg=(f1112*(rhs(1)+rhs(numLatGridPts))+sum(rhs(2:ngm1)))*rsumi
 fs1(:,1)=fs1(:,1)-avg
 
 rhs=fs2(:,1)*clat
-avg=(f1112*(rhs(1)+rhs(ng))+sum(rhs(2:ngm1)))*rsumi
+avg=(f1112*(rhs(1)+rhs(numLatGridPts))+sum(rhs(2:ngm1)))*rsumi
 fs2(:,1)=fs2(:,1)-avg
 
 !>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -131,11 +131,11 @@ do while (hnorm > tole)
   h2o=h2
 
    !Convert h1 & h2 to semi-spectral space:
-  call forfft(ng,nt,h1,trig,factors)
-  call forfft(ng,nt,h2,trig,factors)
+  call forfft(numLatGridPts,numLongGridPts,h1,trig,factors)
+  call forfft(numLatGridPts,numLongGridPts,h2,trig,factors)
 
    !Complete calculation of the source terms:
-  do m=1,nt
+  do m=1,numLongGridPts
     h1(:,m)=fs1(:,m)+fsq*h1(:,m)
     h2(:,m)=fs2(:,m)+fsq*h2(:,m)
   enddo
@@ -158,9 +158,9 @@ do while (hnorm > tole)
 
    !Return h1 & h2 to layers as semi-spectral arrays, then physical ones:
   h1=h1m*vt11+h2m*vt12
-  call revfft(ng,nt,h1,trig,factors) 
+  call revfft(numLatGridPts,numLongGridPts,h1,trig,factors) 
   h2=h1m*vt21+h2m*vt22
-  call revfft(ng,nt,h2,trig,factors) 
+  call revfft(numLatGridPts,numLongGridPts,h2,trig,factors) 
 
    !Compute relative rms error:
   wka=csq1*(h1-h1o)**2+mubar*csq2*(h2-h2o)**2

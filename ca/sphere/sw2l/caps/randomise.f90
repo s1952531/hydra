@@ -7,7 +7,7 @@ module randomise
 ! The random field ff is obtained on a latitude-longitude grid using:
 !       call generate_random_field(ff, fmax, ordbeg, ordend)
 ! where fmax is the maximum value of |ff|, while ff is a double precision
-! array dimensioned ff(ng,nt).
+! array dimensioned ff(numLatGridPts,numLongGridPts).
 
 ! Adapted from force.f90 by D. G. Dritschel, St Andrews UK, 24 October 2026
 !===========================================================================
@@ -31,7 +31,7 @@ subroutine generate_random_field(ff, fmax, ordbeg, ordend)
 implicit none
 
  !Passed variables:
-double precision:: ff(ng,nt), fmax
+double precision:: ff(numLatGridPts,numLongGridPts), fmax
 integer:: ordbeg, ordend
 
  !Local variable:
@@ -54,14 +54,14 @@ subroutine genff(ff, fmax, ordbeg, ordend, nsph)
 implicit none
 
  !Passed variables:
-double precision:: ff(ng,nt), fmax
+double precision:: ff(numLatGridPts,numLongGridPts), fmax
 integer:: ordbeg, ordend, nsph
 
  !Local variables:
 double precision:: norm(ordbeg:ordend)
-double precision:: p(ng), poly(ng,nsph), wave(nsph)
-double precision:: sinphi(ng), cosphi(ng), lambda(nt)
-double precision:: wka(ng,nt), cosfac(nt)
+double precision:: p(numLatGridPts), poly(numLatGridPts,nsph), wave(nsph)
+double precision:: sinphi(numLatGridPts), cosphi(numLatGridPts), lambda(numLongGridPts)
+double precision:: wka(numLatGridPts,numLongGridPts), cosfac(numLongGridPts)
 double precision:: kbi, wrat, theta, sfac, pfac
 integer, dimension(:), allocatable :: seed
 integer:: i, j, k, m, n
@@ -92,7 +92,7 @@ endif
 
 !------------------------------------------------------------------
  !Define half-grid values of sinphi = sin(latitude):
-do j = 1, ng
+do j = 1, numLatGridPts
   sinphi(j) = sin(dl*(dble(j)-0.5d0)-hpi)
 enddo
 
@@ -100,15 +100,15 @@ enddo
 cosphi = sqrt(1.d0-sinphi**2)
 
  !Define longitudes:
-do i = 1, nt
+do i = 1, numLongGridPts
   lambda(i) = dl*dble(i-1)-pi
 enddo
 
  !Initialise random number generator:
 call random_seed(size = k)
 allocate(seed(1:k))
-seed(:) = iseed
-do i = 1, iseed
+seed(:) = rngSeed
+do i = 1, rngSeed
   call random_seed(put = seed)
 enddo
 
@@ -122,7 +122,7 @@ do n = ordbeg, ordend
    !m = 0; include a factor of 1/2 (usual cosine series weight):
   k = k+1                         ! Index to store the polynomials
   wave(k) = 0.d0                  ! Stores azimuthal wavenumber
-  call generate_spherical(sinphi,ng,n,0,p)
+  call generate_spherical(sinphi,numLatGridPts,n,0,p)
    !p = normalised Y_n^0 without the azimuthal dependence
   poly(:,k) = 0.5d0*pfac*p        ! Stores re-scaled polynomial
 
@@ -130,7 +130,7 @@ do n = ordbeg, ordend
   do m = 1, n
     k = k+1
     wave(k) = dble(m)
-    call generate_spherical(sinphi,ng,n,m,p)
+    call generate_spherical(sinphi,numLatGridPts,n,m,p)
      !p = normalised Y_n^m without the azimuthal dependence
     poly(:,k) = pfac*p
   enddo
@@ -149,7 +149,7 @@ do k = 1, nsph
   cosfac = cos(wave(k)*lambda+theta)
 
    !Sum poly*cosfac into ff:
-  do i = 1,nt
+  do i = 1,numLongGridPts
      ff(:,i) = ff(:,i)+poly(:,k)*cosfac(i)
   enddo
 enddo

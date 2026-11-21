@@ -74,7 +74,7 @@ subroutine initialise
 implicit none
 
 ! Local variables:
-double precision:: qt(ng,nt)
+double precision:: qTot(numLatGridPts,numLongGridPts) 
 integer:: i, iz
 
 !----------------------------------------------------------------------
@@ -88,22 +88,22 @@ call init_contours
  !If baroclinic PV forcing is present, allocate memory and generate
  !its initial form:
 if (forcing) then
-  allocate(fq(ng,nt))
-  call generate_forcing(fq, fqrms)
+  allocate(qForcing(numLatGridPts,numLongGridPts))
+  call generate_forcing(qForcing, rmsPvForcing)
 endif
 
  !If fixed topography is present, allocate memory and read in its form:
-if (topogr) then
-  allocate(bb(ng,nt), tsds(ng,nt), tsgs(ng,nt))   
+if (topoFlag) then
+  allocate(botTopo(numLatGridPts,numLongGridPts), specDeltaTopoSrc(numLatGridPts,numLongGridPts), specGammaTopoSrc(numLatGridPts,numLongGridPts))   
   open(11,file = 'bb_init.r8',form = 'unformatted', &
         access = 'direct',status = 'old',recl = 2*nbytes)
-  read(11,rec=1) t, bb
+  read(11,rec=1) t, botTopo
   close(11)
   !Store its contribution to the gamma and delta tendencies:
-  tsgs = csq1*bb
-  call forfft(ng, nt, tsgs, trig, factors)
-  call laplace(tsgs, tsds)
-  call revfft(ng, nt, tsds, trig, factors)
+  specGammaTopoSrc = csq1*botTopo
+  call forfft(numLatGridPts, numLongGridPts, specGammaTopoSrc, trig, factors)
+  call laplace(specGammaTopoSrc, specDeltaTopoSrc)
+  call revfft(numLatGridPts, numLongGridPts, specDeltaTopoSrc, trig, factors)
 endif
 
 !----------------------------------------------------------------------
@@ -111,50 +111,50 @@ endif
  !vorticity and h is the dimensionless height anomaly in each layer:
 open(11, file = 'qq_init.r8', form = 'unformatted', &
       access = 'direct', status = 'old', recl = 2*nbytes)
-read(11,rec=1) t, qs1
-read(11,rec=2) t, qs2
+read(11,rec=1) t, qSpec1
+read(11,rec=2) t, qSpec2
 close(11)
 
  !Subtract planetary vorticity (cof), de-alias and convert to
- !semi-spectral space as qs1 & qs2:
-do i = 1,nt
-  qs1(:,i) = qs1(:,i)-cof
-  qs2(:,i) = qs2(:,i)-cof
+ !semi-spectral space as qSpec1 & qSpec2:
+do i = 1,numLongGridPts
+  qSpec1(:,i) = qSpec1(:,i)-cof
+  qSpec2(:,i) = qSpec2(:,i)-cof
 enddo
-call dealias(qs1)
-call dealias(qs2)
+call dealias(qSpec1)
+call dealias(qSpec2)
 
 !----------------------------------------------------------------------
  !Read in gridded divergence, ds:
 open(11, file = 'dd_init.r8', form = 'unformatted', &
       access = 'direct', status = 'old', recl = 2*nbytes)
-read(11,rec=1) t, ds1
-read(11,rec=2) t, ds2
+read(11,rec=1) t, deltaSpec1
+read(11,rec=2) t, deltaSpec2
 close(11)
 
  !Ensure domain average is zero:
-call zeroavg(ds1)
-call zeroavg(ds2)
+call zeroavg(deltaSpec1)
+call zeroavg(deltaSpec2)
 
  !De-alias and convert to semi-spectral space as ds:
-call dealias(ds1)
-call dealias(ds2)
+call dealias(deltaSpec1)
+call dealias(deltaSpec2)
 
 !----------------------------------------------------------------------
  !Read in gridded acceleration divergence, gs:
 open(11, file = 'gg_init.r8', form = 'unformatted', &
       access = 'direct', status = 'old', recl = 2*nbytes)
-read(11,rec=1) t, gs1
-read(11,rec=2) t, gs2
+read(11,rec=1) t, gammaSpec1
+read(11,rec=2) t, gammaSpec2
 close(11)
 
  !Ensure domain average is zero:
-call zeroavg(gs1)
-call zeroavg(gs2)
+call zeroavg(gammaSpec1)
+call zeroavg(gammaSpec2)
 
  !De-alias and convert to semi-spectral space as gs:
-call dealias(gs1)
-call dealias(gs2)
+call dealias(gammaSpec1)
+call dealias(gammaSpec2)
 
 !----------------------------------------------------------------------
  !Obtain initial dimensionless height anomaly (h), velocity (u,v),
@@ -168,27 +168,27 @@ v1 = zero
 v2 = zero
  !These quantities need initialisation before the first call in order
  !to measure convergence in subroutine main_invert:
-call main_invert(qs1,qs2,ds1,ds2,gs1,gs2,h1,h2,u1,u2,v1,v2,q1,q2,z1,z2)
- !Note: qsj, dsj & gsj (j = 1 & 2) are in semi-spectral space while 
- !      hj, uj, vj, qj and zj are in physical space.
+call main_invert(qSpec1,qSpec2,deltaSpec1,deltaSpec2,gammaSpec1,gammaSpec2,h1,h2,u1,u2,v1,v2,qAnom1,qAnom2,z1,z2)
+ !Note: qSpecj, deltaSpecj & gammaSpecj (j = 1 & 2) are in semi-spectral space while 
+ !      hj, uj, vj, qAnomj and zj are in physical space.
 
- !Define qr to build initial PV contours in recontour below:
-do i = 1,nt
-  qr(:,i,1) = q1(:,i)+cof
-  qr(:,i,2) = q2(:,i)+cof
+ !Define qResid to build initial PV contours in recontour below:
+do i = 1,numLongGridPts
+  qResid(:,i,1) = qAnom1(:,i)+cof
+  qResid(:,i,2) = qAnom2(:,i)+cof
 enddo
 
- !Obtain unique polar values of qr for use in recontouring:
+ !Obtain unique polar values of qResid for use in recontouring:
 do iz = 1,2
-  qsp(iz) = sum(qr( 1,:,iz))/dble(nt)
-  qnp(iz) = sum(qr(ng,:,iz))/dble(nt)
+  qSPole(iz) = sum(qResid( 1,:,iz))/dble(numLongGridPts)
+  qNPole(iz) = sum(qResid(numLatGridPts,:,iz))/dble(numLongGridPts)
 enddo
  !These are averages of points half a latitude spacing from the poles
 
- !Initially there are no contours (they are built from the total PV qr):
-n = 0
-npt = 0
-jl2 = 0 !Used in congen initially; must be zero to start
+ !Initially there are no contours (they are built from the total PV qResid):
+numContoursTot = 0
+numNodesTot = 0
+layerLastContIdx = 0 !Used in congen initially; must be zero to start
  !Note, the PV jump dq is fixed in constants.f90
 
 !--------------------------------------------------------------------
@@ -205,9 +205,9 @@ open(53, file = 'spectra/gspec.asc', status = 'replace')
 open(54, file = 'spectra/hspec.asc', status = 'replace')
 
  !Open files for coarse (inversion) grid saves:
-open(31, file = 'evolution/q1.r4', form = 'unformatted', access = 'direct', &
+open(31, file = 'evolution/qAnom1.r4', form = 'unformatted', access = 'direct', &
       status = 'replace', recl = nbytes)
-open(41, file = 'evolution/q2.r4', form = 'unformatted', access = 'direct', &
+open(41, file = 'evolution/qAnom2.r4', form = 'unformatted', access = 'direct', &
       status = 'replace', recl = nbytes)
 open(32, file = 'evolution/d1.r4', form = 'unformatted', access = 'direct', &
       status = 'replace', recl = nbytes)
@@ -232,9 +232,9 @@ open(83, file = 'contours/qqresi.r4', form = 'unformatted', &
        access = 'direct', status = 'replace', recl = nbytes)
 
  !Define number of time steps between grid and contour saves:
-ngsave = nint(tgsave/dt)
-ncsave = nint(tcsave/dt)
- !*** WARNING: tgsave and tcsave should be an integer multiple of dt
+gridSaveInterval = nint(tGridSaveInterval/dt)
+contourSaveInterval = nint(tContourSaveInterval/dt)
+ !*** WARNING: tGridSaveInterval and tContourSaveInterval should be an integer multiple of dt
 
 return
 end subroutine initialise
@@ -265,7 +265,7 @@ implicit none
  !Obtain new PV contours:
 write(*,*) 'Recontouring PV ...'
 call recontour
-write(*,'(a,i8,a,i9)') '   n = ',n,'   npt = ',npt
+write(*,'(a,i8,a,i9)') '   numContoursTot = ',numContoursTot,'   numNodesTot = ',numNodesTot
 
 return 
 end subroutine recont

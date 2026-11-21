@@ -10,7 +10,7 @@ use constants
 ! Declarations:
 implicit none
 
-double precision:: bb(ng,nt), amp, wid, fac, lon, lat
+double precision:: botTopo(numLatGridPts,numLongGridPts), amp, wid, fac, lon, lat
 double precision:: phic, lamc, xc, yc, zc, x, y, z, zz, arg
 integer:: i, j
 
@@ -37,11 +37,11 @@ xc = cos(phic)*cos(lamc)
 yc = cos(phic)*sin(lamc)
 zc = sin(phic)
 
-! Define scaled topography bb:
+! Define scaled topography botTopo:
 fac = four/wid**2
-do i = 1,nt
+do i = 1,numLongGridPts
    lon = dl*dble(i-1)-pi
-   do j = 1,ng
+   do j = 1,numLatGridPts
       lat = (dble(j)-f12)*dl-hpi
       x = cos(phi)*cos(lam)
       y = cos(phi)*sin(lam)
@@ -50,9 +50,9 @@ do i = 1,nt
       arg = fac*(one-zz)/(one+zz)
       ! Avoid possible underflow:
       if (arg < 40.d0) then
-         bb(j,i) = amp*exp(-arg)
+         botTopo(j,i) = amp*exp(-arg)
       else
-         bb(j,i) = zero
+         botTopo(j,i) = zero
       endif
    enddo
 enddo
@@ -60,7 +60,7 @@ enddo
 !Write data:
 open(11,file = 'bb_init.r8',form = 'unformatted', &
      access = 'direct',status = 'replace',recl = 2*nbytes)
-write(11,rec=1) zero,bb
+write(11,rec=1) zero,botTopo
 close(11)
 
 end program axisym_top

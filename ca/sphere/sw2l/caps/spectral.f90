@@ -11,64 +11,64 @@ implicit none
 
  !FFT commons:
 integer:: factors(5)
-double precision:: trig(2*nt),rk(nt),wzon(nt)
+double precision:: trig(2*numLongGridPts),rk(numLongGridPts),wzon(numLongGridPts)
 
  !Filters and damping operators:
-double precision:: d2lon(ng,nt),diss(ng,nt),rdis(ng,nt)
-double precision:: plon(ng,nt),glon(ng,nt)
-double precision:: flonlo(ng,nt),flonhi(ng,nt)
-double precision:: flatlo(nt),flathi(nt),hyplat(nt)
-double precision:: plat(nt),glat(nt)
-double precision:: alm(ng)
+double precision:: d2lon(numLatGridPts,numLongGridPts),diss(numLatGridPts,numLongGridPts),rdis(numLatGridPts,numLongGridPts)
+double precision:: plon(numLatGridPts,numLongGridPts),glon(numLatGridPts,numLongGridPts)
+double precision:: flonlo(numLatGridPts,numLongGridPts),flonhi(numLatGridPts,numLongGridPts)
+double precision:: flatlo(numLongGridPts),flathi(numLongGridPts),hyplat(numLongGridPts)
+double precision:: plat(numLongGridPts),glat(numLongGridPts)
+double precision:: alm(numLatGridPts)
 
  !Tridiagonal commons:
 
  !For taking a derivative in latitude along great circles (periodic):
-double precision:: etd1(nt),htd1(nt),ptd1(nt),apd1,denod1
-double precision:: etd2(nt),htd2(nt),ptd2(nt),apd2,denod2
+double precision:: etd1(numLongGridPts),htd1(numLongGridPts),ptd1(numLongGridPts),apd1,denod1
+double precision:: etd2(numLongGridPts),htd2(numLongGridPts),ptd2(numLongGridPts),apd2,denod2
 double precision:: psig(2),amla
-integer:: ksig(nt)
+integer:: ksig(numLongGridPts)
 
  !For inverting the Laplacian:
-double precision:: cmla(ng,nt),dmla(ng)
-double precision:: ala0(ng,nt),bla0(ng,nt)
-double precision:: cla0(ng,nt),dla0(ng,nt)
-double precision:: ela1(ng,nt),ela2(ng,nt)
-double precision:: fla1(ng,nt),fla2(ng,nt)
-double precision:: etd0(ng),htd0(ng)
+double precision:: cmla(numLatGridPts,numLongGridPts),dmla(numLatGridPts)
+double precision:: ala0(numLatGridPts,numLongGridPts),bla0(numLatGridPts,numLongGridPts)
+double precision:: cla0(numLatGridPts,numLongGridPts),dla0(numLatGridPts,numLongGridPts)
+double precision:: ela1(numLatGridPts,numLongGridPts),ela2(numLatGridPts,numLongGridPts)
+double precision:: fla1(numLatGridPts,numLongGridPts),fla2(numLatGridPts,numLongGridPts)
+double precision:: etd0(numLatGridPts),htd0(numLatGridPts)
 double precision:: rsumi,dsumi,dl24
 
  !For inverting the Helmholtzian (mode 1):
-double precision:: cm1he(ng,nt),dm1he(ng)
-double precision:: a1he0(ng,nt),b1he0(ng,nt)
-double precision:: c1he0(ng,nt),d1he0(ng,nt)
-double precision:: e1he1(ng,nt),e1he2(ng,nt)
-double precision:: f1he1(ng,nt),f1he2(ng,nt)
+double precision:: cm1he(numLatGridPts,numLongGridPts),dm1he(numLatGridPts)
+double precision:: a1he0(numLatGridPts,numLongGridPts),b1he0(numLatGridPts,numLongGridPts)
+double precision:: c1he0(numLatGridPts,numLongGridPts),d1he0(numLatGridPts,numLongGridPts)
+double precision:: e1he1(numLatGridPts,numLongGridPts),e1he2(numLatGridPts,numLongGridPts)
+double precision:: f1he1(numLatGridPts,numLongGridPts),f1he2(numLatGridPts,numLongGridPts)
 
  !For inverting the Helmholtzian (mode 2):
-double precision:: cm2he(ng,nt),dm2he(ng)
-double precision:: a2he0(ng,nt),b2he0(ng,nt)
-double precision:: c2he0(ng,nt),d2he0(ng,nt)
-double precision:: e2he1(ng,nt),e2he2(ng,nt)
-double precision:: f2he1(ng,nt),f2he2(ng,nt)
+double precision:: cm2he(numLatGridPts,numLongGridPts),dm2he(numLatGridPts)
+double precision:: a2he0(numLatGridPts,numLongGridPts),b2he0(numLatGridPts,numLongGridPts)
+double precision:: c2he0(numLatGridPts,numLongGridPts),d2he0(numLatGridPts,numLongGridPts)
+double precision:: e2he1(numLatGridPts,numLongGridPts),e2he2(numLatGridPts,numLongGridPts)
+double precision:: f2he1(numLatGridPts,numLongGridPts),f2he2(numLatGridPts,numLongGridPts)
 
  !For semi-implicit evolution of delta and gamma (mode 1):
-double precision:: cm1si(ng,nt),dm1si(ng)
-double precision:: a1si0(ng,nt),b1si0(ng,nt)
-double precision:: c1si0(ng,nt),d1si0(ng,nt)
-double precision:: e1si1(ng,nt),e1si2(ng,nt)
-double precision:: f1si1(ng,nt),f1si2(ng,nt)
+double precision:: cm1si(numLatGridPts,numLongGridPts),dm1si(numLatGridPts)
+double precision:: a1si0(numLatGridPts,numLongGridPts),b1si0(numLatGridPts,numLongGridPts)
+double precision:: c1si0(numLatGridPts,numLongGridPts),d1si0(numLatGridPts,numLongGridPts)
+double precision:: e1si1(numLatGridPts,numLongGridPts),e1si2(numLatGridPts,numLongGridPts)
+double precision:: f1si1(numLatGridPts,numLongGridPts),f1si2(numLatGridPts,numLongGridPts)
 
  !For semi-implicit evolution of delta and gamma (mode 2):
-double precision:: cm2si(ng,nt),dm2si(ng)
-double precision:: a2si0(ng,nt),b2si0(ng,nt)
-double precision:: c2si0(ng,nt),d2si0(ng,nt)
-double precision:: e2si1(ng,nt),e2si2(ng,nt)
-double precision:: f2si1(ng,nt),f2si2(ng,nt)
+double precision:: cm2si(numLatGridPts,numLongGridPts),dm2si(numLatGridPts)
+double precision:: a2si0(numLatGridPts,numLongGridPts),b2si0(numLatGridPts,numLongGridPts)
+double precision:: c2si0(numLatGridPts,numLongGridPts),d2si0(numLatGridPts,numLongGridPts)
+double precision:: e2si1(numLatGridPts,numLongGridPts),e2si2(numLatGridPts,numLongGridPts)
+double precision:: f2si1(numLatGridPts,numLongGridPts),f2si2(numLatGridPts,numLongGridPts)
 
  !Other arrays:
-double precision:: tlat(ng),slat(ng),clat(ng),clati(ng)
-double precision:: cof(ng),bet(ng),fsq(ng),dfb(ng)
+double precision:: tanLat(numLatGridPts),sinLat(numLatGridPts),cosLat(numLatGridPts),secantLat(numLatGridPts)
+double precision:: cof(numLatGridPts),beta(numLatGridPts),fsq(numLatGridPts),dfb(numLatGridPts)
 
 ! Weights for evolving the PV forcing (if used):
 double precision:: wold,wnew
@@ -83,9 +83,9 @@ subroutine init_spectral
 implicit none
 
  !Local variables:
-double precision:: norm(nbeg:nend),kbi,wrat
-double precision:: alpha(ng),sigm(2)
-double precision:: rlat,wm,wmi,fac,rkc,rkci,f283,weff,dfac,rsum
+double precision:: norm(minSpherHarmDegree:maxSpherHarmDegree),kbi,wrat
+double precision:: alpha(numLatGridPts),sigm(2)
+double precision:: radianLat,wm,wmi,fac,rkc,rkci,f283,weff,dfac,rsum
 double precision:: a0d1,a0d2,pc12,pc24,a0,b0,c0,d0,deti
 double precision:: apla,cpla,dpla,sm,pm
 double precision:: cpsi,dpsi,cphe,dphe
@@ -94,53 +94,53 @@ integer:: i,j,k,m,order
 
 !----------------------------------------------------------
  !Latitude functions:
-do j=1,ng
-  rlat=(dble(j)-f12)*dl-hpi
-  slat(j)=sin(rlat)
-  clat(j)=cos(rlat)
+do j=1,numLatGridPts
+  radianLat=(dble(j)-f12)*dl-hpi
+  sinLat(j)=sin(radianLat)
+  cosLat(j)=cos(radianLat)
 enddo
 
-clati=one/clat
-tlat=slat/clat
+secantLat=one/cosLat
+tanLat=sinLat/cosLat
  !Coriolis frequency (f):
-cof=fpole*slat
+cof=fpole*sinLat
 fsq=cof**2
- !beta = df/dlat:
-bet=fpole*clat
+ !beta = df/dlat: = d(fpole*sinLat)/dlat = fpole*d(sinLat)/dlat = fpole*cosLat
+beta=fpole*cosLat
  !2*f*beta needed for acceleration divergence tendency:
-dfb=two*cof*bet
+dfb=two*cof*beta
 
 !-------------------------------------------
  !Initialise the FFT module:
-call initfft(nt,factors,trig)
+call initfft(numLongGridPts,factors,trig)
  !Initialise the spectral derivative module:
-call init_deriv(nt,twopi,rk)
+call init_deriv(numLongGridPts,twoPi,rk)
 
  !Define longitudinal wavenumbers:
 wzon(1)=zero
-do m=2,ng
+do m=2,numLatGridPts
   wm=rk(2*(m-1))
   wzon(     m)=wm
   wzon(ntp2-m)=wm
 enddo
-wzon(ngp1)=rk(nt)
-wmi=one/wzon(ng+1)
+wzon(ngp1)=rk(numLongGridPts)
+wmi=one/wzon(numLatGridPts+1)
 
  !For saving longitudinal spectra (excluding global average):
-do m=1,ng
+do m=1,numLatGridPts
   alm(m)=log10(wzon(m+1))
 enddo
 
  !m^2/r^2 factor which appears in Laplace's operator:
-do m=1,nt
+do m=1,numLongGridPts
   fac=wzon(m)**2
-  d2lon(:,m)=fac*clati**2
+  d2lon(:,m)=fac*secantLat**2
 enddo
 
 !----------------------------------------------------------------
  !Define 2nd-order Butterworth filter (used in subroutines lopass
  !and hipass) and include partial de-aliasing:
-rkc=f13*dble(ng)
+rkc=f13*dble(numLatGridPts)
  !rkc: filter wavenumber
 rkci=one/rkc
 f283=28.d0/3.d0
@@ -150,9 +150,9 @@ flatlo=one/(one+(rkci*wzon)**4)
 flathi=(one-flatlo)*f12*(one-erf(16.d0*wzon*wmi-f283))
 
  !Longitude filters:
-do m=1,nt
-  do j=1,ng
-    weff=wzon(m)*clati(j)
+do m=1,numLongGridPts
+  do j=1,numLatGridPts
+    weff=wzon(m)*secantLat(j)
     flonlo(j,m)=one/(one+(rkci*weff)**4)
     flonhi(j,m)=(one-flonlo(j,m))*f12*(one-erf(16.d0*weff*wmi-f283))
   enddo
@@ -161,15 +161,15 @@ enddo
 !--------------------------------------------------------------
  !Latitudinal hyperviscous damping used on residual PV (qd),
  !divergence (ds), and acceleration divergence (gs):
-dfac=drate*fpole
+dfac=hyperviscDampRate*fpole
 fac=dt*dfac
-hyplat=one/(one+fac*(wmi*wzon)**(2*nnu))
+hyplat=one/(one+fac*(wmi*wzon)**(2*hyperviscPower))
 
  !Longitudinal hyperviscous damping rate on wavenumber m:
-do m=1,nt
+do m=1,numLongGridPts
   fac=wmi*wzon(m)
-  do j=1,ng
-    diss(j,m)=dfac*(fac*clati(j))**(2*nnu)
+  do j=1,numLatGridPts
+    diss(j,m)=dfac*(fac*secantLat(j))**(2*hyperviscPower)
   enddo
 enddo
 rdis=dt2i+diss
@@ -182,30 +182,30 @@ if (forcing) then
    !norm(n) = sqrt(S(n)/(2*n+1)) where S(n) is the spectrum and
    !n is the order.
 
-  if (nbeg > 1) then
+  if (minSpherHarmDegree > 1) then
      !Here we choose a normalisation corresponding to a flat spectrum
      !S(n) = 1 (usually narrow-band), where n = order:
-    do order = nbeg, nend
+    do order = minSpherHarmDegree, maxSpherHarmDegree
       norm(order) = one/sqrt(dble(1+2*order))
     enddo
   else
      !We consider the spectrum S(n) = wrat*exp(-wrat) where 
-     !wrat = (n/kb)^3 and kb = 4*nend/9:
-    kbi = 2.25d0/dble(nend)
-    do order = nbeg, nend          !Note nbeg = 1 here
+     !wrat = (n/kb)^3 and kb = 4*maxSpherHarmDegree/9:
+    kbi = 2.25d0/dble(maxSpherHarmDegree)
+    do order = minSpherHarmDegree, maxSpherHarmDegree          !Note minSpherHarmDegree = 1 here
       wrat = (kbi*dble(order))**3
       norm(order) = wrat*exp(-wrat)/sqrt(dble(1+2*order))
     enddo
-     !Note, nend is chosen so that norm < 10^{-4} when n = nend+1.
+     !Note, maxSpherHarmDegree is chosen so that norm < 10^{-4} when n = maxSpherHarmDegree+1.
      !That is, 2.25 factor in the definition of kbi ensures this, or
-     !equivalently the relation nend = 9*kb/4 ensures this.
+     !equivalently the relation maxSpherHarmDegree = 9*kb/4 ensures this.
   endif
 
    !Initialise forcing module (and spherical module):
   call init_forcing(norm)
 
    !Weights needed to have time-correlated forcing:
-  wold=one-dt/tfq
+  wold=one-dt/tPvForcingDecorrelation
   wnew=sqrt(one-wold**2)
 
 endif
@@ -222,7 +222,7 @@ htd1(1)=one/a0d1
 ptd1(1)=-apd1*htd1(1)
 etd1(1)=ptd1(1)
 
-do j=2,nt
+do j=2,numLongGridPts
   htd1(j)=one/(a0d1+apd1*etd1(j-1))
   ptd1(j)=-apd1*ptd1(j-1)*htd1(j)
   etd1(j)=-apd1*htd1(j)
@@ -234,7 +234,7 @@ do j=ntm2,1,-1
   ptd1(j)=etd1(j)*ptd1(j+1)+ptd1(j)
 enddo
 
-denod1=one/(one-etd1(nt)*ptd1(1)-ptd1(nt))
+denod1=one/(one-etd1(numLongGridPts)*ptd1(1)-ptd1(numLongGridPts))
 
 !----------------------------
  !Second latitude derivative:
@@ -245,7 +245,7 @@ htd2(1)=one/a0d2
 ptd2(1)=-apd2*htd2(1)
 etd2(1)=ptd2(1)
 
-do j=2,nt
+do j=2,numLongGridPts
   htd2(j)=one/(a0d2+apd2*etd2(j-1))
   ptd2(j)=-apd2*ptd2(j-1)*htd2(j)
   etd2(j)=-apd2*htd2(j)
@@ -257,13 +257,13 @@ do j=ntm2,1,-1
   ptd2(j)=etd2(j)*ptd2(j+1)+ptd2(j)
 enddo
 
-denod2=one/(one-etd2(nt)*ptd2(1)-ptd2(nt))
+denod2=one/(one-etd2(numLongGridPts)*ptd2(1)-ptd2(numLongGridPts))
 
 !--------------------------------------------------------
  !Sign changes for longitudinal wavenumbers in inversion:
 
  !Odd physical wavenumbers (1, 3, ...):
-do m=2,nt,2
+do m=2,numLongGridPts,2
   ksig(m)=1
 enddo
 sigm(1)=-one
@@ -296,15 +296,15 @@ do j=2,ngm1
   etd0(j)=-f14*htd0(j)
 enddo
 
-htd0(ng)=one/(f74+f14*etd0(ngm1))
+htd0(numLatGridPts)=one/(f74+f14*etd0(ngm1))
 
-rsum=f1112*(clat(1)+clat(ng))+sum(clat(2:ngm1))
+rsum=f1112*(cosLat(1)+cosLat(numLatGridPts))+sum(cosLat(2:ngm1))
  !Note, rsum = 1/sin(dl/2) - sin(dl/2)/6 exactly.
 rsumi=one/rsum
-dsumi=rsumi/dble(nt)
+dsumi=rsumi/dble(numLongGridPts)
 
  !azonal part:
-do m=2,nt
+do m=2,numLongGridPts
   k=ksig(m)
   sm=sigm(k)
   pm=psig(k)
@@ -314,7 +314,7 @@ do m=2,nt
   a0=amla*sm
   b0=0.8d0-0.2d0*sm
   c0=(sm-two)*pc12-pm*alpha(1)
-  d0=-pm*tlat(1)
+  d0=-pm*tanLat(1)
 
   deti=one/(a0*d0-b0*c0)
   ala0(1,m)=a0*deti
@@ -323,7 +323,7 @@ do m=2,nt
   dla0(1,m)=d0*deti
 
   cpla=pc12-0.1d0*alpha(2)
-  dpla=-0.1d0*tlat(2)
+  dpla=-0.1d0*tanLat(2)
   ela1(1,m)= cpla*bla0(1,m)- apla*dla0(1,m)
   ela2(1,m)= dpla*bla0(1,m)-0.2d0*dla0(1,m)
   fla1(1,m)= apla*cla0(1,m)- cpla*ala0(1,m)
@@ -332,9 +332,9 @@ do m=2,nt
   b0=0.8d0
   do j=2,ngm1
     c0=-pc24-alpha(j)
-    d0=-tlat(j)
+    d0=-tanLat(j)
     cmla(j,m)=pc12-0.1d0*alpha(j-1)
-    dmla(j)=-0.1d0*tlat(j-1)
+    dmla(j)=-0.1d0*tanLat(j-1)
 
     ala0(j,m)=   ela1(j-1,m)*amla     +fla1(j-1,m)*0.2d0
     bla0(j,m)=b0+ela2(j-1,m)*amla     +fla2(j-1,m)*0.2d0
@@ -347,7 +347,7 @@ do m=2,nt
     dla0(j,m)=dla0(j,m)*deti
 
     cpla=pc12-0.1d0*alpha(j+1)
-    dpla=-0.1d0*tlat(j+1)
+    dpla=-0.1d0*tanLat(j+1)
     ela1(j,m)= cpla*bla0(j,m)- apla*dla0(j,m)
     ela2(j,m)= dpla*bla0(j,m)-0.2d0*dla0(j,m)
     fla1(j,m)= apla*cla0(j,m)- cpla*ala0(j,m)
@@ -356,29 +356,29 @@ do m=2,nt
 
   a0=-amla*sm
   b0=0.8d0-0.2d0*sm
-  c0=(sm-two)*pc12-pm*alpha(ng)
-  d0=-pm*tlat(ng)
+  c0=(sm-two)*pc12-pm*alpha(numLatGridPts)
+  d0=-pm*tanLat(numLatGridPts)
 
-  cmla(ng,m)=pc12-0.1d0*alpha(ngm1)
-  dmla(ng)=-0.1d0*tlat(ngm1)
+  cmla(numLatGridPts,m)=pc12-0.1d0*alpha(ngm1)
+  dmla(numLatGridPts)=-0.1d0*tanLat(ngm1)
 
-  ala0(ng,m)=a0+ela1(ngm1,m)*amla      +fla1(ngm1,m)*0.2d0
-  bla0(ng,m)=b0+ela2(ngm1,m)*amla      +fla2(ngm1,m)*0.2d0
-  cla0(ng,m)=c0+ela1(ngm1,m)*cmla(ng,m)+fla1(ngm1,m)*dmla(ng)
-  dla0(ng,m)=d0+ela2(ngm1,m)*cmla(ng,m)+fla2(ngm1,m)*dmla(ng)
+  ala0(numLatGridPts,m)=a0+ela1(ngm1,m)*amla      +fla1(ngm1,m)*0.2d0
+  bla0(numLatGridPts,m)=b0+ela2(ngm1,m)*amla      +fla2(ngm1,m)*0.2d0
+  cla0(numLatGridPts,m)=c0+ela1(ngm1,m)*cmla(numLatGridPts,m)+fla1(ngm1,m)*dmla(numLatGridPts)
+  dla0(numLatGridPts,m)=d0+ela2(ngm1,m)*cmla(numLatGridPts,m)+fla2(ngm1,m)*dmla(numLatGridPts)
 
-  deti=one/(ala0(ng,m)*dla0(ng,m)-bla0(ng,m)*cla0(ng,m))
-  ala0(ng,m)=ala0(ng,m)*deti
-  bla0(ng,m)=bla0(ng,m)*deti
-  cla0(ng,m)=cla0(ng,m)*deti
-  dla0(ng,m)=dla0(ng,m)*deti
+  deti=one/(ala0(numLatGridPts,m)*dla0(numLatGridPts,m)-bla0(numLatGridPts,m)*cla0(numLatGridPts,m))
+  ala0(numLatGridPts,m)=ala0(numLatGridPts,m)*deti
+  bla0(numLatGridPts,m)=bla0(numLatGridPts,m)*deti
+  cla0(numLatGridPts,m)=cla0(numLatGridPts,m)*deti
+  dla0(numLatGridPts,m)=dla0(numLatGridPts,m)*deti
 enddo
 
 !-----------------------------------------------------------------------
  !Initialise tri-diagonal arrays for semi-implicit time-stepping of
  !divergence and acceleration divergence for *mode 1*
  !(include hyperviscous damping):
-do m=1,nt
+do m=1,numLongGridPts
   k=ksig(m)
   sm=sigm(k)
   pm=psig(k)
@@ -388,7 +388,7 @@ do m=1,nt
   a0=amla*sm
   b0=0.8d0-0.2d0*sm
   c0=(sm-two)*pc12-pm*alpha(1)
-  d0=-pm*tlat(1)
+  d0=-pm*tanLat(1)
 
   deti=one/(a0*d0-b0*c0)
   a1si0(1,m)=a0*deti
@@ -397,7 +397,7 @@ do m=1,nt
   d1si0(1,m)=d0*deti
 
   cpsi=pc12-0.1d0*alpha(2)
-  dpsi=-0.1d0*tlat(2)
+  dpsi=-0.1d0*tanLat(2)
   e1si1(1,m)= cpsi*b1si0(1,m)- apla*d1si0(1,m)
   e1si2(1,m)= dpsi*b1si0(1,m)-0.2d0*d1si0(1,m)
   f1si1(1,m)= apla*c1si0(1,m)- cpsi*a1si0(1,m)
@@ -406,9 +406,9 @@ do m=1,nt
   b0=0.8d0
   do j=2,ngm1
     c0=-pc24-alpha(j)
-    d0=-tlat(j)
+    d0=-tanLat(j)
     cm1si(j,m)=pc12-0.1d0*alpha(j-1)
-    dm1si(j)=-0.1d0*tlat(j-1)
+    dm1si(j)=-0.1d0*tanLat(j-1)
 
     a1si0(j,m)=   e1si1(j-1,m)*amla      +f1si1(j-1,m)*0.2d0
     b1si0(j,m)=b0+e1si2(j-1,m)*amla      +f1si2(j-1,m)*0.2d0
@@ -421,7 +421,7 @@ do m=1,nt
     d1si0(j,m)=d1si0(j,m)*deti
 
     cpsi=pc12-0.1d0*alpha(j+1)
-    dpsi=-0.1d0*tlat(j+1)
+    dpsi=-0.1d0*tanLat(j+1)
     e1si1(j,m)= cpsi*b1si0(j,m)- apla*d1si0(j,m)
     e1si2(j,m)= dpsi*b1si0(j,m)-0.2d0*d1si0(j,m)
     f1si1(j,m)= apla*c1si0(j,m)- cpsi*a1si0(j,m)
@@ -430,29 +430,29 @@ do m=1,nt
 
   a0=-amla*sm
   b0=0.8d0-0.2d0*sm
-  c0=(sm-two)*pc12-pm*alpha(ng)
-  d0=-pm*tlat(ng)
+  c0=(sm-two)*pc12-pm*alpha(numLatGridPts)
+  d0=-pm*tanLat(numLatGridPts)
 
-  cm1si(ng,m)=pc12-0.1d0*alpha(ngm1)
-  dm1si(ng)=-0.1d0*tlat(ngm1)
+  cm1si(numLatGridPts,m)=pc12-0.1d0*alpha(ngm1)
+  dm1si(numLatGridPts)=-0.1d0*tanLat(ngm1)
 
-  a1si0(ng,m)=a0+e1si1(ngm1,m)*amla       +f1si1(ngm1,m)*0.2d0
-  b1si0(ng,m)=b0+e1si2(ngm1,m)*amla       +f1si2(ngm1,m)*0.2d0
-  c1si0(ng,m)=c0+e1si1(ngm1,m)*cm1si(ng,m)+f1si1(ngm1,m)*dm1si(ng)
-  d1si0(ng,m)=d0+e1si2(ngm1,m)*cm1si(ng,m)+f1si2(ngm1,m)*dm1si(ng)
+  a1si0(numLatGridPts,m)=a0+e1si1(ngm1,m)*amla       +f1si1(ngm1,m)*0.2d0
+  b1si0(numLatGridPts,m)=b0+e1si2(ngm1,m)*amla       +f1si2(ngm1,m)*0.2d0
+  c1si0(numLatGridPts,m)=c0+e1si1(ngm1,m)*cm1si(numLatGridPts,m)+f1si1(ngm1,m)*dm1si(numLatGridPts)
+  d1si0(numLatGridPts,m)=d0+e1si2(ngm1,m)*cm1si(numLatGridPts,m)+f1si2(ngm1,m)*dm1si(numLatGridPts)
 
-  deti=one/(a1si0(ng,m)*d1si0(ng,m)-b1si0(ng,m)*c1si0(ng,m))
-  a1si0(ng,m)=a1si0(ng,m)*deti
-  b1si0(ng,m)=b1si0(ng,m)*deti
-  c1si0(ng,m)=c1si0(ng,m)*deti
-  d1si0(ng,m)=d1si0(ng,m)*deti
+  deti=one/(a1si0(numLatGridPts,m)*d1si0(numLatGridPts,m)-b1si0(numLatGridPts,m)*c1si0(numLatGridPts,m))
+  a1si0(numLatGridPts,m)=a1si0(numLatGridPts,m)*deti
+  b1si0(numLatGridPts,m)=b1si0(numLatGridPts,m)*deti
+  c1si0(numLatGridPts,m)=c1si0(numLatGridPts,m)*deti
+  d1si0(numLatGridPts,m)=d1si0(numLatGridPts,m)*deti
 enddo
 
 !-----------------------------------------------------------------------
  !Initialise tri-diagonal arrays for semi-implicit time-stepping of
  !divergence and acceleration divergence for *mode 2*
  !(include hyperviscous damping):
-do m=1,nt
+do m=1,numLongGridPts
   k=ksig(m)
   sm=sigm(k)
   pm=psig(k)
@@ -462,7 +462,7 @@ do m=1,nt
   a0=amla*sm
   b0=0.8d0-0.2d0*sm
   c0=(sm-two)*pc12-pm*alpha(1)
-  d0=-pm*tlat(1)
+  d0=-pm*tanLat(1)
 
   deti=one/(a0*d0-b0*c0)
   a2si0(1,m)=a0*deti
@@ -471,7 +471,7 @@ do m=1,nt
   d2si0(1,m)=d0*deti
 
   cpsi=pc12-0.1d0*alpha(2)
-  dpsi=-0.1d0*tlat(2)
+  dpsi=-0.1d0*tanLat(2)
   e2si1(1,m)= cpsi*b2si0(1,m)- apla*d2si0(1,m)
   e2si2(1,m)= dpsi*b2si0(1,m)-0.2d0*d2si0(1,m)
   f2si1(1,m)= apla*c2si0(1,m)- cpsi*a2si0(1,m)
@@ -480,9 +480,9 @@ do m=1,nt
   b0=0.8d0
   do j=2,ngm1
     c0=-pc24-alpha(j)
-    d0=-tlat(j)
+    d0=-tanLat(j)
     cm2si(j,m)=pc12-0.1d0*alpha(j-1)
-    dm2si(j)=-0.1d0*tlat(j-1)
+    dm2si(j)=-0.1d0*tanLat(j-1)
 
     a2si0(j,m)=   e2si1(j-1,m)*amla      +f2si1(j-1,m)*0.2d0
     b2si0(j,m)=b0+e2si2(j-1,m)*amla      +f2si2(j-1,m)*0.2d0
@@ -495,7 +495,7 @@ do m=1,nt
     d2si0(j,m)=d2si0(j,m)*deti
 
     cpsi=pc12-0.1d0*alpha(j+1)
-    dpsi=-0.1d0*tlat(j+1)
+    dpsi=-0.1d0*tanLat(j+1)
     e2si1(j,m)= cpsi*b2si0(j,m)- apla*d2si0(j,m)
     e2si2(j,m)= dpsi*b2si0(j,m)-0.2d0*d2si0(j,m)
     f2si1(j,m)= apla*c2si0(j,m)- cpsi*a2si0(j,m)
@@ -504,28 +504,28 @@ do m=1,nt
 
   a0=-amla*sm
   b0=0.8d0-0.2d0*sm
-  c0=(sm-two)*pc12-pm*alpha(ng)
-  d0=-pm*tlat(ng)
+  c0=(sm-two)*pc12-pm*alpha(numLatGridPts)
+  d0=-pm*tanLat(numLatGridPts)
 
-  cm2si(ng,m)=pc12-0.1d0*alpha(ngm1)
-  dm2si(ng)=-0.1d0*tlat(ngm1)
+  cm2si(numLatGridPts,m)=pc12-0.1d0*alpha(ngm1)
+  dm2si(numLatGridPts)=-0.1d0*tanLat(ngm1)
 
-  a2si0(ng,m)=a0+e2si1(ngm1,m)*amla       +f2si1(ngm1,m)*0.2d0
-  b2si0(ng,m)=b0+e2si2(ngm1,m)*amla       +f2si2(ngm1,m)*0.2d0
-  c2si0(ng,m)=c0+e2si1(ngm1,m)*cm2si(ng,m)+f2si1(ngm1,m)*dm2si(ng)
-  d2si0(ng,m)=d0+e2si2(ngm1,m)*cm2si(ng,m)+f2si2(ngm1,m)*dm2si(ng)
+  a2si0(numLatGridPts,m)=a0+e2si1(ngm1,m)*amla       +f2si1(ngm1,m)*0.2d0
+  b2si0(numLatGridPts,m)=b0+e2si2(ngm1,m)*amla       +f2si2(ngm1,m)*0.2d0
+  c2si0(numLatGridPts,m)=c0+e2si1(ngm1,m)*cm2si(numLatGridPts,m)+f2si1(ngm1,m)*dm2si(numLatGridPts)
+  d2si0(numLatGridPts,m)=d0+e2si2(ngm1,m)*cm2si(numLatGridPts,m)+f2si2(ngm1,m)*dm2si(numLatGridPts)
 
-  deti=one/(a2si0(ng,m)*d2si0(ng,m)-b2si0(ng,m)*c2si0(ng,m))
-  a2si0(ng,m)=a2si0(ng,m)*deti
-  b2si0(ng,m)=b2si0(ng,m)*deti
-  c2si0(ng,m)=c2si0(ng,m)*deti
-  d2si0(ng,m)=d2si0(ng,m)*deti
+  deti=one/(a2si0(numLatGridPts,m)*d2si0(numLatGridPts,m)-b2si0(numLatGridPts,m)*c2si0(numLatGridPts,m))
+  a2si0(numLatGridPts,m)=a2si0(numLatGridPts,m)*deti
+  b2si0(numLatGridPts,m)=b2si0(numLatGridPts,m)*deti
+  c2si0(numLatGridPts,m)=c2si0(numLatGridPts,m)*deti
+  d2si0(numLatGridPts,m)=d2si0(numLatGridPts,m)*deti
 enddo
 
 !--------------------------------------------------------------
  !Initialise tri-diagonal arrays needed to invert dimensionless
  !height anomaly for *mode 1*
-do m=1,nt
+do m=1,numLongGridPts
   k=ksig(m)
   sm=sigm(k)
   pm=psig(k)
@@ -535,7 +535,7 @@ do m=1,nt
   a0=amla*sm
   b0=0.8d0-0.2d0*sm
   c0=(sm-two)*pc12-pm*alpha(1)
-  d0=-pm*tlat(1)
+  d0=-pm*tanLat(1)
 
   deti=one/(a0*d0-b0*c0)
   a1he0(1,m)=a0*deti
@@ -544,7 +544,7 @@ do m=1,nt
   d1he0(1,m)=d0*deti
 
   cphe=pc12-0.1d0*alpha(2)
-  dphe=-0.1d0*tlat(2)
+  dphe=-0.1d0*tanLat(2)
   e1he1(1,m)= cphe*b1he0(1,m)- apla*d1he0(1,m)
   e1he2(1,m)= dphe*b1he0(1,m)-0.2d0*d1he0(1,m)
   f1he1(1,m)= apla*c1he0(1,m)- cphe*a1he0(1,m)
@@ -553,9 +553,9 @@ do m=1,nt
   b0=0.8d0
   do j=2,ngm1
     c0=-pc24-alpha(j)
-    d0=-tlat(j)
+    d0=-tanLat(j)
     cm1he(j,m)=pc12-0.1d0*alpha(j-1)
-    dm1he(j)=-0.1d0*tlat(j-1)
+    dm1he(j)=-0.1d0*tanLat(j-1)
 
     a1he0(j,m)=   e1he1(j-1,m)*amla      +f1he1(j-1,m)*0.2d0
     b1he0(j,m)=b0+e1he2(j-1,m)*amla      +f1he2(j-1,m)*0.2d0
@@ -568,7 +568,7 @@ do m=1,nt
     d1he0(j,m)=d1he0(j,m)*deti
 
     cphe=pc12-0.1d0*alpha(j+1)
-    dphe=-0.1d0*tlat(j+1)
+    dphe=-0.1d0*tanLat(j+1)
     e1he1(j,m)= cphe*b1he0(j,m)- apla*d1he0(j,m)
     e1he2(j,m)= dphe*b1he0(j,m)-0.2d0*d1he0(j,m)
     f1he1(j,m)= apla*c1he0(j,m)- cphe*a1he0(j,m)
@@ -577,28 +577,28 @@ do m=1,nt
 
   a0=-amla*sm
   b0=0.8d0-0.2d0*sm
-  c0=(sm-two)*pc12-pm*alpha(ng)
-  d0=-pm*tlat(ng)
+  c0=(sm-two)*pc12-pm*alpha(numLatGridPts)
+  d0=-pm*tanLat(numLatGridPts)
 
-  cm1he(ng,m)=pc12-0.1d0*alpha(ngm1)
-  dm1he(ng)=-0.1d0*tlat(ngm1)
+  cm1he(numLatGridPts,m)=pc12-0.1d0*alpha(ngm1)
+  dm1he(numLatGridPts)=-0.1d0*tanLat(ngm1)
 
-  a1he0(ng,m)=a0+e1he1(ngm1,m)*amla       +f1he1(ngm1,m)*0.2d0
-  b1he0(ng,m)=b0+e1he2(ngm1,m)*amla       +f1he2(ngm1,m)*0.2d0
-  c1he0(ng,m)=c0+e1he1(ngm1,m)*cm1he(ng,m)+f1he1(ngm1,m)*dm1he(ng)
-  d1he0(ng,m)=d0+e1he2(ngm1,m)*cm1he(ng,m)+f1he2(ngm1,m)*dm1he(ng)
+  a1he0(numLatGridPts,m)=a0+e1he1(ngm1,m)*amla       +f1he1(ngm1,m)*0.2d0
+  b1he0(numLatGridPts,m)=b0+e1he2(ngm1,m)*amla       +f1he2(ngm1,m)*0.2d0
+  c1he0(numLatGridPts,m)=c0+e1he1(ngm1,m)*cm1he(numLatGridPts,m)+f1he1(ngm1,m)*dm1he(numLatGridPts)
+  d1he0(numLatGridPts,m)=d0+e1he2(ngm1,m)*cm1he(numLatGridPts,m)+f1he2(ngm1,m)*dm1he(numLatGridPts)
 
-  deti=one/(a1he0(ng,m)*d1he0(ng,m)-b1he0(ng,m)*c1he0(ng,m))
-  a1he0(ng,m)=a1he0(ng,m)*deti
-  b1he0(ng,m)=b1he0(ng,m)*deti
-  c1he0(ng,m)=c1he0(ng,m)*deti
-  d1he0(ng,m)=d1he0(ng,m)*deti
+  deti=one/(a1he0(numLatGridPts,m)*d1he0(numLatGridPts,m)-b1he0(numLatGridPts,m)*c1he0(numLatGridPts,m))
+  a1he0(numLatGridPts,m)=a1he0(numLatGridPts,m)*deti
+  b1he0(numLatGridPts,m)=b1he0(numLatGridPts,m)*deti
+  c1he0(numLatGridPts,m)=c1he0(numLatGridPts,m)*deti
+  d1he0(numLatGridPts,m)=d1he0(numLatGridPts,m)*deti
 enddo
 
 !--------------------------------------------------------------
  !Initialise tri-diagonal arrays needed to invert dimensionless
  !height anomaly for *mode 2*
-do m=1,nt
+do m=1,numLongGridPts
   k=ksig(m)
   sm=sigm(k)
   pm=psig(k)
@@ -608,7 +608,7 @@ do m=1,nt
   a0=amla*sm
   b0=0.8d0-0.2d0*sm
   c0=(sm-two)*pc12-pm*alpha(1)
-  d0=-pm*tlat(1)
+  d0=-pm*tanLat(1)
 
   deti=one/(a0*d0-b0*c0)
   a2he0(1,m)=a0*deti
@@ -617,7 +617,7 @@ do m=1,nt
   d2he0(1,m)=d0*deti
 
   cphe=pc12-0.1d0*alpha(2)
-  dphe=-0.1d0*tlat(2)
+  dphe=-0.1d0*tanLat(2)
   e2he1(1,m)= cphe*b2he0(1,m)- apla*d2he0(1,m)
   e2he2(1,m)= dphe*b2he0(1,m)-0.2d0*d2he0(1,m)
   f2he1(1,m)= apla*c2he0(1,m)- cphe*a2he0(1,m)
@@ -626,9 +626,9 @@ do m=1,nt
   b0=0.8d0
   do j=2,ngm1
     c0=-pc24-alpha(j)
-    d0=-tlat(j)
+    d0=-tanLat(j)
     cm2he(j,m)=pc12-0.1d0*alpha(j-1)
-    dm2he(j)=-0.1d0*tlat(j-1)
+    dm2he(j)=-0.1d0*tanLat(j-1)
 
     a2he0(j,m)=   e2he1(j-1,m)*amla      +f2he1(j-1,m)*0.2d0
     b2he0(j,m)=b0+e2he2(j-1,m)*amla      +f2he2(j-1,m)*0.2d0
@@ -641,7 +641,7 @@ do m=1,nt
     d2he0(j,m)=d2he0(j,m)*deti
 
     cphe=pc12-0.1d0*alpha(j+1)
-    dphe=-0.1d0*tlat(j+1)
+    dphe=-0.1d0*tanLat(j+1)
     e2he1(j,m)= cphe*b2he0(j,m)- apla*d2he0(j,m)
     e2he2(j,m)= dphe*b2he0(j,m)-0.2d0*d2he0(j,m)
     f2he1(j,m)= apla*c2he0(j,m)- cphe*a2he0(j,m)
@@ -650,22 +650,22 @@ do m=1,nt
 
   a0=-amla*sm
   b0=0.8d0-0.2d0*sm
-  c0=(sm-two)*pc12-pm*alpha(ng)
-  d0=-pm*tlat(ng)
+  c0=(sm-two)*pc12-pm*alpha(numLatGridPts)
+  d0=-pm*tanLat(numLatGridPts)
 
-  cm2he(ng,m)=pc12-0.1d0*alpha(ngm1)
-  dm2he(ng)=-0.1d0*tlat(ngm1)
+  cm2he(numLatGridPts,m)=pc12-0.1d0*alpha(ngm1)
+  dm2he(numLatGridPts)=-0.1d0*tanLat(ngm1)
 
-  a2he0(ng,m)=a0+e2he1(ngm1,m)*amla       +f2he1(ngm1,m)*0.2d0
-  b2he0(ng,m)=b0+e2he2(ngm1,m)*amla       +f2he2(ngm1,m)*0.2d0
-  c2he0(ng,m)=c0+e2he1(ngm1,m)*cm2he(ng,m)+f2he1(ngm1,m)*dm2he(ng)
-  d2he0(ng,m)=d0+e2he2(ngm1,m)*cm2he(ng,m)+f2he2(ngm1,m)*dm2he(ng)
+  a2he0(numLatGridPts,m)=a0+e2he1(ngm1,m)*amla       +f2he1(ngm1,m)*0.2d0
+  b2he0(numLatGridPts,m)=b0+e2he2(ngm1,m)*amla       +f2he2(ngm1,m)*0.2d0
+  c2he0(numLatGridPts,m)=c0+e2he1(ngm1,m)*cm2he(numLatGridPts,m)+f2he1(ngm1,m)*dm2he(numLatGridPts)
+  d2he0(numLatGridPts,m)=d0+e2he2(ngm1,m)*cm2he(numLatGridPts,m)+f2he2(ngm1,m)*dm2he(numLatGridPts)
 
-  deti=one/(a2he0(ng,m)*d2he0(ng,m)-b2he0(ng,m)*c2he0(ng,m))
-  a2he0(ng,m)=a2he0(ng,m)*deti
-  b2he0(ng,m)=b2he0(ng,m)*deti
-  c2he0(ng,m)=c2he0(ng,m)*deti
-  d2he0(ng,m)=d2he0(ng,m)*deti
+  deti=one/(a2he0(numLatGridPts,m)*d2he0(numLatGridPts,m)-b2he0(numLatGridPts,m)*c2he0(numLatGridPts,m))
+  a2he0(numLatGridPts,m)=a2he0(numLatGridPts,m)*deti
+  b2he0(numLatGridPts,m)=b2he0(numLatGridPts,m)*deti
+  c2he0(numLatGridPts,m)=c2he0(numLatGridPts,m)*deti
+  d2he0(numLatGridPts,m)=d2he0(numLatGridPts,m)*deti
 enddo
 
 !--------------------------------------------------------
@@ -677,7 +677,7 @@ end subroutine init_spectral
 
 !======================================================================
 
-subroutine main_invert(qs1,qs2,ds1,ds2,gs1,gs2,h1,h2,u1,u2,v1,v2,q1,q2,z1,z2)
+subroutine main_invert(qSpec1,qSpec2,deltaSpec1,deltaSpec2,gammaSpec1,gammaSpec2,h1,h2,u1,u2,v1,v2,qAnom1,qAnom2,z1,z2)
 ! Given the PV anomaly qs, divergence ds and acceleration divergence gs
 ! (all in spectral space and in both layers), this routine computes the
 ! dimensionless depth anomaly h and the velocity field (u,v) in physical
@@ -694,15 +694,15 @@ subroutine main_invert(qs1,qs2,ds1,ds2,gs1,gs2,h1,h2,u1,u2,v1,v2,q1,q2,z1,z2)
 implicit none
 
  !Passed variables:
-double precision:: qs1(ng,nt),qs2(ng,nt)
-double precision:: ds1(ng,nt),ds2(ng,nt)
-double precision:: gs1(ng,nt),gs2(ng,nt)
+double precision:: qSpec1(numLatGridPts,numLongGridPts),qSpec2(numLatGridPts,numLongGridPts)
+double precision:: deltaSpec1(numLatGridPts,numLongGridPts),deltaSpec2(numLatGridPts,numLongGridPts)
+double precision:: gammaSpec1(numLatGridPts,numLongGridPts),gammaSpec2(numLatGridPts,numLongGridPts)
 
-double precision:: h1(ng,nt),h2(ng,nt)
-double precision:: u1(ng,nt),u2(ng,nt)
-double precision:: v1(ng,nt),v2(ng,nt)
-double precision:: q1(ng,nt),q2(ng,nt)
-double precision:: z1(ng,nt),z2(ng,nt)
+double precision:: h1(numLatGridPts,numLongGridPts),h2(numLatGridPts,numLongGridPts)
+double precision:: u1(numLatGridPts,numLongGridPts),u2(numLatGridPts,numLongGridPts)
+double precision:: v1(numLatGridPts,numLongGridPts),v2(numLatGridPts,numLongGridPts)
+double precision:: qAnom1(numLatGridPts,numLongGridPts),qAnom2(numLatGridPts,numLongGridPts)
+double precision:: z1(numLatGridPts,numLongGridPts),z2(numLatGridPts,numLongGridPts)
 
  !Local parameters and variables:
 double precision,parameter:: tole=1.d-12
@@ -717,15 +717,15 @@ double precision,parameter:: tole=1.d-12
 double precision,parameter:: wgt=0.5d0, wgtc=1.d0-wgt
  !wgt: relaxation parameter used to speed convergence (wgt near 1 fails)
 
-double precision:: h1o(ng,nt),h2o(ng,nt)
-double precision:: u1o(ng,nt),u2o(ng,nt)
-double precision:: v1o(ng,nt),v2o(ng,nt)
+double precision:: h1o(numLatGridPts,numLongGridPts),h2o(numLatGridPts,numLongGridPts)
+double precision:: u1o(numLatGridPts,numLongGridPts),u2o(numLatGridPts,numLongGridPts)
+double precision:: v1o(numLatGridPts,numLongGridPts),v2o(numLatGridPts,numLongGridPts)
 
-double precision:: ud1(ng,nt),ud2(ng,nt)
-double precision:: vd1(ng,nt),vd2(ng,nt)
-double precision:: hm1(ng,nt),hm2(ng,nt)
+double precision:: ud1(numLatGridPts,numLongGridPts),ud2(numLatGridPts,numLongGridPts)
+double precision:: vd1(numLatGridPts,numLongGridPts),vd2(numLatGridPts,numLongGridPts)
+double precision:: hm1(numLatGridPts,numLongGridPts),hm2(numLatGridPts,numLongGridPts)
 
-double precision:: wka(ng,nt),wkb(ng,nt),wkc(ng,nt)
+double precision:: wka(numLatGridPts,numLongGridPts),wkb(numLatGridPts,numLongGridPts),wkc(numLatGridPts,numLongGridPts)
 double precision:: enorm
 integer:: i,m
 
@@ -734,32 +734,32 @@ integer:: i,m
  !in the iteration below):
 
  !Invert Laplace's operator on the divergence (ds) in both layers:
-call laplinv(ds1,wka,vd1)
-call laplinv(ds2,wkb,vd2)
+call laplinv(deltaSpec1,wka,vd1)
+call laplinv(deltaSpec2,wkb,vd2)
  !Here the divergence potential is wka or wkb, and its latitudinal
  !derivative is vd1 or vd2, the divergent meridional velocity
  !(all in semi-spectral space)
 
  !Compute divergent zonal velocity ud in both layers:
-call deriv(ng,nt,rk,wka,ud1) 
-call deriv(ng,nt,rk,wkb,ud2) 
-do m=1,nt
-  ud1(:,m)=clati*ud1(:,m)
-  ud2(:,m)=clati*ud2(:,m)
+call deriv(numLatGridPts,numLongGridPts,rk,wka,ud1) 
+call deriv(numLatGridPts,numLongGridPts,rk,wkb,ud2) 
+do m=1,numLongGridPts
+  ud1(:,m)=secantLat*ud1(:,m)
+  ud2(:,m)=secantLat*ud2(:,m)
 enddo
  !clati = 1/r, where r = cos(lat)
 
  !Compute total PV in each layer in physical space:
-q1=qs1
-call revfft(ng,nt,q1,trig,factors) 
-q2=qs2
-call revfft(ng,nt,q2,trig,factors) 
+qAnom1=qSpec1
+call revfft(numLatGridPts,numLongGridPts,qAnom1,trig,factors) 
+qAnom2=qSpec2
+call revfft(numLatGridPts,numLongGridPts,qAnom2,trig,factors) 
 
-do i=1,nt
-  q1(:,i)=q1(:,i)+cof
-  q2(:,i)=q2(:,i)+cof
+do i=1,numLongGridPts
+  qAnom1(:,i)=qAnom1(:,i)+cof
+  qAnom2(:,i)=qAnom2(:,i)+cof
 enddo
- !Note, q1 & q2 will be adjusted by a constant offset once the
+ !Note, qAnom1 & qAnom2 will be adjusted by a constant offset once the
  !height anomalies in each layer are determined; the offset
  !guarantees that the domain integral of the relative vorticity
  !is zero, as required by Stokes' theorem.
@@ -779,16 +779,16 @@ do while (enorm > tole)
   v2o=v2
 
    !Correct average PV by enforcing zero average vorticity:
-  wka=q1*(one+h1)
-  q1=q1-average(wka)
+  wka=qAnom1*(one+h1)
+  qAnom1=qAnom1-average(wka)
 
-  wka=q2*(one+h2)
-  q2=q2-average(wka)
+  wka=qAnom2*(one+h2)
+  qAnom2=qAnom2-average(wka)
 
    !Compute relative vorticity (now guaranteed to have zero average):
-  do i=1,nt
-    z1(:,i)=q1(:,i)*(one+h1(:,i))-cof
-    z2(:,i)=q2(:,i)*(one+h2(:,i))-cof
+  do i=1,numLongGridPts
+    z1(:,i)=qAnom1(:,i)*(one+h1(:,i))-cof
+    z2(:,i)=qAnom2(:,i)*(one+h2(:,i))-cof
   enddo
 
    !-------------------------------------------------------------
@@ -806,15 +806,15 @@ do while (enorm > tole)
    !Here the streamfunction is wka while d(wka)/dlat = wkb.
 
    !Compute d(wka)/dlon = wkc:
-  call deriv(ng,nt,rk,wka,wkc)
+  call deriv(numLatGridPts,numLongGridPts,rk,wka,wkc)
 
    !Convert h1 to semi-spectral space:
-  call forfft(ng,nt,h1,trig,factors)
+  call forfft(numLatGridPts,numLongGridPts,h1,trig,factors)
 
-  do m=1,nt
+  do m=1,numLongGridPts
     u1(:,m)=ud1(:,m)-wkb(:,m)
-    v1(:,m)=vd1(:,m)+clati*wkc(:,m)
-    h1(:,m)=gs1(:,m)+bet*u1(:,m)-cof*(z1(:,m)-cof*h1(:,m))
+    v1(:,m)=vd1(:,m)+secantLat*wkc(:,m)
+    h1(:,m)=gammaSpec1(:,m)+beta*u1(:,m)-cof*(z1(:,m)-cof*h1(:,m))
   enddo
    !All the terms in this loop are semi-spectral. Note, we will solve
    !f^2*h_1 - Lap(c_1^2*h_1+(rho_2/rho_1)*c_2^2*h_2) = h1, which follows
@@ -831,15 +831,15 @@ do while (enorm > tole)
    !Here the streamfunction is wka while d(wka)/dlat = wkb.
 
    !Compute d(wka)/dlon = wkc:
-  call deriv(ng,nt,rk,wka,wkc)
+  call deriv(numLatGridPts,numLongGridPts,rk,wka,wkc)
 
    !Convert h2 to semi-spectral space:
-  call forfft(ng,nt,h2,trig,factors)
+  call forfft(numLatGridPts,numLongGridPts,h2,trig,factors)
 
-  do m=1,nt
+  do m=1,numLongGridPts
     u2(:,m)=ud2(:,m)-wkb(:,m)
-    v2(:,m)=vd2(:,m)+clati*wkc(:,m)
-    h2(:,m)=gs2(:,m)+bet*u2(:,m)-cof*(z2(:,m)-cof*h2(:,m))
+    v2(:,m)=vd2(:,m)+secantLat*wkc(:,m)
+    h2(:,m)=gammaSpec2(:,m)+beta*u2(:,m)-cof*(z2(:,m)-cof*h2(:,m))
   enddo
    !All the terms in this loop are semi-spectral. Note, we will solve
    !f^2*h_2 - Lap(c_1^2*h_1+c_2^2*h_2) = h2, which follows from
@@ -862,16 +862,16 @@ do while (enorm > tole)
 
    !Return h1 & h2 to layers as semi-spectral arrays, then physical ones:
   h1=hm1*vt11+hm2*vt12
-  call revfft(ng,nt,h1,trig,factors) 
+  call revfft(numLatGridPts,numLongGridPts,h1,trig,factors) 
   h2=hm1*vt21+hm2*vt22
-  call revfft(ng,nt,h2,trig,factors) 
+  call revfft(numLatGridPts,numLongGridPts,h2,trig,factors) 
 
    !Return semi-spectral velocity field to physical space:
-  call revfft(ng,nt,u1,trig,factors)
-  call revfft(ng,nt,u2,trig,factors)
+  call revfft(numLatGridPts,numLongGridPts,u1,trig,factors)
+  call revfft(numLatGridPts,numLongGridPts,u2,trig,factors)
 
-  call revfft(ng,nt,v1,trig,factors)
-  call revfft(ng,nt,v2,trig,factors)
+  call revfft(numLatGridPts,numLongGridPts,v1,trig,factors)
+  call revfft(numLatGridPts,numLongGridPts,v2,trig,factors)
 
    !Compute relative error (measured by the energy norm):
   wka=(u1-u1o)**2+(v1-v1o)**2+csq1*(h1-h1o)**2 &
@@ -896,13 +896,13 @@ enddo
 
 !------------------------------------------------------------------
  !Return semi-spectral relative vorticity field to physical space:
-call revfft(ng,nt,z1,trig,factors)
-call revfft(ng,nt,z2,trig,factors)
+call revfft(numLatGridPts,numLongGridPts,z1,trig,factors)
+call revfft(numLatGridPts,numLongGridPts,z2,trig,factors)
 
- !Return the PV anomaly in q1 & q2:
-do i=1,nt
-  q1(:,i)=q1(:,i)-cof
-  q2(:,i)=q2(:,i)-cof
+ !Return the PV anomaly in qAnom1 & qAnom2:
+do i=1,numLongGridPts
+  qAnom1(:,i)=qAnom1(:,i)-cof
+  qAnom2(:,i)=qAnom2(:,i)-cof
 enddo
 
 return
@@ -919,17 +919,17 @@ subroutine laplinv(src,sol,der)
 implicit none
 
  !Passed variables:
-double precision:: src(ng,nt),sol(ng,nt),der(ng,nt)
+double precision:: src(numLatGridPts,numLongGridPts),sol(numLatGridPts,numLongGridPts),der(numLatGridPts,numLongGridPts)
 
  !Local variables:
-double precision:: rhs(ng),pfg(ng),const,pm,utdb,vtdb
+double precision:: rhs(numLatGridPts),pfg(numLatGridPts),const,pm,utdb,vtdb
 integer:: j,m
 
 !---------------------------------------------------------------
  !Solve for the zonal part of der (ensure src has zero average):
-rhs=src(:,1)*clat
-const=(f1112*(rhs(1)+rhs(ng))+sum(rhs(2:ngm1)))*rsumi
-rhs=rhs-const*clat
+rhs=src(:,1)*cosLat
+const=(f1112*(rhs(1)+rhs(numLatGridPts))+sum(rhs(2:ngm1)))*rsumi
+rhs=rhs-const*cosLat
 
 pfg(1)=dl24*(21.d0*rhs(1)+rhs(2))
 do j=2,ngm1
@@ -940,11 +940,11 @@ rhs(1)=pfg(1)
 do j=2,ngm1
   rhs(j)=pfg(j)+pfg(j-1)
 enddo
-rhs(ng)=pfg(ngm1)
+rhs(numLatGridPts)=pfg(ngm1)
 
 der(1,1)=rhs(1)*htd0(1)
 
-do j=2,ng
+do j=2,numLatGridPts
   der(j,1)=(rhs(j)-f14*der(j-1,1))*htd0(j)
 enddo
 
@@ -952,7 +952,7 @@ do j=ngm1,1,-1
   der(j,1)=etd0(j)*der(j+1,1)+der(j,1)
 enddo
 
-der(:,1)=der(:,1)*clati
+der(:,1)=der(:,1)*secantLat
 
 !-------------------------------------------------------
  !Solve for the zonal part of sol:
@@ -960,16 +960,16 @@ pfg(1)=dl24*(21.d0*der(1,1)+der(2,1))
 do j=2,ngm1
   pfg(j)=pfg(j-1)+dl24*(der(j-1,1)+22.d0*der(j,1)+der(j+1,1))
 enddo
-pfg(ng)=pfg(ngm1)+dl24*(der(ngm1,1)+21.d0*der(ng,1))
+pfg(numLatGridPts)=pfg(ngm1)+dl24*(der(ngm1,1)+21.d0*der(numLatGridPts,1))
 
 rhs(1)=pfg(1)
-do j=2,ng
+do j=2,numLatGridPts
   rhs(j)=pfg(j)+pfg(j-1)
 enddo
 
 sol(1,1)=rhs(1)*htd0(1)
 
-do j=2,ng
+do j=2,numLatGridPts
   sol(j,1)=(rhs(j)-f14*sol(j-1,1))*htd0(j)
 enddo
 
@@ -978,26 +978,26 @@ do j=ngm1,1,-1
 enddo
 
  !Remove global mean value of sol:
-rhs=sol(:,1)*clat
-const=(f1112*(rhs(1)+rhs(ng))+sum(rhs(2:ngm1)))*rsumi
+rhs=sol(:,1)*cosLat
+const=(f1112*(rhs(1)+rhs(numLatGridPts))+sum(rhs(2:ngm1)))*rsumi
 sol(:,1)=sol(:,1)-const
 
 !------------------------------------------------------------------
  !Loop over azonal longitudinal wavenumbers and solve the 2x2 block
  !tridiagonal problem:
-do m=2,nt
+do m=2,numLongGridPts
   pm=psig(ksig(m))
 
   rhs(1)=pm*src(1,m)+0.1d0*src(2,m)
   do j=2,ngm1
     rhs(j)=src(j,m)+0.1d0*(src(j-1,m)+src(j+1,m))
   enddo
-  rhs(ng)=0.1d0*src(ngm1,m)+pm*src(ng,m)
+  rhs(numLatGridPts)=0.1d0*src(ngm1,m)+pm*src(numLatGridPts,m)
 
   sol(1,m)=-rhs(1)*bla0(1,m)
   der(1,m)= rhs(1)*ala0(1,m)
 
-  do j=2,ng
+  do j=2,numLatGridPts
     utdb=      -sol(j-1,m)*amla     -der(j-1,m)*0.2d0
     vtdb=rhs(j)-sol(j-1,m)*cmla(j,m)-der(j-1,m)*dmla(j)
     sol(j,m)=utdb*dla0(j,m)-vtdb*bla0(j,m)
@@ -1026,30 +1026,30 @@ subroutine simp1(src,sol,der)
 implicit none
 
  !Passed variables:
-double precision:: src(ng,nt),sol(ng,nt),der(ng,nt)
+double precision:: src(numLatGridPts,numLongGridPts),sol(numLatGridPts,numLongGridPts),der(numLatGridPts,numLongGridPts)
 
  !Local variables:
-double precision:: rhs(ng),pm,utdb,vtdb,avgsol
+double precision:: rhs(numLatGridPts),pm,utdb,vtdb,avgsol
 integer:: j,m
 
 !-----------------------------------------------------------
  !Loop over longitudinal wavenumbers and solve the 2x2 block
  !tridiagonal problem:
-do m=1,nt
+do m=1,numLongGridPts
   pm=psig(ksig(m))
 
   rhs(1)=pm*src(1,m)+0.1d0*src(2,m)
   do j=2,ngm1
     rhs(j)=src(j,m)+0.1d0*(src(j-1,m)+src(j+1,m))
   enddo
-  rhs(ng)=0.1d0*src(ngm1,m)+pm*src(ng,m)
+  rhs(numLatGridPts)=0.1d0*src(ngm1,m)+pm*src(numLatGridPts,m)
 
    !This is needed to be able to use the stored coefficients:
   rhs=-ctsq1i*rhs
   sol(1,m)=-rhs(1)*b1si0(1,m)
   der(1,m)= rhs(1)*a1si0(1,m)
 
-  do j=2,ng
+  do j=2,numLatGridPts
     utdb=      -sol(j-1,m)*amla      -der(j-1,m)*0.2d0
     vtdb=rhs(j)-sol(j-1,m)*cm1si(j,m)-der(j-1,m)*dm1si(j)
     sol(j,m)=utdb*d1si0(j,m)-vtdb*b1si0(j,m)
@@ -1063,8 +1063,8 @@ do m=1,nt
 enddo
 
  !Remove global mean value of sol:
-rhs=sol(:,1)*clat
-avgsol=(f1112*(rhs(1)+rhs(ng))+sum(rhs(2:ngm1)))*rsumi
+rhs=sol(:,1)*cosLat
+avgsol=(f1112*(rhs(1)+rhs(numLatGridPts))+sum(rhs(2:ngm1)))*rsumi
 sol(:,1)=sol(:,1)-avgsol
 
 return
@@ -1083,30 +1083,30 @@ subroutine simp2(src,sol,der)
 implicit none
 
  !Passed variables:
-double precision:: src(ng,nt),sol(ng,nt),der(ng,nt)
+double precision:: src(numLatGridPts,numLongGridPts),sol(numLatGridPts,numLongGridPts),der(numLatGridPts,numLongGridPts)
 
  !Local variables:
-double precision:: rhs(ng),pm,utdb,vtdb,avgsol
+double precision:: rhs(numLatGridPts),pm,utdb,vtdb,avgsol
 integer:: j,m
 
 !-----------------------------------------------------------
  !Loop over longitudinal wavenumbers and solve the 2x2 block
  !tridiagonal problem:
-do m=1,nt
+do m=1,numLongGridPts
   pm=psig(ksig(m))
 
   rhs(1)=pm*src(1,m)+0.1d0*src(2,m)
   do j=2,ngm1
     rhs(j)=src(j,m)+0.1d0*(src(j-1,m)+src(j+1,m))
   enddo
-  rhs(ng)=0.1d0*src(ngm1,m)+pm*src(ng,m)
+  rhs(numLatGridPts)=0.1d0*src(ngm1,m)+pm*src(numLatGridPts,m)
 
    !This is needed to be able to use the stored coefficients:
   rhs=-ctsq2i*rhs
   sol(1,m)=-rhs(1)*b2si0(1,m)
   der(1,m)= rhs(1)*a2si0(1,m)
 
-  do j=2,ng
+  do j=2,numLatGridPts
     utdb=      -sol(j-1,m)*amla      -der(j-1,m)*0.2d0
     vtdb=rhs(j)-sol(j-1,m)*cm2si(j,m)-der(j-1,m)*dm2si(j)
     sol(j,m)=utdb*d2si0(j,m)-vtdb*b2si0(j,m)
@@ -1120,8 +1120,8 @@ do m=1,nt
 enddo
 
  !Remove global mean value of sol:
-rhs=sol(:,1)*clat
-avgsol=(f1112*(rhs(1)+rhs(ng))+sum(rhs(2:ngm1)))*rsumi
+rhs=sol(:,1)*cosLat
+avgsol=(f1112*(rhs(1)+rhs(numLatGridPts))+sum(rhs(2:ngm1)))*rsumi
 sol(:,1)=sol(:,1)-avgsol
 
 return
@@ -1139,30 +1139,30 @@ subroutine helm1(src,sol,der)
 implicit none
 
  !Passed variables:
-double precision:: src(ng,nt),sol(ng,nt),der(ng,nt)
+double precision:: src(numLatGridPts,numLongGridPts),sol(numLatGridPts,numLongGridPts),der(numLatGridPts,numLongGridPts)
 
  !Local variables:
-double precision:: rhs(ng),pm,utdb,vtdb,avgsol
+double precision:: rhs(numLatGridPts),pm,utdb,vtdb,avgsol
 integer:: j,m
 
 !-----------------------------------------------------------
  !Loop over longitudinal wavenumbers and solve the 2x2 block
  !tridiagonal problem:
-do m=1,nt
+do m=1,numLongGridPts
   pm=psig(ksig(m))
 
   rhs(1)=pm*src(1,m)+0.1d0*src(2,m)
   do j=2,ngm1
     rhs(j)=src(j,m)+0.1d0*(src(j-1,m)+src(j+1,m))
   enddo
-  rhs(ng)=0.1d0*src(ngm1,m)+pm*src(ng,m)
+  rhs(numLatGridPts)=0.1d0*src(ngm1,m)+pm*src(numLatGridPts,m)
 
    !This is needed to be able to use the stored coefficients:
   rhs=-ctsq1i*rhs
   sol(1,m)=-rhs(1)*b1he0(1,m)
   der(1,m)= rhs(1)*a1he0(1,m)
 
-  do j=2,ng
+  do j=2,numLatGridPts
     utdb=      -sol(j-1,m)*amla      -der(j-1,m)*0.2d0
     vtdb=rhs(j)-sol(j-1,m)*cm1he(j,m)-der(j-1,m)*dm1he(j)
     sol(j,m)=utdb*d1he0(j,m)-vtdb*b1he0(j,m)
@@ -1176,8 +1176,8 @@ do m=1,nt
 enddo
 
  !Remove global mean value of sol:
-rhs=sol(:,1)*clat
-avgsol=(f1112*(rhs(1)+rhs(ng))+sum(rhs(2:ngm1)))*rsumi
+rhs=sol(:,1)*cosLat
+avgsol=(f1112*(rhs(1)+rhs(numLatGridPts))+sum(rhs(2:ngm1)))*rsumi
 sol(:,1)=sol(:,1)-avgsol
 
 return
@@ -1195,30 +1195,30 @@ subroutine helm2(src,sol,der)
 implicit none
 
  !Passed variables:
-double precision:: src(ng,nt),sol(ng,nt),der(ng,nt)
+double precision:: src(numLatGridPts,numLongGridPts),sol(numLatGridPts,numLongGridPts),der(numLatGridPts,numLongGridPts)
 
  !Local variables:
-double precision:: rhs(ng),pm,utdb,vtdb,avgsol
+double precision:: rhs(numLatGridPts),pm,utdb,vtdb,avgsol
 integer:: j,m
 
 !-----------------------------------------------------------
  !Loop over longitudinal wavenumbers and solve the 2x2 block
  !tridiagonal problem:
-do m=1,nt
+do m=1,numLongGridPts
   pm=psig(ksig(m))
 
   rhs(1)=pm*src(1,m)+0.1d0*src(2,m)
   do j=2,ngm1
     rhs(j)=src(j,m)+0.1d0*(src(j-1,m)+src(j+1,m))
   enddo
-  rhs(ng)=0.1d0*src(ngm1,m)+pm*src(ng,m)
+  rhs(numLatGridPts)=0.1d0*src(ngm1,m)+pm*src(numLatGridPts,m)
 
    !This is needed to be able to use the stored coefficients:
   rhs=-ctsq2i*rhs
   sol(1,m)=-rhs(1)*b2he0(1,m)
   der(1,m)= rhs(1)*a2he0(1,m)
 
-  do j=2,ng
+  do j=2,numLatGridPts
     utdb=      -sol(j-1,m)*amla      -der(j-1,m)*0.2d0
     vtdb=rhs(j)-sol(j-1,m)*cm2he(j,m)-der(j-1,m)*dm2he(j)
     sol(j,m)=utdb*d2he0(j,m)-vtdb*b2he0(j,m)
@@ -1232,8 +1232,8 @@ do m=1,nt
 enddo
 
  !Remove global mean value of sol:
-rhs=sol(:,1)*clat
-avgsol=(f1112*(rhs(1)+rhs(ng))+sum(rhs(2:ngm1)))*rsumi
+rhs=sol(:,1)*cosLat
+avgsol=(f1112*(rhs(1)+rhs(numLatGridPts))+sum(rhs(2:ngm1)))*rsumi
 sol(:,1)=sol(:,1)-avgsol
 
 return
@@ -1249,33 +1249,33 @@ subroutine latder(var,der)
 implicit none
 
  !Passed variables:
-double precision:: var(ng,nt),der(ng,nt)
+double precision:: var(numLatGridPts,numLongGridPts),der(numLatGridPts,numLongGridPts)
 
  !Local variables:
-double precision:: src(nt),sol(nt),solend
+double precision:: src(numLongGridPts),sol(numLongGridPts),solend
 integer:: i,ic,j
 
 !----------------------------------------------------------------
  !Loop over great circles in latitude (only half the longitudes):
-do i=1,ng
-  ic=i+ng
+do i=1,numLatGridPts
+  ic=i+numLatGridPts
 
    !Source vector:
   src(1)=var(2,i)-var(1,ic)
   do j=2,ngm1
     src(j)=var(j+1,i)-var(j-1,i)
   enddo
-  src(ng)  =var(ng,ic)-var(ngm1,i)
-  src(ngp1)=var(ngm1,ic)-var(ng,i)
+  src(numLatGridPts)  =var(numLatGridPts,ic)-var(ngm1,i)
+  src(ngp1)=var(ngm1,ic)-var(numLatGridPts,i)
   do j=ngp2,ntm1
-    src(j)=var(nt-j,ic)-var(ntp2-j,ic)
+    src(j)=var(numLongGridPts-j,ic)-var(ntp2-j,ic)
   enddo
-  src(nt)=var(1,i)-var(2,ic)
+  src(numLongGridPts)=var(1,i)-var(2,ic)
 
    !Get solution by periodic tridiagonal solve:
   sol(1)=src(1)*htd1(1)
 
-  do j=2,nt
+  do j=2,numLongGridPts
     sol(j)=(src(j)-apd1*sol(j-1))*htd1(j)
   enddo
 
@@ -1283,18 +1283,18 @@ do i=1,ng
     sol(j)=etd1(j)*sol(j+1)+sol(j)
   enddo
 
-  sol(nt)=(etd1(nt)*sol(1)+sol(nt))*denod1
-  solend=sol(nt)
+  sol(numLongGridPts)=(etd1(numLongGridPts)*sol(1)+sol(numLongGridPts))*denod1
+  solend=sol(numLongGridPts)
 
   do j=1,ntm1
     sol(j)=ptd1(j)*solend+sol(j)
   enddo
 
    !Return sol in der:
-  do j=1,ng
+  do j=1,numLatGridPts
     der(j,i)=sol(j)
   enddo
-  do j=ngp1,nt
+  do j=ngp1,numLongGridPts
     der(ntp1-j,ic)=-sol(j)
   enddo
 enddo
@@ -1312,23 +1312,23 @@ subroutine laplace(var,sol)
 implicit none
 
  !Passed variables:
-double precision:: var(ng,nt),sol(ng,nt)
+double precision:: var(numLatGridPts,numLongGridPts),sol(numLatGridPts,numLongGridPts)
 
  !Local variables:
-double precision:: wka(ng,nt),der(ng,nt)
-double precision:: src1(nt),src2(nt),sol1(nt),sol2(nt)
+double precision:: wka(numLatGridPts,numLongGridPts),der(numLatGridPts,numLongGridPts)
+double precision:: src1(numLongGridPts),src2(numLongGridPts),sol1(numLongGridPts),sol2(numLongGridPts)
 double precision:: sol1end,sol2end
 integer:: i,ic,j
 
 !----------------------------------------------------------------------
  !Convert var to physical space as wka to take latitudinal derivatives:
 wka=var
-call revfft(ng,nt,wka,trig,factors)
+call revfft(numLatGridPts,numLongGridPts,wka,trig,factors)
 
 !----------------------------------------------------------------
  !Loop over great circles in latitude (only half the longitudes):
-do i=1,ng
-  ic=i+ng
+do i=1,numLatGridPts
+  ic=i+numLatGridPts
 
    !Source vectors:
   src1(1)=wka(2,i)-wka(1,ic)
@@ -1337,22 +1337,22 @@ do i=1,ng
     src1(j)=wka(j+1,i)-wka(j-1,i)
     src2(j)=wka(j+1,i)-two*wka(j,i)+wka(j-1,i)
   enddo
-  src1(ng)  =wka(ng,ic)-wka(ngm1,i)
-  src2(ng)  =wka(ng,ic) -two*wka(ng,i)+wka(ngm1,i)
-  src1(ngp1)=wka(ngm1,ic)-wka(ng,i)
-  src2(ngp1)=wka(ngm1,ic)-two*wka(ng,ic)+wka(ng,i)
+  src1(numLatGridPts)  =wka(numLatGridPts,ic)-wka(ngm1,i)
+  src2(numLatGridPts)  =wka(numLatGridPts,ic) -two*wka(numLatGridPts,i)+wka(ngm1,i)
+  src1(ngp1)=wka(ngm1,ic)-wka(numLatGridPts,i)
+  src2(ngp1)=wka(ngm1,ic)-two*wka(numLatGridPts,ic)+wka(numLatGridPts,i)
   do j=ngp2,ntm1
-    src1(j)=wka(nt-j,ic)-wka(ntp2-j,ic)
-    src2(j)=wka(nt-j,ic)-two*wka(ntp1-j,ic)+wka(ntp2-j,ic)
+    src1(j)=wka(numLongGridPts-j,ic)-wka(ntp2-j,ic)
+    src2(j)=wka(numLongGridPts-j,ic)-two*wka(ntp1-j,ic)+wka(ntp2-j,ic)
   enddo
-  src1(nt)=wka(1,i)-wka(2,ic)
-  src2(nt)=wka(1,i)-two*wka(1,ic)+wka(2,ic)
+  src1(numLongGridPts)=wka(1,i)-wka(2,ic)
+  src2(numLongGridPts)=wka(1,i)-two*wka(1,ic)+wka(2,ic)
 
    !Get 1st and 2nd derivatives by periodic tridiagonal solve:
   sol1(1)=src1(1)*htd1(1)
   sol2(1)=src2(1)*htd2(1)
 
-  do j=2,nt
+  do j=2,numLongGridPts
     sol1(j)=(src1(j)-apd1*sol1(j-1))*htd1(j)
     sol2(j)=(src2(j)-apd2*sol2(j-1))*htd2(j)
   enddo
@@ -1362,11 +1362,11 @@ do i=1,ng
     sol2(j)=etd2(j)*sol2(j+1)+sol2(j)
   enddo
 
-  sol1(nt)=(etd1(nt)*sol1(1)+sol1(nt))*denod1
-  sol2(nt)=(etd2(nt)*sol2(1)+sol2(nt))*denod2
+  sol1(numLongGridPts)=(etd1(numLongGridPts)*sol1(1)+sol1(numLongGridPts))*denod1
+  sol2(numLongGridPts)=(etd2(numLongGridPts)*sol2(1)+sol2(numLongGridPts))*denod2
 
-  sol1end=sol1(nt)
-  sol2end=sol2(nt)
+  sol1end=sol1(numLongGridPts)
+  sol2end=sol2(numLongGridPts)
 
   do j=1,ntm1
     sol1(j)=ptd1(j)*sol1end+sol1(j)
@@ -1374,16 +1374,16 @@ do i=1,ng
   enddo
 
    !Combine derivatives (tlat = tan(lat) below):
-  do j=1,ng
-    der(j,i)=sol2(j)-tlat(j)*sol1(j)
+  do j=1,numLatGridPts
+    der(j,i)=sol2(j)-tanLat(j)*sol1(j)
   enddo
-  do j=ngp1,nt
-    der(ntp1-j,ic)=sol2(j)+tlat(ntp1-j)*sol1(j)
+  do j=ngp1,numLongGridPts
+    der(ntp1-j,ic)=sol2(j)+tanLat(ntp1-j)*sol1(j)
   enddo
 enddo
 
  !Return der to spectral space and add longitudinal part of operator:
-call forfft(ng,nt,der,trig,factors)
+call forfft(numLatGridPts,numLongGridPts,der,trig,factors)
 sol=der-d2lon*var
 
 return
@@ -1399,47 +1399,47 @@ subroutine latdamp(var)
 implicit none
 
  !Passed variable:
-double precision:: var(ng,nt)
+double precision:: var(numLatGridPts,numLongGridPts)
 
  !Local variables:
-double precision:: tra(ng,nt)
+double precision:: tra(numLatGridPts,numLongGridPts)
 integer:: i,ic,j,k
 
 !---------------------------------------------------
  !Inverse FFT in longitude:
-call revfft(ng,nt,var,trig,factors) 
+call revfft(numLatGridPts,numLongGridPts,var,trig,factors) 
 
  !Create great circles:
-do i=1,ng
-  ic=i+ng
-  do j=1,ng
+do i=1,numLatGridPts
+  ic=i+numLatGridPts
+  do j=1,numLatGridPts
     tra(i,j)     =var(j,i)
     tra(i,ntp1-j)=var(j,ic)
   enddo
 enddo
 
  !FFT in latitude:
-call forfft(ng,nt,tra,trig,factors) 
+call forfft(numLatGridPts,numLongGridPts,tra,trig,factors) 
 
  !Apply spectral damping operator in latitude (defined in adapt):
-do k=1,nt
+do k=1,numLongGridPts
   tra(:,k)=tra(:,k)*hyplat(k)
 enddo
 
  !Inverse FFT in latitude:
-call revfft(ng,nt,tra,trig,factors) 
+call revfft(numLatGridPts,numLongGridPts,tra,trig,factors) 
 
  !Unpack array:
-do i=1,ng
-  ic=i+ng
-  do j=1,ng
+do i=1,numLatGridPts
+  ic=i+numLatGridPts
+  do j=1,numLatGridPts
     var(j,i) =tra(i,j)
     var(j,ic)=tra(i,ntp1-j)
   enddo
 enddo
 
  !FFT in longitude:
-call forfft(ng,nt,var,trig,factors) 
+call forfft(numLatGridPts,numLongGridPts,var,trig,factors) 
 
 return
 
@@ -1457,46 +1457,46 @@ subroutine lopass(var)
 implicit none
 
  !Passed variable:
-double precision:: var(ng,nt)
+double precision:: var(numLatGridPts,numLongGridPts)
 
  !Local variables:
-double precision:: tra(ng,nt)
+double precision:: tra(numLatGridPts,numLongGridPts)
 integer:: i,ic,j,k
 
 !---------------------------------------------------
-call revfft(ng,nt,var,trig,factors) 
+call revfft(numLatGridPts,numLongGridPts,var,trig,factors) 
 
  !Create great circles:
-do i=1,ng
-  ic=i+ng
-  do j=1,ng
+do i=1,numLatGridPts
+  ic=i+numLatGridPts
+  do j=1,numLatGridPts
     tra(i,j)     =var(j,i)
     tra(i,ntp1-j)=var(j,ic)
   enddo
 enddo
 
  !FFT in latitude:
-call forfft(ng,nt,tra,trig,factors) 
+call forfft(numLatGridPts,numLongGridPts,tra,trig,factors) 
 
  !Apply latitudinal filter:
-do k=1,nt
+do k=1,numLongGridPts
   tra(:,k)=tra(:,k)*flatlo(k)
 enddo
 
  !Inverse FFT in latitude:
-call revfft(ng,nt,tra,trig,factors) 
+call revfft(numLatGridPts,numLongGridPts,tra,trig,factors) 
 
  !Unpack array:
-do i=1,ng
-  ic=i+ng
-  do j=1,ng
+do i=1,numLatGridPts
+  ic=i+numLatGridPts
+  do j=1,numLatGridPts
     var(j,i) =tra(i,j)
     var(j,ic)=tra(i,ntp1-j)
   enddo
 enddo
 
  !FFT in longitude:
-call forfft(ng,nt,var,trig,factors) 
+call forfft(numLatGridPts,numLongGridPts,var,trig,factors) 
 
  !Apply longitudinal filter:
 var=var*flonlo
@@ -1516,46 +1516,46 @@ subroutine hipass(var)
 implicit none
 
  !Passed variable:
-double precision:: var(ng,nt)
+double precision:: var(numLatGridPts,numLongGridPts)
 
  !Local variables:
-double precision:: tra(ng,nt)
+double precision:: tra(numLatGridPts,numLongGridPts)
 integer:: i,ic,j,k
 
 !---------------------------------------------------
-call revfft(ng,nt,var,trig,factors) 
+call revfft(numLatGridPts,numLongGridPts,var,trig,factors) 
 
  !Create great circles:
-do i=1,ng
-  ic=i+ng
-  do j=1,ng
+do i=1,numLatGridPts
+  ic=i+numLatGridPts
+  do j=1,numLatGridPts
     tra(i,j)     =var(j,i)
     tra(i,ntp1-j)=var(j,ic)
   enddo
 enddo
 
  !FFT in latitude:
-call forfft(ng,nt,tra,trig,factors) 
+call forfft(numLatGridPts,numLongGridPts,tra,trig,factors) 
 
  !Apply latitudinal filter:
-do k=1,nt
+do k=1,numLongGridPts
   tra(:,k)=tra(:,k)*flathi(k)
 enddo
 
  !Inverse FFT in latitude:
-call revfft(ng,nt,tra,trig,factors) 
+call revfft(numLatGridPts,numLongGridPts,tra,trig,factors) 
 
  !Unpack array:
-do i=1,ng
-  ic=i+ng
-  do j=1,ng
+do i=1,numLatGridPts
+  ic=i+numLatGridPts
+  do j=1,numLatGridPts
     var(j,i) =tra(i,j)
     var(j,ic)=tra(i,ntp1-j)
   enddo
 enddo
 
  !FFT in longitude:
-call forfft(ng,nt,var,trig,factors) 
+call forfft(numLatGridPts,numLongGridPts,var,trig,factors) 
 
  !Apply longitudinal filter:
 var=var*flonhi
@@ -1576,42 +1576,42 @@ subroutine dealias(var)
 implicit none
 
  !Passed variable:
-double precision:: var(ng,nt)
+double precision:: var(numLatGridPts,numLongGridPts)
 
  !Local variables:
-double precision:: tra(ng,nt)
+double precision:: tra(numLatGridPts,numLongGridPts)
 integer:: i,ic,j
 
 !---------------------------------------------------
  !Create great circles:
-do i=1,ng
-  ic=i+ng
-  do j=1,ng
+do i=1,numLatGridPts
+  ic=i+numLatGridPts
+  do j=1,numLatGridPts
     tra(i,j)     =var(j,i)
     tra(i,ntp1-j)=var(j,ic)
   enddo
 enddo
 
  !FFT in latitude:
-call forfft(ng,nt,tra,trig,factors) 
+call forfft(numLatGridPts,numLongGridPts,tra,trig,factors) 
 
  !Truncate spectrally in latitude:
 tra(:,kda1:kda2)=zero
 
  !Inverse FFT in latitude:
-call revfft(ng,nt,tra,trig,factors) 
+call revfft(numLatGridPts,numLongGridPts,tra,trig,factors) 
 
  !Unpack array:
-do i=1,ng
-  ic=i+ng
-  do j=1,ng
+do i=1,numLatGridPts
+  ic=i+numLatGridPts
+  do j=1,numLatGridPts
     var(j,i) =tra(i,j)
     var(j,ic)=tra(i,ntp1-j)
   enddo
 enddo
 
  !FFT in longitude:
-call forfft(ng,nt,var,trig,factors) 
+call forfft(numLatGridPts,numLongGridPts,var,trig,factors) 
 
  !Truncate spectrally in longitude:
 var(:,kda1:kda2)=zero
@@ -1628,20 +1628,20 @@ subroutine getrms(var,vrms)
 implicit none
 
  !Passed variables:
-double precision:: var(ng,nt),vrms
+double precision:: var(numLatGridPts,numLongGridPts),vrms
 
  !Local variables:
-double precision:: wka(ng,nt)
+double precision:: wka(numLatGridPts,numLongGridPts)
 integer:: i
 
  !-------------------------------------------------
-do i=1,nt
-  wka(:,i)=clat*var(:,i)**2
+do i=1,numLongGridPts
+  wka(:,i)=cosLat*var(:,i)**2
 enddo
 
 vrms=zero
-do i=1,nt
-  vrms=vrms+f1112*(wka(1,i)+wka(ng,i))+sum(wka(2:ngm1,i))
+do i=1,numLongGridPts
+  vrms=vrms+f1112*(wka(1,i)+wka(numLatGridPts,i))+sum(wka(2:ngm1,i))
 enddo
 vrms=sqrt(vrms*dsumi)
 
@@ -1657,21 +1657,21 @@ subroutine zeroavg(var)
 implicit none
 
  !Passed variables:
-double precision:: var(ng,nt),vsum
+double precision:: var(numLatGridPts,numLongGridPts),vsum
 
  !Local variables:
-double precision:: wka(ng,nt)
+double precision:: wka(numLatGridPts,numLongGridPts)
 integer:: i
 
  !-----------------------------------------------------
-do i=1,nt
-  wka(:,i)=clat*var(:,i)
+do i=1,numLongGridPts
+  wka(:,i)=cosLat*var(:,i)
 enddo
 
  !Compute 4th-order average:
 vsum=zero
-do i=1,nt
-  vsum=vsum+f1112*(wka(1,i)+wka(ng,i))+sum(wka(2:ngm1,i))
+do i=1,numLongGridPts
+  vsum=vsum+f1112*(wka(1,i)+wka(numLatGridPts,i))+sum(wka(2:ngm1,i))
 enddo
 vsum=vsum*dsumi
 
@@ -1690,21 +1690,21 @@ double precision function average(var)
 implicit none
 
  !Passed array:
-double precision:: var(ng,nt)
+double precision:: var(numLatGridPts,numLongGridPts)
 
  !Local variables:
-double precision:: wka(ng,nt),vsum
+double precision:: wka(numLatGridPts,numLongGridPts),vsum
 integer:: i
 
  !---------------------------------------------------
-do i=1,nt
-  wka(:,i)=clat*var(:,i)
+do i=1,numLongGridPts
+  wka(:,i)=cosLat*var(:,i)
 enddo
 
  !Compute 4th-order average:
 vsum=zero
-do i=1,nt
-  vsum=vsum+f1112*(wka(1,i)+wka(ng,i))+sum(wka(2:ngm1,i))
+do i=1,numLongGridPts
+  vsum=vsum+f1112*(wka(1,i)+wka(numLatGridPts,i))+sum(wka(2:ngm1,i))
 enddo
 average=vsum*dsumi
 
@@ -1716,26 +1716,26 @@ end function average
 subroutine longspec(var,pow)
 ! Computes the longitudinal spectrum of a field var and creates
 ! pow, containing the power spectrum for each longitudinal wavenumber
-! m from 1 to ng+1
+! m from 1 to numLatGridPts+1
 
 ! *** var must be in semi-spectral space
 
 implicit none
 
  !Passed variables:
-double precision:: var(ng,nt),pow(ng)
+double precision:: var(numLatGridPts,numLongGridPts),pow(numLatGridPts)
 
  !Local variables:
 integer:: m,mc
 
 !-------------------------------------------------------------
  !Compute power spectrum excluding global average in var(:,1):
-do m=2,ng
+do m=2,numLatGridPts
   mc=ntp2-m
-  pow(m-1)=sum(clat*(var(:,m)**2+var(:,mc)**2))
+  pow(m-1)=sum(cosLat*(var(:,m)**2+var(:,mc)**2))
 enddo
 
-pow(ng)=sum(clat*var(:,ngp1)**2)
+pow(numLatGridPts)=sum(cosLat*var(:,ngp1)**2)
 
 return
 end subroutine longspec

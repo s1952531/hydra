@@ -5,7 +5,7 @@
 
 #=====perform the various generic imports========
 import warnings
-import numpy as np
+import numpy as numNodesOnContourList
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -77,18 +77,18 @@ elif option==3:
 
 # Open input files:
 in_file=open('evolution/'+file1,'r')
-# Read the first header line to get ng:
+# Read the first header line to get numLatGridPts:
 first_line=in_file.readline()
-ng=int(first_line.split()[-1])
+numLatGridPts=int(first_line.split()[-1])
 in_file.seek(0)
 
 # Read in the full data to a 1d array and close input file:
-raw_data1 = np.fromfile(file=in_file,dtype=float,sep='\n')
+raw_data1 = numNodesOnContourList.fromfile(file=in_file,dtype=float,sep='\n')
 in_file.close()
-nframes = int(len(raw_data1)/(2*ng+2))  
+nframes = int(len(raw_data1)/(2*numLatGridPts+2))  
 
 in_file=open('evolution/'+file2,'r')
-raw_data2 = np.fromfile(file=in_file,dtype=float,sep='\n')
+raw_data2 = numNodesOnContourList.fromfile(file=in_file,dtype=float,sep='\n')
 in_file.close()
 
 # Set the number of frames:
@@ -99,26 +99,26 @@ print()
 # Shape the data arrays for plotting and work out
 # min/max values over all time:
 frames=range(0,nframes)
-time=[raw_data1[i*(2*ng+2)] for i in frames]
-tim_eles = [i*(2*ng+2)+j for i in frames for j in range(2)]
-shaped_data = np.delete(raw_data1,tim_eles)[0:(2*ng+2)*nframes].reshape((nframes,ng,2))
-x1=np.zeros((nframes,ng))
-y=np.zeros((nframes,ng))
+time=[raw_data1[i*(2*numLatGridPts+2)] for i in frames]
+tim_eles = [i*(2*numLatGridPts+2)+j for i in frames for j in range(2)]
+shaped_data = numNodesOnContourList.delete(raw_data1,tim_eles)[0:(2*numLatGridPts+2)*nframes].reshape((nframes,numLatGridPts,2))
+x1=numNodesOnContourList.zeros((nframes,numLatGridPts))
+y=numNodesOnContourList.zeros((nframes,numLatGridPts))
 x1max=0.0
 for i in frames:
-   x1[i,:]=shaped_data[i].transpose()[0][0:ng]
-   y[i,:]=shaped_data[i].transpose()[1][0:ng]
-   xmax1=max(xmax1,np.amax(abs(x1[i,:])))
+   x1[i,:]=shaped_data[i].transpose()[0][0:numLatGridPts]
+   y[i,:]=shaped_data[i].transpose()[1][0:numLatGridPts]
+   xmax1=max(xmax1,numNodesOnContourList.amax(abs(x1[i,:])))
 
-shaped_data = np.delete(raw_data2,tim_eles)[0:(2*ng+2)*nframes].reshape((nframes,ng,2))
-x2=np.zeros((nframes,ng))
+shaped_data = numNodesOnContourList.delete(raw_data2,tim_eles)[0:(2*numLatGridPts+2)*nframes].reshape((nframes,numLatGridPts,2))
+x2=numNodesOnContourList.zeros((nframes,numLatGridPts))
 x2max=0.0
 for i in frames:
-   x2[i,:]=shaped_data[i].transpose()[0][0:ng]
-   xmax2=max(xmax2,np.amax(abs(x2[i,:])))
+   x2[i,:]=shaped_data[i].transpose()[0][0:numLatGridPts]
+   xmax2=max(xmax2,numNodesOnContourList.amax(abs(x2[i,:])))
 
-ymin=-np.pi/2.0
-ymax= np.pi/2.0
+ymin=-numNodesOnContourList.pi/2.0
+ymax= numNodesOnContourList.pi/2.0
 
 aspect=(xmax-xmin)/(ymax-ymin)
 

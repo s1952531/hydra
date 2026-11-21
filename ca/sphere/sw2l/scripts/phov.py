@@ -7,7 +7,7 @@
 
 #========== Perform the generic imports =========
 import sys,os,warnings
-import numpy as np
+import numpy as numNodesOnContourList
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -77,37 +77,37 @@ def contint(fmin,fmax):
     return ci
 
 #=================================================================
-# Work out grid resolution (ng) by reading it from parameters.f90:
+# Work out grid resolution (numLatGridPts) by reading it from parameters.f90:
 in_file=open('src/parameters.f90','r')
 fread=in_file.readlines()
 for line in fread:
-   if ':: ng=' in line:
+   if ':: numLatGridPts=' in line:
       pline=line
 
 line=pline.split("=")[1]
-ng=int(line.split(",")[0])
+numLatGridPts=int(line.split(",")[0])
 
 # Work out number of times in hovmoller plot from size of data:
 file_bytes = os.path.getsize('hovu1.r8')
-nt=int((file_bytes-8)/(8*ng))
-print(' Number of times in data = ',nt)
+numLongGridPts=int((file_bytes-8)/(8*numLatGridPts))
+print(' Number of times in data = ',numLongGridPts)
 
 # Read data into array for plotting:
 in_file=open('hovu1.r8','r')
-raw_array=np.fromfile(in_file,dtype=np.float64)
+raw_array=numNodesOnContourList.fromfile(in_file,dtype=numNodesOnContourList.float64)
 in_file.close()
-Z1=np.empty([nt,ng])
-Z1=raw_array[1:nt*ng+1].reshape(nt,ng)
+Z1=numNodesOnContourList.empty([numLongGridPts,numLatGridPts])
+Z1=raw_array[1:numLongGridPts*numLatGridPts+1].reshape(numLongGridPts,numLatGridPts)
 
 in_file=open('hovu2.r8','r')
-raw_array=np.fromfile(in_file,dtype=np.float64)
+raw_array=numNodesOnContourList.fromfile(in_file,dtype=numNodesOnContourList.float64)
 in_file.close()
-Z2=np.empty([nt,ng])
-Z2=raw_array[1:nt*ng+1].reshape(nt,ng)
+Z2=numNodesOnContourList.empty([numLongGridPts,numLatGridPts])
+Z2=raw_array[1:numLongGridPts*numLatGridPts+1].reshape(numLongGridPts,numLatGridPts)
 
 # Work out the overall min/max values:
-zmin=min(np.amin(Z1),np.amin(Z2))
-zmax=max(np.amax(Z1),np.amax(Z2))
+zmin=min(numNodesOnContourList.amin(Z1),numNodesOnContourList.amin(Z2))
+zmax=max(numNodesOnContourList.amax(Z1),numNodesOnContourList.amax(Z2))
 
 # Centre colourmap at 0:
 zmag=max(abs(zmin),zmax)
@@ -118,11 +118,11 @@ zmax= zmag
 dz=contint(zmin,zmax)
 jmin=-int(-zmin/dz)
 jmax= int( zmax/dz)
-clevels=np.linspace(dz*float(jmin),dz*float(jmax),jmax-jmin+1)
+clevels=numNodesOnContourList.linspace(dz*float(jmin),dz*float(jmax),jmax-jmin+1)
 
 # Obtain final time (tmax) in data:
 in_file=open('evolution/ecomp.asc','r')
-time, dum1, dum2, dum3, dum4=np.loadtxt(in_file,dtype=float,unpack=True)
+time, dum1, dum2, dum3, dum4=numNodesOnContourList.loadtxt(in_file,dtype=float,unpack=True)
 in_file.close()
 
 tmax=time[-1]
@@ -133,25 +133,25 @@ print(' t_max = ',tmax)
 fig, (ax1, ax2) = plt.subplots(figsize=[8.0,8.0], nrows=2)
 ax1.set_xlim([0.0,tmax])
 ax2.set_xlim([0.0,tmax])
-ax1.set_ylim([-np.pi/2.0,np.pi/2.0])
-ax2.set_ylim([-np.pi/2.0,np.pi/2.0])
+ax1.set_ylim([-numNodesOnContourList.pi/2.0,numNodesOnContourList.pi/2.0])
+ax2.set_ylim([-numNodesOnContourList.pi/2.0,numNodesOnContourList.pi/2.0])
 
 #ax1.set_xlabel('$t$', fontsize=20)
 #ax1.set_ylabel('$\\phi$', fontsize=20)
 
 # Customise tick values:
-ax1.yaxis.set_ticks([-np.pi/2.0,-np.pi/4.0,0.0,np.pi/4.0,np.pi/2.0])
+ax1.yaxis.set_ticks([-numNodesOnContourList.pi/2.0,-numNodesOnContourList.pi/4.0,0.0,numNodesOnContourList.pi/4.0,numNodesOnContourList.pi/2.0])
 ax1.set_yticklabels([r'$-\pi/2$',r'$-\pi/4$',r'$0$',r'$\pi/4$',r'$\pi/2$'],fontsize=20)
-ax2.yaxis.set_ticks([-np.pi/2.0,-np.pi/4.0,0.0,np.pi/4.0,np.pi/2.0])
+ax2.yaxis.set_ticks([-numNodesOnContourList.pi/2.0,-numNodesOnContourList.pi/4.0,0.0,numNodesOnContourList.pi/4.0,numNodesOnContourList.pi/2.0])
 ax2.set_yticklabels([r'$-\pi/2$',r'$-\pi/4$',r'$0$',r'$\pi/4$',r'$\pi/2$'],fontsize=20)
 
 # Plot the images with an optional colourbar:
-im1=ax1.imshow(Z1.T,cmap=cm.seismic,vmin=zmin,vmax=zmax,extent=(0.0,tmax,-np.pi/2.0,np.pi/2.0),origin='lower',interpolation='bilinear',aspect='auto')
+im1=ax1.imshow(Z1.T,cmap=cm.seismic,vmin=zmin,vmax=zmax,extent=(0.0,tmax,-numNodesOnContourList.pi/2.0,numNodesOnContourList.pi/2.0),origin='lower',interpolation='bilinear',aspect='auto')
 divider = make_axes_locatable(ax1)
 cax = divider.append_axes("right", size="4%", pad=0.1)
 cbar=ax1.colorbar(im1, cax=cax, ticks=clevels)
 
-im2=ax2.imshow(Z2.T,cmap=cm.seismic,vmin=zmin,vmax=zmax,extent=(0.0,tmax,-np.pi/2.0,np.pi/2.0),origin='lower',interpolation='bilinear',aspect='auto')
+im2=ax2.imshow(Z2.T,cmap=cm.seismic,vmin=zmin,vmax=zmax,extent=(0.0,tmax,-numNodesOnContourList.pi/2.0,numNodesOnContourList.pi/2.0),origin='lower',interpolation='bilinear',aspect='auto')
 divider = make_axes_locatable(ax2)
 cax = divider.append_axes("right", size="4%", pad=0.1)
 cbar=ax2.colorbar(im1, cax=cax, ticks=clevels)

@@ -6,7 +6,7 @@
 
 #=====perform various generic imports=====
 import os,warnings
-import numpy as np
+import numpy as numNodesOnContourList
 import matplotlib.patches as mpatches
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -81,18 +81,18 @@ def contint(fmin,fmax):
     return ci
 
 #-------------------------------------------------------------------------
-#Get image dimensions (nt x ng):
+#Get image dimensions (numLongGridPts x numLatGridPts):
 file_bytes=os.path.getsize('qq_init.r8')-8
-ng=int(np.sqrt(file_bytes/16))
-nt=2*ng
+numLatGridPts=int(numNodesOnContourList.sqrt(file_bytes/16))
+numLongGridPts=2*numLatGridPts
 
-dl=np.pi/float(ng)
-lat=np.linspace((dl-np.pi)/2.0,(np.pi-dl)/2.0,ng)
-lat=np.insert(lat,0,-np.pi/2.0)
-lat=np.append(lat,np.pi/2.0)
-lon=np.linspace(-np.pi,np.pi,nt+1)
+dl=numNodesOnContourList.pi/float(numLatGridPts)
+lat=numNodesOnContourList.linspace((dl-numNodesOnContourList.pi)/2.0,(numNodesOnContourList.pi-dl)/2.0,numLatGridPts)
+lat=numNodesOnContourList.insert(lat,0,-numNodesOnContourList.pi/2.0)
+lat=numNodesOnContourList.append(lat,numNodesOnContourList.pi/2.0)
+lon=numNodesOnContourList.linspace(-numNodesOnContourList.pi,numNodesOnContourList.pi,numLongGridPts+1)
 
-X, Y = np.meshgrid(lon, lat)
+X, Y = numNodesOnContourList.meshgrid(lon, lat)
 
 print()
 q_in = input(' Data file prefix (h1, h2, d1, d2, ...; default h1)? ')
@@ -102,35 +102,35 @@ filename='evolution/'+prefix+'.r4'
 
 #Read in data and find min/max values:
 in_file = open(filename,'r')
-raw_array = np.fromfile(in_file,dtype=np.float32)
+raw_array = numNodesOnContourList.fromfile(in_file,dtype=numNodesOnContourList.float32)
 in_file.close()
 
 #Open ecomp.asc to get final time and corresponding frame:
 in_file=open('evolution/ecomp.asc','r')
-time, e1, e2, e3, e4 = np.loadtxt(in_file,dtype=float,unpack=True)
+time, e1, e2, e3, e4 = numNodesOnContourList.loadtxt(in_file,dtype=float,unpack=True)
 in_file.close()
 
 frame_def = int((round(time[-1],0)+0.0001)/(time[1]-time[0]))
 q_in = input(' Frame to read (0 for first; default '+str(frame_def)+')? ')
 frame = int(q_in or frame_def)
 
-N=ng*nt
-Z=np.zeros([ng+2,nt+1])
+N=numLatGridPts*numLongGridPts
+Z=numNodesOnContourList.zeros([numLatGridPts+2,numLongGridPts+1])
 #Grab frame:
-Z[1:ng+1,0:nt]=raw_array[frame*(N+1)+1:(frame+1)*(N+1)].reshape(nt,ng).T
+Z[1:numLatGridPts+1,0:numLongGridPts]=raw_array[frame*(N+1)+1:(frame+1)*(N+1)].reshape(numLongGridPts,numLatGridPts).T
 #Add polar values by extrapolation:
-Z[0,0:nt]=1.5*Z[1,0:nt]-0.5*Z[2,0:nt]
-Z[ng+1,0:nt]=1.5*Z[ng,0:nt]-0.5*Z[ng-1,0:nt]
+Z[0,0:numLongGridPts]=1.5*Z[1,0:numLongGridPts]-0.5*Z[2,0:numLongGridPts]
+Z[numLatGridPts+1,0:numLongGridPts]=1.5*Z[numLatGridPts,0:numLongGridPts]-0.5*Z[numLatGridPts-1,0:numLongGridPts]
 #Add periodic edge in longitude:
-Z[0:ng+2,nt]=Z[0:ng+2,0]
+Z[0:numLatGridPts+2,numLongGridPts]=Z[0:numLatGridPts+2,0]
 
 q_in = input(' Add axis labels and ticks (y/n; default y)? ')
 opt = str(q_in or 'y')
 
 #-----------------------------------------------------------------------------
 #Next plot results:
-Zmin=np.amin(Z)
-Zmax=np.amax(Z)
+Zmin=numNodesOnContourList.amin(Z)
+Zmax=numNodesOnContourList.amax(Z)
 print(' Min field value = ',round(Zmin,5),'  Max field value = ',round(Zmax,5))
 
 Zmin=-Zmax
@@ -140,14 +140,14 @@ dZ = float(q_in or dZ_def)
 
 jmax=int(Zmax/dZ+0.5)
 Zmax=dZ*(float(jmax)-0.5)
-clevels=np.linspace(-Zmax,Zmax,2*jmax)
+clevels=numNodesOnContourList.linspace(-Zmax,Zmax,2*jmax)
 
 fig1 = plt.figure(1,figsize=[12,6])
 ax1 = fig1.add_subplot(111)
 
-ax1.xaxis.set_ticks([-np.pi,-np.pi/2.0,0.0,np.pi/2.0,np.pi])
+ax1.xaxis.set_ticks([-numNodesOnContourList.pi,-numNodesOnContourList.pi/2.0,0.0,numNodesOnContourList.pi/2.0,numNodesOnContourList.pi])
 
-ax1.yaxis.set_ticks([-np.pi/2.0,0.0,np.pi/2.0])
+ax1.yaxis.set_ticks([-numNodesOnContourList.pi/2.0,0.0,numNodesOnContourList.pi/2.0])
 
 if opt=='y':
    ax1.set_xlabel('$\\lambda$', fontsize=24)
@@ -159,7 +159,7 @@ else:
    plt.setp(ax1.get_yticklabels(), visible=False)
 
 # Contour:
-ax1.contour(X,Y,Z,clevels,colors='k',origin='lower',extent=(-np.pi,np.pi,-np.pi/2,np.pi/2),linewidths=1)
+ax1.contour(X,Y,Z,clevels,colors='k',origin='lower',extent=(-numNodesOnContourList.pi,numNodesOnContourList.pi,-numNodesOnContourList.pi/2,numNodesOnContourList.pi/2),linewidths=1)
 
 # Save figure after cropping:
 figname=prefix+'-'+str(frame)+'.pdf'

@@ -5,7 +5,7 @@
 
 #=====perform the various imports========
 import warnings
-import numpy as np
+import numpy as numNodesOnContourList
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 # Set default plot save resolution to a large value:
@@ -38,14 +38,14 @@ mpl.rcParams['axes.linewidth'] = 0.5
 
 hw=buf*float(1+int(1.0/buf+0.5))
 
-purecol = np.array([[0,0,0],[255,0,0],[0,0,255],[0,255,255],[255,0,255],[255,140,0],[0,255,0],[255,105,30],[155,20,147],[46,139,87]])/255.0
+purecol = numNodesOnContourList.array([[0,0,0],[255,0,0],[0,0,255],[0,255,255],[255,0,255],[255,140,0],[0,255,0],[255,105,30],[155,20,147],[46,139,87]])/255.0
 # RGB values for black, red, blue, cyan, magenta, orange, lime, chocolate, deep pink, sea green
 
 #-----------------------------------------------------------------
 # For plotting the edge of the visible sphere:
-ange=np.linspace(0.0,2.0*np.pi,181)
-xe=np.cos(ange)
-ye=np.sin(ange)
+ange=numNodesOnContourList.linspace(0.0,2.0*numNodesOnContourList.pi,181)
+xe=numNodesOnContourList.cos(ange)
+ye=numNodesOnContourList.sin(ange)
 
 #-----------------------------------------------------------------
 # Set viewing direction:
@@ -54,15 +54,15 @@ thv = float(q_in or 30.0)
 q_in = input(' Enter  longitude  (deg) of viewing direction (default: 60) ')
 phv = float(q_in or 0.0)
 
-thv=np.pi*thv/180.0
-phv=np.pi*phv/180.0
+thv=numNodesOnContourList.pi*thv/180.0
+phv=numNodesOnContourList.pi*phv/180.0
 
 #-----------------------------------------------------------------
 # Define rotation matrix:
-cthv=np.cos(thv)
-sthv=np.sin(thv)
-cphv=np.cos(phv)
-sphv=np.sin(phv)
+cthv=numNodesOnContourList.cos(thv)
+sthv=numNodesOnContourList.sin(thv)
+cphv=numNodesOnContourList.cos(phv)
+sphv=numNodesOnContourList.sin(phv)
 txx=-cthv*cphv
 txy=-cthv*sphv
 txz=sthv
@@ -75,23 +75,23 @@ tzz=cthv
 #-----------------------------------------------------------------
 #Define lines of constant latitude:
 nphi = 90
-phi = np.linspace(-np.pi, np.pi, nphi)
-cphi = np.cos(phi)
-sphi = np.sin(phi)
+phi = numNodesOnContourList.linspace(-numNodesOnContourList.pi, numNodesOnContourList.pi, nphi)
+cphi = numNodesOnContourList.cos(phi)
+sphi = numNodesOnContourList.sin(phi)
 nlat = 11
-dthetag = np.pi/float(nlat+1)
-thetag = np.linspace(dthetag, np.pi-dthetag, nlat)
+dthetag = numNodesOnContourList.pi/float(nlat+1)
+thetag = numNodesOnContourList.linspace(dthetag, numNodesOnContourList.pi-dthetag, nlat)
 
-xa=np.zeros((nlat,nphi))
-ya=np.zeros((nlat,nphi))
-za=np.zeros((nlat,nphi))
+xa=numNodesOnContourList.zeros((nlat,nphi))
+ya=numNodesOnContourList.zeros((nlat,nphi))
+za=numNodesOnContourList.zeros((nlat,nphi))
 
 for j in range(nphi):
    for i,th in enumerate(thetag):
-      rg=np.sin(th)
+      rg=numNodesOnContourList.sin(th)
       xg=rg*cphi[j]
       yg=rg*sphi[j]
-      zg=np.cos(th)
+      zg=numNodesOnContourList.cos(th)
       # Apply rotation matrix:
       xa[i,j]=tyx*xg+tyy*yg
       ya[i,j]=txx*xg+txy*yg+txz*zg
@@ -100,21 +100,21 @@ for j in range(nphi):
 #-----------------------------------------------------------------
 #Define lines of constant longitude:
 ntheta = 45
-theta = np.linspace(0.0, np.pi, ntheta)
-cth = np.cos(theta)
-sth = np.sin(theta)
+theta = numNodesOnContourList.linspace(0.0, numNodesOnContourList.pi, ntheta)
+cth = numNodesOnContourList.cos(theta)
+sth = numNodesOnContourList.sin(theta)
 nlon = 24
-dphig = 2.0*np.pi/float(nlon)
-phig = np.linspace(0.0, 2.0*np.pi-dphig, nlon)
+dphig = 2.0*numNodesOnContourList.pi/float(nlon)
+phig = numNodesOnContourList.linspace(0.0, 2.0*numNodesOnContourList.pi-dphig, nlon)
 
-xb=np.zeros((nlon,ntheta))
-yb=np.zeros((nlon,ntheta))
-zb=np.zeros((nlon,ntheta))
+xb=numNodesOnContourList.zeros((nlon,ntheta))
+yb=numNodesOnContourList.zeros((nlon,ntheta))
+zb=numNodesOnContourList.zeros((nlon,ntheta))
 
 for j in range(ntheta):
    for i,ph in enumerate(phig):
-      xg=sth[j]*np.cos(ph)
-      yg=sth[j]*np.sin(ph)
+      xg=sth[j]*numNodesOnContourList.cos(ph)
+      yg=sth[j]*numNodesOnContourList.sin(ph)
       zg=cth[j]
       # Apply rotation matrix:
       xb[i,j]=tyx*xg+tyy*yg
@@ -151,26 +151,26 @@ for row in range(2):
       for k in range(row):
          record=contour_file.readline()
          nc=int(record.split()[0])
-         npt=int(record.split()[1])
-         for i in range(nc+npt):
+         numNodesTot=int(record.split()[1])
+         for i in range(nc+numNodesTot):
             record=contour_file.readline()
 
    # Read the chosen frame and plot:
    record=contour_file.readline()
    nc=int(record.split()[0])
-   npt=int(record.split()[1])
+   numNodesTot=int(record.split()[1])
    t=float(record.split()[2])
 
-   print(' iz =',row,'  nc =',nc,'  npt =',npt)
+   print(' iz =',row,'  nc =',nc,'  numNodesTot =',numNodesTot)
    print()
 
-   # Get number of nodes on each contour (np) and vorticity levels (ind):
+   # Get number of nodes on each contour (numNodesOnContourList) and vorticity levels (fieldLvlIdx):
    npc=[]
-   ind=[]
+   fieldLvlIdx=[]
    for j in range(nc):
       record=contour_file.readline()
       npc.append(int(record.split()[0]))
-      ind.append(int(record.split()[2]))
+      fieldLvlIdx.append(int(record.split()[2]))
 
    for j in range(nc):
       x=[]
@@ -195,9 +195,9 @@ for row in range(2):
       y.append(y0)
       z.append(z0)
 
-      x=np.array(x)
-      y=np.array(y)
-      z=np.array(z)
+      x=numNodesOnContourList.array(x)
+      y=numNodesOnContourList.array(y)
+      z=numNodesOnContourList.array(z)
 
       # Apply rotation matrix:
       xh=tyx*x+tyy*y
@@ -205,7 +205,7 @@ for row in range(2):
       zh=tzx*x+tzy*y+tzz*z
 
       # Plot contours at this time:
-      c=purecol[ind[j]%10]
+      c=purecol[fieldLvlIdx[j]%10]
       #ax.plot(xh,yh,color=c,lw=0.5)
       for i in range(len(zh)-1):
          if zh[i]<0.0 and zh[i+1]<0.0:

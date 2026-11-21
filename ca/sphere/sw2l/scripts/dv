@@ -12,11 +12,11 @@ if ($n == 0) then
    echo
    echo '  Examples:'
    echo
-   echo '  dv q1'
-   echo '  dv q1 -mod'
-   echo '  dv q1 -mod -glob'
-   echo '  dv q1 -lims -1.0 1.0'
-   echo '  dv q1 -notitle -cb'
+   echo '  dv qAnom1'
+   echo '  dv qAnom1 -mod'
+   echo '  dv qAnom1 -mod -glob'
+   echo '  dv qAnom1 -lims -1.0 1.0'
+   echo '  dv qAnom1 -notitle -cb'
    echo
    echo '  (For all options, just type "dataview")'
    echo
@@ -26,13 +26,13 @@ else
 endif
 
 # Get resolution
-set ng = `grep "ng=" src/parameters.f90 | awk -F= '{print $(NF-1)}' | awk -F, '{print $1}'`
-@ nt = ( 2 * $ng )
+set numLatGridPts = `grep "numLatGridPts=" src/parameters.f90 | awk -F= '{print $(NF-1)}' | awk -F, '{print $1}'`
+@ numLongGridPts = ( 2 * $numLatGridPts )
 
 if ($n != 1) then
    # Remove first element of argument list <field> to get <options>:
    shift
-   dataview -ndim $nt $ng {evolution/}$field{.r4} $argv &
+   dataview -ndim $numLongGridPts $numLatGridPts {evolution/}$field{.r4} $argv &
 else
-   dataview -ndim $nt $ng {evolution/}$field{.r4} &
+   dataview -ndim $numLongGridPts $numLatGridPts {evolution/}$field{.r4} &
 endif

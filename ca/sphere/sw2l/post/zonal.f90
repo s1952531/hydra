@@ -18,17 +18,17 @@ use spectral
  ! Declarations:
 implicit none
 
-double precision:: q1(ng,nt),q2(ng,nt)
-double precision:: h1(ng,nt),h2(ng,nt)
-double precision:: z1(ng,nt),z2(ng,nt)
-double precision:: u1(ng,nt),u2(ng,nt)
+double precision:: qAnom1(numLatGridPts,numLongGridPts),qAnom2(numLatGridPts,numLongGridPts)
+double precision:: h1(numLatGridPts,numLongGridPts),h2(numLatGridPts,numLongGridPts)
+double precision:: z1(numLatGridPts,numLongGridPts),z2(numLatGridPts,numLongGridPts)
+double precision:: u1(numLatGridPts,numLongGridPts),u2(numLatGridPts,numLongGridPts)
 
-double precision:: wka(ng,nt),wkb(ng,nt),wkc(ng,nt)
-double precision:: zu1(ng),zu2(ng),zh1(ng),zh2(ng),zq1(ng),zq2(ng)
-double precision:: phi(ng)
+double precision:: wka(numLatGridPts,numLongGridPts),wkb(numLatGridPts,numLongGridPts),wkc(numLatGridPts,numLongGridPts)
+double precision:: zu1(numLatGridPts),zu2(numLatGridPts),zh1(numLatGridPts),zh2(numLatGridPts),zq1(numLatGridPts),zq2(numLatGridPts)
+double precision:: phi(numLatGridPts)
 double precision:: zfac,t
 
-real:: qqr4(ng,nt),tr4
+real:: qqr4(numLatGridPts,numLongGridPts),tr4
 integer:: i,j,loop,iread
 
 !---------------------------------------------------------------
@@ -36,8 +36,8 @@ integer:: i,j,loop,iread
 call init_spectral
 
  !Define latitude and scaling constant for averaging:
-zfac=one/dble(nt)
-do j=1,ng
+zfac=one/dble(numLongGridPts)
+do j=1,numLatGridPts
   phi(j)=(dble(j)-f12)*dl-hpi
 enddo
 
@@ -93,7 +93,7 @@ do
   u1=-wkb
 
    !Return to physical space:
-  call revfft(ng,nt,u1,trig,factors) 
+  call revfft(numLatGridPts,numLongGridPts,u1,trig,factors) 
 
    !::::::::::::::::::::::::::::::::::::::::::::::::
    !Layer 2:
@@ -106,13 +106,13 @@ do
   u2=-wkb
 
    !Return to physical space:
-  call revfft(ng,nt,u2,trig,factors) 
+  call revfft(numLatGridPts,numLongGridPts,u2,trig,factors) 
 
   !-----------------------------------------------------------------
    !Define PV:
-  do i=1,nt
-    q1(:,i)=(cof+z1(:,i))/(one+h1(:,i))
-    q2(:,i)=(cof+z2(:,i))/(one+h2(:,i))
+  do i=1,numLongGridPts
+    qAnom1(:,i)=(cof+z1(:,i))/(one+h1(:,i))
+    qAnom2(:,i)=(cof+z2(:,i))/(one+h2(:,i))
   enddo
   
    !Compute zonal averages:
@@ -123,23 +123,23 @@ do
   zq1=zero
   zq2=zero
 
-  do j=1,ng
+  do j=1,numLatGridPts
     zu1(j)=zu1(j)+zfac*sum(u1(j,:))
     zu2(j)=zu2(j)+zfac*sum(u2(j,:))
     zh1(j)=zh1(j)+zfac*sum(h1(j,:))
     zh2(j)=zh2(j)+zfac*sum(h2(j,:))
-    zq1(j)=zq1(j)+zfac*sum(q1(j,:))
-    zq2(j)=zq2(j)+zfac*sum(q2(j,:))
+    zq1(j)=zq1(j)+zfac*sum(qAnom1(j,:))
+    zq2(j)=zq2(j)+zfac*sum(qAnom2(j,:))
   enddo
 
    !Write diagnostic data for this time:
-  write(51,'(f13.6,1x,i5)') t,ng
-  write(61,'(f13.6,1x,i5)') t,ng
-  write(52,'(f13.6,1x,i5)') t,ng
-  write(62,'(f13.6,1x,i5)') t,ng
-  write(53,'(f13.6,1x,i5)') t,ng
-  write(63,'(f13.6,1x,i5)') t,ng
-  do j=1,ng
+  write(51,'(f13.6,1x,i5)') t,numLatGridPts
+  write(61,'(f13.6,1x,i5)') t,numLatGridPts
+  write(52,'(f13.6,1x,i5)') t,numLatGridPts
+  write(62,'(f13.6,1x,i5)') t,numLatGridPts
+  write(53,'(f13.6,1x,i5)') t,numLatGridPts
+  write(63,'(f13.6,1x,i5)') t,numLatGridPts
+  do j=1,numLatGridPts
     write(51,'(2(1x,f12.8))') zu1(j),phi(j)
     write(61,'(2(1x,f12.8))') zu2(j),phi(j)
     write(52,'(2(1x,f12.8))') zh1(j),phi(j)

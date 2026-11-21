@@ -13,28 +13,28 @@ use force
 !-----------------------------------------------------------------------
 
  !PV anomaly, relative vorticity and PV residual for recontouring:
-double precision:: q1(ng,nt), z1(ng,nt)
-double precision:: q2(ng,nt), z2(ng,nt)
-double precision:: qr(ng,nt,2), qsp(2), qnp(2)
+double precision:: qAnom1(numLatGridPts,numLongGridPts), z1(numLatGridPts,numLongGridPts)
+double precision:: qAnom2(numLatGridPts,numLongGridPts), z2(numLatGridPts,numLongGridPts)
+double precision:: qResid(numLatGridPts,numLongGridPts,2), qSPole(2), qNPole(2)
 
  !Velocity field and dimensionless height anomaly in physical space:
-double precision:: u1(ng,nt), v1(ng,nt), h1(ng,nt)
-double precision:: u2(ng,nt), v2(ng,nt), h2(ng,nt)
+double precision:: u1(numLatGridPts,numLongGridPts), v1(numLatGridPts,numLongGridPts), h1(numLatGridPts,numLongGridPts)
+double precision:: u2(numLatGridPts,numLongGridPts), v2(numLatGridPts,numLongGridPts), h2(numLatGridPts,numLongGridPts)
 
  !Spectral prognostic fields:
-double precision:: qs1(ng,nt), ds1(ng,nt), gs1(ng,nt)
-double precision:: qs2(ng,nt), ds2(ng,nt), gs2(ng,nt)
+double precision:: qSpec1(numLatGridPts,numLongGridPts), deltaSpec1(numLatGridPts,numLongGridPts), gammaSpec1(numLatGridPts,numLongGridPts)
+double precision:: qSpec2(numLatGridPts,numLongGridPts), deltaSpec2(numLatGridPts,numLongGridPts), gammaSpec2(numLatGridPts,numLongGridPts)
 
  !PV forcing (if used):
-double precision,allocatable,dimension(:,:):: fq
+double precision,allocatable,dimension(:,:):: qForcing
 
  !Bottom topography and spectral fields needed in evolution (if used):
-double precision,allocatable,dimension(:,:):: bb, tsds, tsgs
+double precision,allocatable,dimension(:,:):: botTopo, specDeltaTopoSrc, specGammaTopoSrc
 
  !Time and twist variable:
 double precision:: t, twist
 
  !Number of time steps between grid and contour saves:
-double precision:: ngsave, ncsave
+double precision:: gridSaveInterval, contourSaveInterval
 
 end module common

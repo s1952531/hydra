@@ -12,14 +12,14 @@ use randomise
  !Declarations:
 implicit none
 
-double precision:: h1(ng,nt), h2(ng,nt)
-double precision:: d1(ng,nt), d2(ng,nt)
-double precision:: g1(ng,nt), g2(ng,nt)
-double precision:: z1(ng,nt), z2(ng,nt)
-double precision:: q1(ng,nt), q2(ng,nt)
-double precision:: u1(ng,nt), u2(ng,nt)
+double precision:: h1(numLatGridPts,numLongGridPts), h2(numLatGridPts,numLongGridPts)
+double precision:: d1(numLatGridPts,numLongGridPts), d2(numLatGridPts,numLongGridPts)
+double precision:: g1(numLatGridPts,numLongGridPts), g2(numLatGridPts,numLongGridPts)
+double precision:: z1(numLatGridPts,numLongGridPts), z2(numLatGridPts,numLongGridPts)
+double precision:: qAnom1(numLatGridPts,numLongGridPts), qAnom2(numLatGridPts,numLongGridPts)
+double precision:: u1(numLatGridPts,numLongGridPts), u2(numLatGridPts,numLongGridPts)
 
-double precision:: wka(ng,nt), wkb(ng,nt)
+double precision:: wka(numLatGridPts,numLongGridPts), wkb(numLatGridPts,numLongGridPts)
 double precision:: qmax
 integer:: ordbeg, ordend, i, j, m
 
@@ -76,16 +76,16 @@ z2 = z2 - qmax
 
 !------------------------------------------------------
 ! Compute PV in each layer:
-do i=1,nt
-   q1(:,i) = (z1(:,i)+cof)/(one+h1(:,i))
-   q2(:,i) = (z2(:,i)+cof)/(one+h2(:,i))
+do i=1,numLongGridPts
+   qAnom1(:,i) = (z1(:,i)+cof)/(one+h1(:,i))
+   qAnom2(:,i) = (z2(:,i)+cof)/(one+h2(:,i))
 enddo
 
 ! Write PV field:
 open(11,file = 'qq_init.r8',form = 'unformatted', &
       access = 'direct',status = 'replace',recl = 2*nbytes)
-write(11,rec=1) zero,q1
-write(11,rec=2) zero,q2
+write(11,rec=1) zero,qAnom1
+write(11,rec=2) zero,qAnom2
 close(11)
 
 ! Write h:
@@ -113,13 +113,13 @@ close(11)
 ! Compute u & gamma in each layer:
 
 ! First convert the height field in each layer to semi-spectral space:
-call forfft(ng,nt,h1,trig,factors) 
-call forfft(ng,nt,h2,trig,factors) 
+call forfft(numLatGridPts,numLongGridPts,h1,trig,factors) 
+call forfft(numLatGridPts,numLongGridPts,h2,trig,factors) 
 
 ! ==> Layer 1 <==
 
 ! Convert the relative vorticity to semi-spectral space:
-call forfft(ng,nt,z1,trig,factors) 
+call forfft(numLatGridPts,numLongGridPts,z1,trig,factors) 
 
 ! Invert Laplace's operator on relative vorticity:
 call laplinv(z1,wka,u1)
@@ -129,22 +129,22 @@ call laplinv(z1,wka,u1)
 u1 = -u1
 
 ! Get pressure term:
-wka = csq1*h1+denrat*csq2*h2
+wka = csq1*h1+densityRatio*csq2*h2
 call laplace(wka,wkb)
 
 ! Add things up to define gamma_1 (in semi-spectral space):
-do m=1,nt
-  g1(:,m)=cof*z1(:,m)-bet*u1(:,m)-wkb(:,m)
+do m=1,numLongGridPts
+  g1(:,m)=cof*z1(:,m)-beta*u1(:,m)-wkb(:,m)
 enddo
 
 ! Convert u_1 & gamma_1 to physical space for output below:
-call revfft(ng,nt,u1,trig,factors) 
-call revfft(ng,nt,g1,trig,factors) 
+call revfft(numLatGridPts,numLongGridPts,u1,trig,factors) 
+call revfft(numLatGridPts,numLongGridPts,g1,trig,factors) 
 
 ! ==> Layer 2 <==
 
 ! Convert the relative vorticity to semi-spectral space:
-call forfft(ng,nt,z2,trig,factors) 
+call forfft(numLatGridPts,numLongGridPts,z2,trig,factors) 
 
 ! Invert Laplace's operator on relative vorticity:
 call laplinv(z2,wka,u2)
@@ -158,13 +158,13 @@ wka = csq1*h1+csq2*h2
 call laplace(wka,wkb)
 
 ! Add things up to define gamma_2 (in semi-spectral space):
-do m=1,nt
-  g2(:,m)=cof*z2(:,m)-bet*u2(:,m)-wkb(:,m)
+do m=1,numLongGridPts
+  g2(:,m)=cof*z2(:,m)-beta*u2(:,m)-wkb(:,m)
 enddo
 
 ! Convert u_2 & gamma_2 to physical space for output below:
-call revfft(ng,nt,u2,trig,factors) 
-call revfft(ng,nt,g2,trig,factors) 
+call revfft(numLatGridPts,numLongGridPts,u2,trig,factors) 
+call revfft(numLatGridPts,numLongGridPts,g2,trig,factors) 
 
 !------------------------------------------------------
 ! Write u:

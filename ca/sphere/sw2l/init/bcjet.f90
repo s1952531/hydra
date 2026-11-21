@@ -11,7 +11,7 @@ use constants
 ! Declarations:
 implicit none
 
-double precision:: qq(ng,nt), q2(ng,nt), q1(ng), phic(nt)
+double precision:: qq(numLatGridPts,numLongGridPts), qAnom2(numLatGridPts,numLongGridPts), qAnom1(numLatGridPts), phic(numLongGridPts)
 double precision:: robc, wid, phi0, amp2, amp3, fac, lon, lat
 
 integer:: i, j
@@ -40,47 +40,47 @@ amp2 = fac*amp2
 amp3 = fac*amp3
 
 ! Define phi_c(lambda):
-do i = 1,nt
+do i = 1,numLongGridPts
    lon = dl*dble(i-1)-pi
    phic(i) = amp2*sin(two*lon)+amp3*sin(three*lon)
 enddo
 
-! Define baroclinic PV q2:
+! Define baroclinic PV qAnom2:
 fac = one/wid**2
 robc = fpole*robc
-do i = 1,nt
-   do j = 1,ng
+do i = 1,numLongGridPts
+   do j = 1,numLatGridPts
       lat = (dble(j)-f12)*dl-hpi
-      q2(j,i) = robc*exp(-fac*(lat-phic(i))**2)
+      qAnom2(j,i) = robc*exp(-fac*(lat-phic(i))**2)
    enddo
 enddo
 
 !-------------------------------------------------------------
 ! Define resting-state barotropic PV, 2*Omega*sin(latitude):
-do j = 1,ng
+do j = 1,numLatGridPts
    lat = (dble(j)-f12)*dl-hpi
-   q1(j) = fpole*sin(lat)
+   qAnom1(j) = fpole*sin(lat)
 enddo
 
-! Write full PV (including planetary part q1) in each layer:
+! Write full PV (including planetary part qAnom1) in each layer:
 open(11,file = 'qq_init.r8',form = 'unformatted', &
       access = 'direct',status = 'replace',recl = 2*nbytes)
 
 ! Layer 1:
-do i = 1,nt
-   qq(:,i) = q1-mrat2*q2(:,i)
+do i = 1,numLongGridPts
+   qq(:,i) = qAnom1-mrat2*qAnom2(:,i)
 enddo
 write(11,rec=1) zero,qq
 
 ! Layer 2:
-do i = 1,nt
-   qq(:,i) = q1+mrat1*q2(:,i)
+do i = 1,numLongGridPts
+   qq(:,i) = qAnom1+mrat1*qAnom2(:,i)
 enddo
 write(11,rec=2) zero,qq
 
 ! Here, mrat1 = m_1/(m_1+m_2) and mrat2 = m_2/(m_1+m_2) where
 ! m_j is the mass of layer j --- see constants.f90.
-! Note, above q1 is the PV in mode 1 (barotropic) while q2 is
+! Note, above qAnom1 is the PV in mode 1 (barotropic) while qAnom2 is
 ! the PV in mode 2. These are projected onto layers 1 and 2
 ! in the two loops immediately above.
 

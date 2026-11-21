@@ -26,7 +26,7 @@ read(*,*) iopt
 
 !write(*,*) ' Width (in pixels) of output image?'
 !read(*,*) ny
-ny=ng !need this to be compatible with the odv viewing script [could use ny=nt]
+ny=numLatGridPts !need this to be compatible with the odv viewing script [could use ny=numLongGridPts]
 nx=ny
 
  !Define output record length (in bytes):
@@ -127,22 +127,22 @@ contains
 
 !============================================================================
 
-subroutine opgrid(rlatc,rlonc,ny,nx,lay)
+subroutine opgrid(rlatc,rlonc,ny,nx,contourIdxToLayerIdx)
 ! Projects lat-lon data in an r4 file orthographically
 
 implicit none
 
-integer:: ny,nx,lay
+integer:: ny,nx,contourIdxToLayerIdx
 
 integer:: i,j
 integer:: iy,iz,ic,ip1,jp1
 
-double precision:: qr(ng,nt),tr
-real:: qq(0:ngp1,nt),qqop(nx,ny)
+double precision:: qResid(numLatGridPts,numLongGridPts),tr
+real:: qq(0:ngp1,numLongGridPts),qqop(nx,ny)
 real:: yg(ny),zg(nx)
 real:: qqbg,t,dy,dz,det
 real:: rlatc,clatc,slatc,rlonc,clonc,slonc
-real:: xp,yp,zp,xm,xt,yt,zt,ri,rj,aa,bb,cc,dd,qqt
+real:: xp,yp,zp,xm,xt,yt,zt,ri,rj,aa,botTopo,cc,dd,qqt
 
 !------------------------------------------------------------------
 !write(*,*) ' Background field level (for points off the surface)?'
@@ -168,19 +168,19 @@ slonc=sin(rlonc*pi/180.)
 
 !------------------------------------------------------------------
  !Process data:
-read(11,rec=lay) tr,qr
+read(11,rec=contourIdxToLayerIdx) tr,qResid
 
 t=real(tr)
-qq(1:ng,1:nt)=real(qr(:,:))
+qq(1:numLatGridPts,1:numLongGridPts)=real(qResid(:,:))
 
- !Copy latitudes adjacent to poles (j = 1 and ng) with a pi
+ !Copy latitudes adjacent to poles (j = 1 and numLatGridPts) with a pi
  !shift in longitude to simplify interpolation below:
-do i=1,ng
-  ic=i+ng
+do i=1,numLatGridPts
+  ic=i+numLatGridPts
   qq(0,i)=qq(1,ic)
   qq(0,ic)=qq(1,i)
-  qq(ngp1,i)=qq(ng,ic)
-  qq(ngp1,ic)=qq(ng,i)
+  qq(ngp1,i)=qq(numLatGridPts,ic)
+  qq(ngp1,ic)=qq(numLatGridPts,i)
 enddo
 
  !Do interpolation in chosen perspective:
@@ -200,9 +200,9 @@ do iy=1,ny
        !Find longitude & latitude then bi-linearly interpolate qq:
       ri=dli*(pi+atan2(yt,xt))
       i=1+int(ri)
-      ip1=1+mod(i,nt)
-      bb=float(i)-ri
-      aa=one-bb
+      ip1=1+mod(i,numLongGridPts)
+      botTopo=float(i)-ri
+      aa=one-botTopo
 
       rj=dli*(hpidl+asin(zt))
       j=int(rj)
@@ -210,7 +210,7 @@ do iy=1,ny
       cc=rj-float(j)
       dd=one-cc
 
-      qqop(iz,iy)=bb*(dd*qq(j,i)  +cc*qq(jp1,i))   &
+      qqop(iz,iy)=botTopo*(dd*qq(j,i)  +cc*qq(jp1,i))   &
                  +aa*(dd*qq(j,ip1)+cc*qq(jp1,ip1))
     else
       qqop(iz,iy)=qqbg
@@ -219,7 +219,7 @@ do iy=1,ny
 enddo
 
  !Write character image:
-write(20+lay,rec=1) qqop
+write(20+contourIdxToLayerIdx,rec=1) qqop
 
 end subroutine opgrid
 

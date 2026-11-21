@@ -7,14 +7,14 @@
 # Writtem 30 October 2026 by D G Dritschel @ Kyoto
 #=================================================================
 
-import numpy as np
+import numpy as numNodesOnContourList
 
 #-----------------------------------------------------------------
 # Specify constants:
 print()
 q_in = input(' Enter rho_2/rho_1 < 1 (default: 0.6) ')
-denrat = float(q_in or 0.6)
-if abs(denrat-1.0) < 1.e-12:
+densityRatio = float(q_in or 0.6)
+if abs(densityRatio-1.0) < 1.e-12:
     print(' rho_2/rho_1 must be strictly < 1. ***Exiting***')
     print()
     exit(-1)
@@ -28,7 +28,7 @@ h1 = 1.0/(1.0+hrat)
 h2 = h1*hrat
 
 # Mass ratio of layers:
-mubar = denrat*hrat
+mubar = densityRatio*hrat
 
 print()
 print(' Without loss of generality, the polar Coriolis frequency f_p = 4*pi.')
@@ -41,8 +41,8 @@ q_in = input(' Enter k_d (default: 8.0) ')
 kd = float(q_in or 8.0)
 
 # Nominal squared gravity-wave speeds, g*H_1 and g*H_2:
-fpole = 4.0*np.pi
-cfac = fpole**2/((1.0-denrat)*kd**2)
+fpole = 4.0*numNodesOnContourList.pi
+cfac = fpole**2/((1.0-densityRatio)*kd**2)
 csq1 = cfac*(1.0+1.0/hrat)
 csq2 = cfac*(1.0+hrat)
 
@@ -54,7 +54,7 @@ g = csq1+csq2
 # inversion of the height field from the definition of gamma, or in
 # the semi-implicit time-stepping for delta and gamma (details may
 # be found in Jougla & Dritschel (2017), appendix A.1, pp. 610-611):
-rad = np.sqrt(0.25-(1.0-denrat)*h1*h2)
+rad = numNodesOnContourList.sqrt(0.25-(1.0-densityRatio)*h1*h2)
 gam1 = 0.5-rad
 gam2 = 0.5+rad
 ctsq1 = g*gam2
@@ -66,12 +66,12 @@ v21 = h1/(gam1-h1)  # or h1/(h2-gam2) as in JD'17
 v22 = 1.0
 
 #print()
-#print(' The 1st mode deformation wavenumber is',f/np.sqrt(ctsq1))
-#print(' The 2st mode deformation wavenumber is',f/np.sqrt(ctsq2))
+#print(' The 1st mode deformation wavenumber is',f/numNodesOnContourList.sqrt(ctsq1))
+#print(' The 2st mode deformation wavenumber is',f/numNodesOnContourList.sqrt(ctsq2))
 
 # Open a file to store parameters needed for a contour advection simulation:
 ofile = open('ini_params.asc','w')
 ofile.write("{:.14f} {:.14f} {:.14f} {:.14f} \n".format(v11,v12,v21,v22))
-ofile.write("{:.14f} {:.14f} {:.14f} {:.14f} \n".format(h1,h2,denrat,g))
+ofile.write("{:.14f} {:.14f} {:.14f} {:.14f} \n".format(h1,h2,densityRatio,g))
 ofile.write("{:.14f} {:.14f}  \n".format(ctsq1,ctsq2))
 ofile.close()
